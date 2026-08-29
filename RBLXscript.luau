@@ -1,0 +1,671 @@
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local GUI_NAME = "MobileToggleMenuGui"
+
+local existing = playerGui:FindFirstChild(GUI_NAME)
+if existing then existing:Destroy() end
+
+local SCRIPT_TAG = "MobileToggleMenuScript"
+_G[SCRIPT_TAG] = true
+
+local isMobileDevice = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
+
+-- ===== Небо =====
+
+local function cleanupCustomSky()
+	for _, child in ipairs(Lighting:GetChildren()) do
+		if child:IsA("Sky") and (child.Name == "PinkSky" or child.Name == "SunsetSky" or child.Name == "OvercastSky") then
+			child:Destroy()
+		end
+	end
+end
+cleanupCustomSky()
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = GUI_NAME
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = playerGui
+
+-- ===== Мелкие хелперы для UI =====
+
+local function corner(inst, radius)
+	local c = Instance.new("UICorner")
+	c.CornerRadius = radius or UDim.new(1, 0)
+	c.Parent = inst
+	return c
+end
+
+local function stroke(inst, color, thickness)
+	local s = Instance.new("UIStroke")
+	s.Color = color
+	s.Thickness = thickness or 1.5
+	s.Parent = inst
+	return s
+end
+
+local function newFrame(parent, size, pos, color, transparency)
+	local f = Instance.new("Frame")
+	f.Size = size
+	if pos then f.Position = pos end
+	f.BackgroundColor3 = color or Color3.fromRGB(45, 45, 52)
+	f.BackgroundTransparency = transparency or 0
+	f.BorderSizePixel = 0
+	f.Parent = parent
+	return f
+end
+
+local function getSafeCamera()
+	local camera = workspace.CurrentCamera
+	if not camera then
+		workspace:GetPropertyChangedSignal("CurrentCamera"):Wait()
+		camera = workspace.CurrentCamera
+	end
+	return camera
+end
+
+-- ===== Круглая иконка =====
+
+local iconSize = 26
+local viewportSize = getSafeCamera().ViewportSize
+
+local icon = Instance.new("ImageButton")
+icon.Name = "ToggleIcon"
+icon.Size = UDim2.new(0, iconSize, 0, iconSize)
+icon.Position = UDim2.new(0, viewportSize.X / 2 - iconSize / 2, 0, 20)
+icon.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+icon.BorderSizePixel = 0
+icon.AutoButtonColor = false
+icon.ZIndex = 10
+icon.Parent = screenGui
+corner(icon)
+stroke(icon, Color3.fromRGB(90, 90, 100), 2)
+
+local iconLabel = Instance.new("TextLabel")
+iconLabel.Size = UDim2.new(1, 0, 1, 0)
+iconLabel.BackgroundTransparency = 1
+iconLabel.Text = "FTAP"
+iconLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+iconLabel.TextScaled = true
+iconLabel.Font = Enum.Font.GothamBold
+iconLabel.ZIndex = 11
+iconLabel.Parent = icon
+
+-- ===== Панель меню =====
+
+local minPanelSize = Vector2.new(260, 160)
+local maxPanelSize = Vector2.new(560, 340)
+local currentPanelSize = Vector2.new(380, 240)
+
+if isMobileDevice then
+	minPanelSize = Vector2.new(300, 200)
+	maxPanelSize = Vector2.new(600, 400)
+	currentPanelSize = Vector2.new(420, 280)
+end
+
+local menu = Instance.new("Frame")
+menu.Name = "MenuPanel"
+menu.Size = UDim2.new(0, 0, 0, 0)
+menu.Position = UDim2.new(0, viewportSize.X / 2, 0, 80)
+menu.AnchorPoint = Vector2.new(0.5, 0)
+menu.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
+menu.BorderSizePixel = 0
+menu.ClipsDescendants = true
+menu.ZIndex = 5
+menu.Visible = false
+menu.Parent = screenGui
+corner(menu, UDim.new(0, 8))
+stroke(menu, Color3.fromRGB(70, 70, 78))
+
+local dragBar = Instance.new("TextButton")
+dragBar.Name = "DragBar"
+dragBar.Size = UDim2.new(1, -30, 0, 30)
+dragBar.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+dragBar.BackgroundTransparency = 0.7
+dragBar.BorderSizePixel = 0
+dragBar.Text = "≡ Меню"
+dragBar.TextColor3 = Color3.fromRGB(255, 255, 255)
+dragBar.Font = Enum.Font.GothamMedium
+dragBar.TextSize = 12
+dragBar.AutoButtonColor = false
+dragBar.ZIndex = 7
+dragBar.Parent = menu
+corner(dragBar, UDim.new(0, 8))
+
+local content = Instance.new("ScrollingFrame")
+content.Name = "Content"
+content.Size = UDim2.new(1, 0, 1, -30)
+content.Position = UDim2.new(0, 0, 0, 30)
+content.BackgroundTransparency = 1
+content.ZIndex = 6
+content.ScrollBarThickness = 4
+content.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 90)
+content.AutomaticCanvasSize = Enum.AutomaticSize.Y
+content.CanvasSize = UDim2.new(0, 0, 0, 0)
+content.Parent = menu
+
+local contentLayout = Instance.new("UIListLayout")
+contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+contentLayout.Padding = UDim.new(0, 10)
+contentLayout.Parent = content
+
+local contentPadding = Instance.new("UIPadding")
+contentPadding.PaddingTop = UDim.new(0, 12)
+contentPadding.PaddingBottom = UDim.new(0, 20)
+contentPadding.PaddingLeft = UDim.new(0, 14)
+contentPadding.PaddingRight = UDim.new(0, 14)
+contentPadding.Parent = content
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 26)
+title.BackgroundTransparency = 1
+title.Text = "Настройки"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.LayoutOrder = 1
+title.Parent = content
+
+-- ===== Sky section =====
+
+local function sectionLabel(text, order)
+	local l = Instance.new("TextLabel")
+	l.Size = UDim2.new(1, 0, 0, 18)
+	l.BackgroundTransparency = 1
+	l.Text = text
+	l.TextColor3 = Color3.fromRGB(255, 255, 255)
+	l.Font = Enum.Font.Gotham
+	l.TextSize = 13
+	l.TextXAlignment = Enum.TextXAlignment.Left
+	l.LayoutOrder = order
+	l.Parent = content
+	return l
+end
+
+sectionLabel("Небо", 2)
+
+local function createSkyButton(name, text, layoutOrder)
+	local button = Instance.new("TextButton")
+	button.Name = name
+	button.Size = UDim2.new(1, 0, 0, 36)
+	button.BackgroundColor3 = Color3.fromRGB(45, 45, 52)
+	button.BorderSizePixel = 0
+	button.Text = text
+	button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	button.Font = Enum.Font.GothamMedium
+	button.TextSize = 15
+	button.AutoButtonColor = false
+	button.LayoutOrder = layoutOrder
+	button.Parent = content
+	corner(button, UDim.new(0, 8))
+	return button
+end
+
+local defaultSkyButton = createSkyButton("DefaultSkyButton", "Обычное небо", 3)
+local pinkSkyButton = createSkyButton("PinkSkyButton", "Розовое небо", 4)
+local sunsetSkyButton = createSkyButton("SunsetSkyButton", "Закатное небо", 5)
+local overcastSkyButton = createSkyButton("OvercastSkyButton", "Пасмурное небо", 6)
+local skyButtons = {defaultSkyButton, pinkSkyButton, sunsetSkyButton, overcastSkyButton}
+
+local function setActiveSkyButton(activeButton)
+	for _, button in ipairs(skyButtons) do
+		button.BackgroundColor3 = (button == activeButton)
+			and Color3.fromRGB(80, 80, 200)
+			or Color3.fromRGB(45, 45, 52)
+	end
+end
+
+local PINK_SKY = {
+	Right = "rbxassetid://99178632470974",
+	Left = "rbxassetid://105698490046689",
+	Up = "rbxassetid://118938836131305",
+	Down = "rbxassetid://120618995645758",
+	Front = "rbxassetid://72769531974029",
+	Back = "rbxassetid://70646713355454",
+}
+
+local SUNSET_SKY = {
+	Right = "rbxassetid://81917192544565",
+	Left = "rbxassetid://123504218900071",
+	Up = "rbxassetid://102754091719425",
+	Down = "rbxassetid://120203815632456",
+	Back = "rbxassetid://80626011057173",
+	Front = "rbxassetid://71391772386689",
+}
+
+local OVERCAST_SKY = {
+	Right = "rbxassetid://113656297117229",
+	Left = "rbxassetid://117387352674614",
+	Up = "rbxassetid://96118083498785",
+	Down = "rbxassetid://136079591970856",
+	Back = "rbxassetid://71196675713878",
+	Front = "rbxassetid://81417222464090",
+}
+
+local originalSky, customSky
+
+local function findOriginalSky()
+	for _, child in ipairs(Lighting:GetChildren()) do
+		if child:IsA("Sky") and child.Name ~= "PinkSky" and child.Name ~= "SunsetSky" and child.Name ~= "OvercastSky" then
+			return child
+		end
+	end
+end
+
+originalSky = findOriginalSky()
+if not originalSky then
+	originalSky = Instance.new("Sky")
+	originalSky.Name = "DefaultSky"
+	originalSky.Parent = Lighting
+end
+
+local function clearCustomSky()
+	if customSky then
+		customSky:Destroy()
+		customSky = nil
+	end
+	cleanupCustomSky()
+end
+
+local function applyDefaultSky()
+	clearCustomSky()
+	if originalSky and not originalSky.Parent then
+		originalSky.Parent = Lighting
+	end
+	setActiveSkyButton(defaultSkyButton)
+end
+
+local function applyCustomSky(name, textures, button)
+	clearCustomSky()
+	if originalSky then originalSky.Parent = nil end
+
+	local sky = Instance.new("Sky")
+	sky.Name = name
+	sky.SkyboxFt = textures.Front
+	sky.SkyboxRt = textures.Right
+	sky.SkyboxBk = textures.Back
+	sky.SkyboxUp = textures.Up
+	sky.SkyboxLf = textures.Left
+	sky.SkyboxDn = textures.Down
+	sky.Parent = Lighting
+
+	customSky = sky
+	setActiveSkyButton(button)
+end
+
+defaultSkyButton.MouseButton1Click:Connect(applyDefaultSky)
+pinkSkyButton.MouseButton1Click:Connect(function()
+	applyCustomSky("PinkSky", PINK_SKY, pinkSkyButton)
+end)
+sunsetSkyButton.MouseButton1Click:Connect(function()
+	applyCustomSky("SunsetSky", SUNSET_SKY, sunsetSkyButton)
+end)
+overcastSkyButton.MouseButton1Click:Connect(function()
+	applyCustomSky("OvercastSky", OVERCAST_SKY, overcastSkyButton)
+end)
+
+applyDefaultSky()
+
+-- ===== FOV section =====
+
+local FOV_MIN, FOV_MAX = 50, 120
+
+local fovLabel = sectionLabel("FOV (Угол обзора)", 7)
+
+local fovValueBox = Instance.new("TextBox")
+fovValueBox.Size = UDim2.new(0, 56, 0, 18)
+fovValueBox.AnchorPoint = Vector2.new(1, 0)
+fovValueBox.Position = UDim2.new(1, 0, 0, 0)
+fovValueBox.BackgroundColor3 = Color3.fromRGB(45, 45, 52)
+fovValueBox.BorderSizePixel = 0
+fovValueBox.Text = "70"
+fovValueBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+fovValueBox.Font = Enum.Font.GothamMedium
+fovValueBox.TextSize = 13
+fovValueBox.ClearTextOnFocus = false
+fovValueBox.ZIndex = 8
+fovValueBox.Parent = fovLabel
+corner(fovValueBox, UDim.new(0, 5))
+
+local fovSliderArea = Instance.new("Frame")
+fovSliderArea.Size = UDim2.new(1, 0, 0, 30)
+fovSliderArea.BackgroundTransparency = 1
+fovSliderArea.LayoutOrder = 8
+fovSliderArea.Parent = content
+
+local fovTrack = newFrame(fovSliderArea, UDim2.new(1, 0, 0, 6), UDim2.new(0, 0, 0.5, 0), Color3.fromRGB(50, 50, 58))
+fovTrack.AnchorPoint = Vector2.new(0, 0.5)
+corner(fovTrack)
+
+local fovFill = newFrame(fovSliderArea, UDim2.new(0, 0, 0, 6), UDim2.new(0, 0, 0.5, 0), Color3.fromRGB(90, 90, 210))
+fovFill.AnchorPoint = Vector2.new(0, 0.5)
+corner(fovFill)
+
+local fovKnob = Instance.new("ImageButton")
+fovKnob.AnchorPoint = Vector2.new(0.5, 0.5)
+fovKnob.Size = UDim2.new(0, 20, 0, 20)
+fovKnob.Position = UDim2.new(0, 0, 0.5, 0)
+fovKnob.BackgroundColor3 = Color3.fromRGB(240, 240, 245)
+fovKnob.BorderSizePixel = 0
+fovKnob.AutoButtonColor = false
+fovKnob.ZIndex = 9
+fovKnob.Parent = fovSliderArea
+corner(fovKnob)
+
+local currentFov = math.clamp(getSafeCamera().FieldOfView or 70, FOV_MIN, FOV_MAX)
+
+local function setFov(value)
+	value = math.clamp(value, FOV_MIN, FOV_MAX)
+	currentFov = value
+
+	local percent = (value - FOV_MIN) / (FOV_MAX - FOV_MIN)
+	fovFill.Size = UDim2.new(percent, 0, 0, 6)
+	fovKnob.Position = UDim2.new(percent, 0, 0.5, 0)
+	fovValueBox.Text = tostring(math.floor(value + 0.5))
+
+	local camera = workspace.CurrentCamera
+	if camera then camera.FieldOfView = value end
+end
+
+setFov(currentFov)
+
+workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
+	local camera = workspace.CurrentCamera
+	if camera then camera.FieldOfView = currentFov end
+end)
+
+fovValueBox.FocusLost:Connect(function()
+	local num = tonumber(fovValueBox.Text)
+	if num then
+		setFov(num)
+	else
+		fovValueBox.Text = tostring(math.floor(currentFov + 0.5))
+	end
+end)
+
+local fovDragging, fovDragInput = false, nil
+
+local function updateFovFromPosition(inputPosition)
+	local trackSize = fovTrack.AbsoluteSize.X
+	if trackSize <= 0 then return end
+	local relative = math.clamp((inputPosition.X - fovTrack.AbsolutePosition.X) / trackSize, 0, 1)
+	setFov(FOV_MIN + relative * (FOV_MAX - FOV_MIN))
+end
+
+fovKnob.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		fovDragging = true
+		fovDragInput = input
+		updateFovFromPosition(input.Position)
+
+		local connection
+		connection = input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				fovDragging = false
+				fovDragInput = nil
+				connection:Disconnect()
+			end
+		end)
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if fovDragging and input == fovDragInput then
+		updateFovFromPosition(input.Position)
+	end
+end)
+
+-- ===== Управление / Destroy =====
+
+sectionLabel("Управление", 9)
+
+local destroyButton = Instance.new("TextButton")
+destroyButton.Size = UDim2.new(1, 0, 0, 40)
+destroyButton.BackgroundColor3 = Color3.fromRGB(45, 45, 52)
+destroyButton.BorderSizePixel = 0
+destroyButton.Text = "УДАЛИТЬ СКРИПТ"
+destroyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+destroyButton.Font = Enum.Font.GothamBold
+destroyButton.TextSize = 15
+destroyButton.AutoButtonColor = false
+destroyButton.LayoutOrder = 10
+destroyButton.Parent = content
+corner(destroyButton, UDim.new(0, 8))
+
+local confirmDestroy = false
+
+local function destroyScript()
+	clearCustomSky()
+	if originalSky and not originalSky.Parent then
+		originalSky.Parent = Lighting
+	end
+	if workspace.CurrentCamera then
+		workspace.CurrentCamera.FieldOfView = 70
+	end
+	_G[SCRIPT_TAG] = nil
+	screenGui:Destroy()
+end
+
+destroyButton.MouseButton1Click:Connect(function()
+	if not confirmDestroy then
+		confirmDestroy = true
+		destroyButton.Text = "НАЖМИ ЕЩЁ РАЗ"
+		destroyButton.BackgroundColor3 = Color3.fromRGB(60, 0, 0)
+
+		task.delay(3, function()
+			if confirmDestroy and destroyButton.Parent then
+				confirmDestroy = false
+				destroyButton.Text = "УДАЛИТЬ СКРИПТ"
+				destroyButton.BackgroundColor3 = Color3.fromRGB(45, 45, 52)
+			end
+		end)
+	else
+		destroyScript()
+	end
+end)
+
+-- ===== Resize handle =====
+
+local resizeHandle = Instance.new("ImageButton")
+resizeHandle.Size = UDim2.new(0, 20, 0, 20)
+resizeHandle.AnchorPoint = Vector2.new(1, 1)
+resizeHandle.Position = UDim2.new(1, 0, 1, 0)
+resizeHandle.BackgroundTransparency = 1
+resizeHandle.AutoButtonColor = false
+resizeHandle.ZIndex = 20
+resizeHandle.Parent = menu
+
+local function resizeLine(size, pos)
+	local l = Instance.new("Frame")
+	l.Size = size
+	l.Position = pos
+	l.BackgroundColor3 = Color3.fromRGB(150, 150, 160)
+	l.BorderSizePixel = 0
+	l.ZIndex = 21
+	l.Parent = resizeHandle
+	return l
+end
+resizeLine(UDim2.new(1, 0, 0, 2), UDim2.new(0, 0, 1, -2))
+resizeLine(UDim2.new(0, 2, 1, 0), UDim2.new(1, -2, 0, 0))
+
+-- ===== Открытие/закрытие меню =====
+
+local isOpen, isAnimating = false, false
+
+local function setMenuOpen(open)
+	if isAnimating then return end
+	isAnimating = true
+	isOpen = open
+
+	local targetSize = open and UDim2.new(0, currentPanelSize.X, 0, currentPanelSize.Y) or UDim2.new(0, 0, 0, 0)
+	local info = open
+		and TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+		or TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+
+	if open then menu.Visible = true end
+
+	local tween = TweenService:Create(menu, info, { Size = targetSize })
+	tween:Play()
+	tween.Completed:Connect(function()
+		if not open then menu.Visible = false end
+		isAnimating = false
+	end)
+end
+
+-- ===== Перетаскивание иконки =====
+
+local iconDragging = false
+local iconDragInput = nil
+local iconDragStart = nil
+local iconStartPos = nil
+local iconMoved = false
+local DRAG_THRESHOLD = 3
+
+local function updateMenuPosition()
+	local vp = workspace.CurrentCamera.ViewportSize
+	local menuX = icon.Position.X.Offset + iconSize / 2
+	local menuY = icon.Position.Y.Offset + iconSize + 10
+
+	if menuX + currentPanelSize.X / 2 > vp.X then
+		menuX = vp.X - currentPanelSize.X / 2
+	elseif menuX - currentPanelSize.X / 2 < 0 then
+		menuX = currentPanelSize.X / 2
+	end
+	if menuY + currentPanelSize.Y > vp.Y then
+		menuY = vp.Y - currentPanelSize.Y - 10
+	end
+
+	menu.Position = UDim2.new(0, menuX, 0, menuY)
+end
+
+icon.InputBegan:Connect(function(input)
+	if input.UserInputType ~= Enum.UserInputType.MouseButton1 and input.UserInputType ~= Enum.UserInputType.Touch then
+		return
+	end
+
+	iconDragging = true
+	iconMoved = false
+	iconDragStart = input.Position
+	iconStartPos = icon.Position
+
+	local endConnection
+	endConnection = input.Changed:Connect(function()
+		if input.UserInputState ~= Enum.UserInputState.End then return end
+		endConnection:Disconnect()
+
+		local wasDragged = iconMoved
+		iconDragging = false
+		iconDragInput = nil
+
+		if not wasDragged then
+			setMenuOpen(not isOpen)
+		end
+	end)
+end)
+
+icon.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		iconDragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if not iconDragging or input ~= iconDragInput then return end
+
+	local delta = input.Position - iconDragStart
+	if math.abs(delta.X) > DRAG_THRESHOLD or math.abs(delta.Y) > DRAG_THRESHOLD then
+		iconMoved = true
+	end
+
+	local vp = workspace.CurrentCamera.ViewportSize
+	local newX = math.clamp(iconStartPos.X.Offset + delta.X, 0, vp.X - iconSize)
+	local newY = math.clamp(iconStartPos.Y.Offset + delta.Y, 0, vp.Y - iconSize)
+	icon.Position = UDim2.new(0, newX, 0, newY)
+
+	if isOpen then updateMenuPosition() end
+end)
+
+-- ===== Перетаскивание меню =====
+
+local menuDragging = false
+local menuDragInput = nil
+local menuDragStart = nil
+local menuStartPos = nil
+
+dragBar.InputBegan:Connect(function(input)
+	if input.UserInputType ~= Enum.UserInputType.MouseButton1 and input.UserInputType ~= Enum.UserInputType.Touch then
+		return
+	end
+
+	menuDragging = true
+	menuDragStart = input.Position
+	menuStartPos = menu.Position
+
+	local endConnection
+	endConnection = input.Changed:Connect(function()
+		if input.UserInputState ~= Enum.UserInputState.End then return end
+		endConnection:Disconnect()
+		menuDragging = false
+		menuDragInput = nil
+	end)
+end)
+
+dragBar.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		menuDragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if not menuDragging or input ~= menuDragInput then return end
+
+	local delta = input.Position - menuDragStart
+	local vp = workspace.CurrentCamera.ViewportSize
+	local newX = math.clamp(menuStartPos.X.Offset + delta.X, -currentPanelSize.X / 2, vp.X - currentPanelSize.X / 2)
+	local newY = math.clamp(menuStartPos.Y.Offset + delta.Y, 0, vp.Y - 30)
+	menu.Position = UDim2.new(0, newX, 0, newY)
+end)
+
+-- ===== Изменение размера меню =====
+
+local resizing, resizeInput, resizeStart, sizeStart
+
+resizeHandle.InputBegan:Connect(function(input)
+	if not isOpen or isAnimating then return end
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		resizing = true
+		resizeStart = input.Position
+		sizeStart = currentPanelSize
+
+		local connection
+		connection = input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				resizing = false
+				connection:Disconnect()
+			end
+		end)
+	end
+end)
+
+resizeHandle.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		resizeInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if resizing and input == resizeInput then
+		local delta = input.Position - resizeStart
+		local newWidth = math.clamp(sizeStart.X + delta.X, minPanelSize.X, maxPanelSize.X)
+		local newHeight = math.clamp(sizeStart.Y + delta.Y, minPanelSize.Y, maxPanelSize.Y)
+		currentPanelSize = Vector2.new(newWidth, newHeight)
+		menu.Size = UDim2.new(0, newWidth, 0, newHeight)
+	end
+end)
