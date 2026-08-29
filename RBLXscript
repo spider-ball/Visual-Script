@@ -19,7 +19,7 @@ local isMobileDevice = UserInputService.TouchEnabled and not UserInputService.Mo
 
 local function cleanupCustomSky()
 	for _, child in ipairs(Lighting:GetChildren()) do
-		if child:IsA("Sky") and (child.Name == "PinkSky" or child.Name == "SunsetSky" or child.Name == "OvercastSky" or child.Name == "PurpleSky" or child.Name == "CloudySky") then
+		if child:IsA("Sky") and (child.Name == "PinkSky" or child.Name == "Pink1Sky" or child.Name == "SunsetSky" or child.Name == "OvercastSky" or child.Name == "Overcast1Sky" or child.Name == "PurpleSky" or child.Name == "CloudySky") then
 			child:Destroy()
 		end
 	end
@@ -129,7 +129,7 @@ dragBar.Size = UDim2.new(1, -30, 0, 30)
 dragBar.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
 dragBar.BackgroundTransparency = 0.7
 dragBar.BorderSizePixel = 0
-dragBar.Text = "≡ Меню"
+dragBar.Text = "≡ Menu"
 dragBar.TextColor3 = Color3.fromRGB(255, 255, 255)
 dragBar.Font = Enum.Font.GothamMedium
 dragBar.TextSize = 12
@@ -165,7 +165,7 @@ contentPadding.Parent = content
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 26)
 title.BackgroundTransparency = 1
-title.Text = "Настройки"
+title.Text = "Settings"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 18
@@ -189,7 +189,7 @@ local function sectionLabel(text, order)
 	return l
 end
 
-sectionLabel("Небо", 2)
+sectionLabel("Sky", 2)
 
 local function createSkyButton(name, text, layoutOrder)
 	local button = Instance.new("TextButton")
@@ -208,13 +208,15 @@ local function createSkyButton(name, text, layoutOrder)
 	return button
 end
 
-local defaultSkyButton = createSkyButton("DefaultSkyButton", "Обычное небо", 3)
-local pinkSkyButton = createSkyButton("PinkSkyButton", "Розовое небо", 4)
-local sunsetSkyButton = createSkyButton("SunsetSkyButton", "Закатное небо", 5)
-local overcastSkyButton = createSkyButton("OvercastSkyButton", "Пасмурное небо", 6)
-local purpleSkyButton = createSkyButton("PurpleSkyButton", "Фиолетовое небо", 7)
-local cloudySkyButton = createSkyButton("CloudySkyButton", "Облачное небо", 8)
-local skyButtons = {defaultSkyButton, pinkSkyButton, sunsetSkyButton, overcastSkyButton, purpleSkyButton, cloudySkyButton}
+local defaultSkyButton = createSkyButton("DefaultSkyButton", "Default Sky", 3)
+local pinkSkyButton = createSkyButton("PinkSkyButton", "Pink Sky", 4)
+local pink1SkyButton = createSkyButton("Pink1SkyButton", "Pink 1 Sky", 5)
+local sunsetSkyButton = createSkyButton("SunsetSkyButton", "Sunset Sky", 6)
+local overcastSkyButton = createSkyButton("OvercastSkyButton", "Overcast Sky", 7)
+local overcast1SkyButton = createSkyButton("Overcast1SkyButton", "Overcast 1 Sky", 8)
+local purpleSkyButton = createSkyButton("PurpleSkyButton", "Purple Sky", 9)
+local cloudySkyButton = createSkyButton("CloudySkyButton", "Cloudy Sky", 10)
+local skyButtons = {defaultSkyButton, pinkSkyButton, pink1SkyButton, sunsetSkyButton, overcastSkyButton, overcast1SkyButton, purpleSkyButton, cloudySkyButton}
 
 local function setActiveSkyButton(activeButton)
 	for _, button in ipairs(skyButtons) do
@@ -231,6 +233,15 @@ local PINK_SKY = {
 	Down = "rbxassetid://120618995645758",
 	Front = "rbxassetid://72769531974029",
 	Back = "rbxassetid://70646713355454",
+}
+
+local PINK1_SKY = {
+	Right = "rbxassetid://121821717023864",
+	Left = "rbxassetid://122912820996210",
+	Up = "rbxassetid://136954498936115",
+	Down = "rbxassetid://120521166612928",
+	Back = "rbxassetid://75859338419870",
+	Front = "rbxassetid://87978450174413",
 }
 
 local SUNSET_SKY = {
@@ -251,13 +262,22 @@ local OVERCAST_SKY = {
 	Front = "rbxassetid://81417222464090",
 }
 
+local OVERCAST1_SKY = {
+	Right = "rbxassetid://109693044711016",
+	Left = "rbxassetid://100996126500320",
+	Up = "rbxassetid://97846107870268",
+	Down = "rbxassetid://130441754428343",
+	Back = "rbxassetid://123436356714901",
+	Front = "rbxassetid://111439831859778",
+}
+
 local PURPLE_SKY = {
-	Right = "rbxassetid://121821717023864",
-	Left = "rbxassetid://122912820996210",
-	Up = "rbxassetid://136954498936115",
-	Down = "rbxassetid://120521166612928",
-	Back = "rbxassetid://75859338419870",
-	Front = "rbxassetid://87978450174413",
+	Right = "rbxassetid://107582465298500",
+	Left = "rbxassetid://116713499702383",
+	Up = "rbxassetid://104937569917275",
+	Down = "rbxassetid://119424695859184",
+	Back = "rbxassetid://94075096527595",
+	Front = "rbxassetid://107660858272322",
 }
 
 local CLOUDY_SKY = {
@@ -273,7 +293,7 @@ local originalSky, customSky
 
 local function findOriginalSky()
 	for _, child in ipairs(Lighting:GetChildren()) do
-		if child:IsA("Sky") and child.Name ~= "PinkSky" and child.Name ~= "SunsetSky" and child.Name ~= "OvercastSky" and child.Name ~= "PurpleSky" and child.Name ~= "CloudySky" then
+		if child:IsA("Sky") and child.Name ~= "PinkSky" and child.Name ~= "Pink1Sky" and child.Name ~= "SunsetSky" and child.Name ~= "OvercastSky" and child.Name ~= "Overcast1Sky" and child.Name ~= "PurpleSky" and child.Name ~= "CloudySky" then
 			return child
 		end
 	end
@@ -324,11 +344,17 @@ defaultSkyButton.MouseButton1Click:Connect(applyDefaultSky)
 pinkSkyButton.MouseButton1Click:Connect(function()
 	applyCustomSky("PinkSky", PINK_SKY, pinkSkyButton)
 end)
+pink1SkyButton.MouseButton1Click:Connect(function()
+	applyCustomSky("Pink1Sky", PINK1_SKY, pink1SkyButton)
+end)
 sunsetSkyButton.MouseButton1Click:Connect(function()
 	applyCustomSky("SunsetSky", SUNSET_SKY, sunsetSkyButton)
 end)
 overcastSkyButton.MouseButton1Click:Connect(function()
 	applyCustomSky("OvercastSky", OVERCAST_SKY, overcastSkyButton)
+end)
+overcast1SkyButton.MouseButton1Click:Connect(function()
+	applyCustomSky("Overcast1Sky", OVERCAST1_SKY, overcast1SkyButton)
 end)
 purpleSkyButton.MouseButton1Click:Connect(function()
 	applyCustomSky("PurpleSky", PURPLE_SKY, purpleSkyButton)
@@ -343,7 +369,7 @@ applyDefaultSky()
 
 local FOV_MIN, FOV_MAX = 50, 120
 
-local fovLabel = sectionLabel("FOV (Угол обзора)", 9)
+local fovLabel = sectionLabel("FOV (Field of View)", 11)
 
 local fovValueBox = Instance.new("TextBox")
 fovValueBox.Size = UDim2.new(0, 56, 0, 18)
@@ -363,7 +389,7 @@ corner(fovValueBox, UDim.new(0, 5))
 local fovSliderArea = Instance.new("Frame")
 fovSliderArea.Size = UDim2.new(1, 0, 0, 30)
 fovSliderArea.BackgroundTransparency = 1
-fovSliderArea.LayoutOrder = 10
+fovSliderArea.LayoutOrder = 12
 fovSliderArea.Parent = content
 
 local fovTrack = newFrame(fovSliderArea, UDim2.new(1, 0, 0, 6), UDim2.new(0, 0, 0.5, 0), Color3.fromRGB(50, 50, 58))
@@ -450,18 +476,18 @@ end)
 
 -- ===== Управление / Destroy =====
 
-sectionLabel("Управление", 11)
+sectionLabel("Control", 13)
 
 local destroyButton = Instance.new("TextButton")
 destroyButton.Size = UDim2.new(1, 0, 0, 40)
 destroyButton.BackgroundColor3 = Color3.fromRGB(45, 45, 52)
 destroyButton.BorderSizePixel = 0
-destroyButton.Text = "УДАЛИТЬ СКРИПТ"
+destroyButton.Text = "DELETE SCRIPT"
 destroyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 destroyButton.Font = Enum.Font.GothamBold
 destroyButton.TextSize = 15
 destroyButton.AutoButtonColor = false
-destroyButton.LayoutOrder = 12
+destroyButton.LayoutOrder = 14
 destroyButton.Parent = content
 corner(destroyButton, UDim.new(0, 8))
 
@@ -482,13 +508,13 @@ end
 destroyButton.MouseButton1Click:Connect(function()
 	if not confirmDestroy then
 		confirmDestroy = true
-		destroyButton.Text = "НАЖМИ ЕЩЁ РАЗ"
+		destroyButton.Text = "CLICK AGAIN"
 		destroyButton.BackgroundColor3 = Color3.fromRGB(60, 0, 0)
 
 		task.delay(3, function()
 			if confirmDestroy and destroyButton.Parent then
 				confirmDestroy = false
-				destroyButton.Text = "УДАЛИТЬ СКРИПТ"
+				destroyButton.Text = "DELETE SCRIPT"
 				destroyButton.BackgroundColor3 = Color3.fromRGB(45, 45, 52)
 			end
 		end)
