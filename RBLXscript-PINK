@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
+local HttpService = game:GetService("HttpService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -14,6 +15,20 @@ local SCRIPT_TAG = "MobileToggleMenuScript"
 _G[SCRIPT_TAG] = true
 
 local isMobileDevice = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
+
+-- ===== Настройки сохранения =====
+local SETTINGS_FILE = "ftap_settings.json"
+local saveDebounce = false
+
+-- ===== Значения по умолчанию =====
+local DEFAULTS = {
+	sky = "DefaultSky",
+	fov = 70,
+	iconX = nil,
+	iconY = 20,
+	menuW = 380,
+	menuH = 240,
+}
 
 -- ===== Небо =====
 
@@ -246,6 +261,8 @@ local function setActiveSkyButton(activeButton)
 	end
 end
 
+-- ===== Текстуры неба =====
+
 local PINK_SKY = {
 	Right = "rbxassetid://99178632470974",
 	Left = "rbxassetid://105698490046689",
@@ -361,12 +378,17 @@ local function clearCustomSky()
 	cleanupCustomSky()
 end
 
+-- ===== Переменные состояния =====
+local currentSkyName = "DefaultSky"
+local currentFov = 70
+
 local function applyDefaultSky()
 	clearCustomSky()
 	if originalSky and not originalSky.Parent then
 		originalSky.Parent = Lighting
 	end
 	setActiveSkyButton(defaultSkyButton)
+	currentSkyName = "DefaultSky"
 end
 
 local function applyCustomSky(name, textures, button)
@@ -385,41 +407,53 @@ local function applyCustomSky(name, textures, button)
 
 	customSky = sky
 	setActiveSkyButton(button)
+	currentSkyName = name
 end
 
-defaultSkyButton.MouseButton1Click:Connect(applyDefaultSky)
+defaultSkyButton.MouseButton1Click:Connect(function()
+	applyDefaultSky()
+	saveSettingsDelayed()
+end)
 pinkSkyButton.MouseButton1Click:Connect(function()
 	applyCustomSky("PinkSky", PINK_SKY, pinkSkyButton)
+	saveSettingsDelayed()
 end)
 pink1SkyButton.MouseButton1Click:Connect(function()
 	applyCustomSky("Pink1Sky", PINK1_SKY, pink1SkyButton)
+	saveSettingsDelayed()
 end)
 sunsetSkyButton.MouseButton1Click:Connect(function()
 	applyCustomSky("SunsetSky", SUNSET_SKY, sunsetSkyButton)
+	saveSettingsDelayed()
 end)
 overcastSkyButton.MouseButton1Click:Connect(function()
 	applyCustomSky("OvercastSky", OVERCAST_SKY, overcastSkyButton)
+	saveSettingsDelayed()
 end)
 overcast1SkyButton.MouseButton1Click:Connect(function()
 	applyCustomSky("Overcast1Sky", OVERCAST1_SKY, overcast1SkyButton)
+	saveSettingsDelayed()
 end)
 purpleSkyButton.MouseButton1Click:Connect(function()
 	applyCustomSky("PurpleSky", PURPLE_SKY, purpleSkyButton)
+	saveSettingsDelayed()
 end)
 cloudySkyButton.MouseButton1Click:Connect(function()
 	applyCustomSky("CloudySky", CLOUDY_SKY, cloudySkyButton)
+	saveSettingsDelayed()
 end)
 redSkyButton.MouseButton1Click:Connect(function()
 	applyCustomSky("RedSky", RED_SKY, redSkyButton)
+	saveSettingsDelayed()
 end)
 red1SkyButton.MouseButton1Click:Connect(function()
 	applyCustomSky("Red1Sky", RED1_SKY, red1SkyButton)
+	saveSettingsDelayed()
 end)
 redGoldSkyButton.MouseButton1Click:Connect(function()
 	applyCustomSky("RedGoldSky", REDGOLD_SKY, redGoldSkyButton)
+	saveSettingsDelayed()
 end)
-
-applyDefaultSky()
 
 -- ===== FOV section =====
 
@@ -468,7 +502,7 @@ fovKnob.ZIndex = 9
 fovKnob.Parent = fovSliderArea
 corner(fovKnob)
 
-local currentFov = math.clamp(getSafeCamera().FieldOfView or 70, FOV_MIN, FOV_MAX)
+currentFov = math.clamp(getSafeCamera().FieldOfView or 70, FOV_MIN, FOV_MAX)
 
 local function setFov(value)
 	value = math.clamp(value, FOV_MIN, FOV_MAX)
@@ -497,6 +531,7 @@ fovValueBox.FocusLost:Connect(function()
 	else
 		fovValueBox.Text = tostring(math.floor(currentFov + 0.5))
 	end
+	saveSettingsDelayed()
 end)
 
 local fovDragging, fovDragInput = false, nil
@@ -520,6 +555,7 @@ fovKnob.InputBegan:Connect(function(input)
 				fovDragging = false
 				fovDragInput = nil
 				connection:Disconnect()
+				saveSettingsDelayed()
 			end
 		end)
 	end
@@ -531,10 +567,85 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- ===== Управление / Destroy =====
+-- ===== Control section =====
 
 sectionLabel("Control", 16)
 
+-- Кнопка сброса
+local resetButton = Instance.new("TextButton")
+resetButton.Size = UDim2.new(1, 0, 0, 36)
+resetButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+resetButton.BorderSizePixel = 0
+resetButton.Text = "RESET SETTINGS"
+resetButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+resetButton.Font = Enum.Font.Gotham
+resetButton.TextSize = 14
+resetButton.AutoButtonColor = false
+resetButton.LayoutOrder = 17
+resetButton.Parent = content
+corner(resetButton, UDim.new(0, 8))
+stroke(resetButton, Color3.fromRGB(252, 207, 242), 1)
+
+resetButton.MouseButton1Click:Connect(function()
+	applyDefaultSky()
+	setFov(DEFAULTS.fov)
+
+	currentPanelSize = Vector2.new(
+		isMobileDevice and 420 or 380,
+		isMobileDevice and 280 or 240
+	)
+
+	icon.Position = UDim2.new(0, viewportSize.X / 2 - iconSize / 2, 0, 20)
+
+	resetButton.Text = "✓ RESET DONE"
+	task.delay(1.5, function()
+		if resetButton.Parent then
+			resetButton.Text = "RESET SETTINGS"
+		end
+	end)
+
+	saveSettings()
+end)
+
+-- Кнопка экспорта
+local exportButton = Instance.new("TextButton")
+exportButton.Size = UDim2.new(1, 0, 0, 36)
+exportButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+exportButton.BorderSizePixel = 0
+exportButton.Text = "EXPORT CONFIG"
+exportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+exportButton.Font = Enum.Font.Gotham
+exportButton.TextSize = 14
+exportButton.AutoButtonColor = false
+exportButton.LayoutOrder = 18
+exportButton.Parent = content
+corner(exportButton, UDim.new(0, 8))
+stroke(exportButton, Color3.fromRGB(252, 207, 242), 1)
+
+exportButton.MouseButton1Click:Connect(function()
+	local data = {
+		sky = currentSkyName,
+		fov = math.floor(currentFov),
+		iconX = icon.Position.X.Offset,
+		iconY = icon.Position.Y.Offset,
+		menuW = math.floor(currentPanelSize.X),
+		menuH = math.floor(currentPanelSize.Y),
+	}
+	local json = HttpService:JSONEncode(data)
+	if setclipboard then
+		setclipboard(json)
+		exportButton.Text = "✓ COPIED TO CLIPBOARD"
+	else
+		exportButton.Text = json
+	end
+	task.delay(2, function()
+		if exportButton.Parent then
+			exportButton.Text = "EXPORT CONFIG"
+		end
+	end)
+end)
+
+-- Кнопка удаления
 local destroyButton = Instance.new("TextButton")
 destroyButton.Size = UDim2.new(1, 0, 0, 40)
 destroyButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
@@ -544,7 +655,7 @@ destroyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 destroyButton.Font = Enum.Font.Gotham
 destroyButton.TextSize = 15
 destroyButton.AutoButtonColor = false
-destroyButton.LayoutOrder = 17
+destroyButton.LayoutOrder = 19
 destroyButton.Parent = content
 corner(destroyButton, UDim.new(0, 8))
 stroke(destroyButton, Color3.fromRGB(252, 207, 242), 1)
@@ -676,6 +787,8 @@ icon.InputBegan:Connect(function(input)
 
 		if not wasDragged then
 			setMenuOpen(not isOpen)
+		else
+			saveSettingsDelayed()
 		end
 	end)
 end)
@@ -759,6 +872,7 @@ resizeHandle.InputBegan:Connect(function(input)
 			if input.UserInputState == Enum.UserInputState.End then
 				resizing = false
 				connection:Disconnect()
+				saveSettingsDelayed()
 			end
 		end)
 	end
@@ -779,3 +893,94 @@ UserInputService.InputChanged:Connect(function(input)
 		menu.Size = UDim2.new(0, newWidth, 0, newHeight)
 	end
 end)
+
+-- ============================================================
+-- ===== СИСТЕМА СОХРАНЕНИЯ =====
+-- ============================================================
+
+function saveSettings()
+	local data = {
+		sky = currentSkyName,
+		fov = math.floor(currentFov),
+		iconX = icon.Position.X.Offset,
+		iconY = icon.Position.Y.Offset,
+		menuW = math.floor(currentPanelSize.X),
+		menuH = math.floor(currentPanelSize.Y),
+	}
+	local ok, err = pcall(function()
+		writefile(SETTINGS_FILE, HttpService:JSONEncode(data))
+	end)
+	if not ok then
+		warn("[FTAP] Save error:", err)
+	end
+end
+
+function saveSettingsDelayed()
+	if saveDebounce then return end
+	saveDebounce = true
+	task.delay(0.5, function()
+		saveDebounce = false
+		saveSettings()
+	end)
+end
+
+local function applyLoadedSettings(data)
+	if type(data) ~= "table" then return end
+
+	if data.fov then
+		setFov(data.fov)
+	end
+
+	if data.sky and data.sky ~= "DefaultSky" then
+		local skyMap = {
+			PinkSky = {textures = PINK_SKY, button = pinkSkyButton},
+			Pink1Sky = {textures = PINK1_SKY, button = pink1SkyButton},
+			SunsetSky = {textures = SUNSET_SKY, button = sunsetSkyButton},
+			OvercastSky = {textures = OVERCAST_SKY, button = overcastSkyButton},
+			Overcast1Sky = {textures = OVERCAST1_SKY, button = overcast1SkyButton},
+			PurpleSky = {textures = PURPLE_SKY, button = purpleSkyButton},
+			CloudySky = {textures = CLOUDY_SKY, button = cloudySkyButton},
+			RedSky = {textures = RED_SKY, button = redSkyButton},
+			Red1Sky = {textures = RED1_SKY, button = red1SkyButton},
+			RedGoldSky = {textures = REDGOLD_SKY, button = redGoldSkyButton},
+		}
+		local entry = skyMap[data.sky]
+		if entry then
+			applyCustomSky(data.sky, entry.textures, entry.button)
+		else
+			applyDefaultSky()
+		end
+	else
+		applyDefaultSky()
+	end
+
+	if data.iconX and data.iconY then
+		local vp = workspace.CurrentCamera.ViewportSize
+		local newX = math.clamp(data.iconX, 0, vp.X - iconSize)
+		local newY = math.clamp(data.iconY, 0, vp.Y - iconSize)
+		icon.Position = UDim2.new(0, newX, 0, newY)
+	end
+
+	if data.menuW and data.menuH then
+		currentPanelSize = Vector2.new(
+			math.clamp(data.menuW, minPanelSize.X, maxPanelSize.X),
+			math.clamp(data.menuH, minPanelSize.Y, maxPanelSize.Y)
+		)
+	end
+end
+
+local function loadSettings()
+	if not isfile or not isfile(SETTINGS_FILE) then return end
+
+	local ok, raw = pcall(readfile, SETTINGS_FILE)
+	if not ok or not raw then return end
+
+	local ok2, data = pcall(function()
+		return HttpService:JSONDecode(raw)
+	end)
+	if not ok2 or type(data) ~= "table" then return end
+
+	applyLoadedSettings(data)
+end
+
+loadSettings()
