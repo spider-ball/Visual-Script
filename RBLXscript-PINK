@@ -37,8 +37,8 @@ local DEFAULTS = {
 -- ===== РќРµР±Рѕ =====
 
 local CUSTOM_SKY_NAMES = {
-	"PinkSky", "Pink1Sky", "SunsetSky", "Sunset1Sky",
-	"OvercastSky", "Overcast1Sky", "PurpleSky", "Purple2Sky",
+	"PinkSky", "Pink1Sky", "SunsetSky", "Sunset1Sky", "DarkSunsetSky",
+	"OvercastSky", "Overcast1Sky", "Overcast2Sky", "Overcast3Sky", "PurpleSky", "Purple2Sky", "Purple3Sky",
 	"CloudySky", "Cloudy1Sky", "RedSky", "Red1Sky", "RedGoldSky",
 	"BlueGreenSky", "BlueGreen1Sky", "PurpleBlueSky", "FTAP_CustomSky"
 }
@@ -249,22 +249,27 @@ local pinkSkyButton = createSkyButton("PinkSkyButton", "Pink Sky", 4)
 local pink1SkyButton = createSkyButton("Pink1SkyButton", "Pink 1 Sky", 5)
 local sunsetSkyButton = createSkyButton("SunsetSkyButton", "Sunset Sky", 6)
 local sunset1SkyButton = createSkyButton("Sunset1SkyButton", "Sunset 1 Sky", 7)
-local overcastSkyButton = createSkyButton("OvercastSkyButton", "Overcast Sky", 8)
-local overcast1SkyButton = createSkyButton("Overcast1SkyButton", "Overcast 1 Sky", 9)
-local purpleSkyButton = createSkyButton("PurpleSkyButton", "Purple Sky", 10)
-local purple2SkyButton = createSkyButton("Purple2SkyButton", "Purple 2 Sky", 11)
-local cloudySkyButton = createSkyButton("CloudySkyButton", "Cloudy Sky", 12)
-local cloudy1SkyButton = createSkyButton("Cloudy1SkyButton", "Cloudy 1 Sky", 13)
-local redSkyButton = createSkyButton("RedSkyButton", "Red Sky", 14)
-local red1SkyButton = createSkyButton("Red1SkyButton", "Red 1 Sky", 15)
-local redGoldSkyButton = createSkyButton("RedGoldSkyButton", "Red-Gold Sky", 16)
-local blueGreenSkyButton = createSkyButton("BlueGreenSkyButton", "Blue-Green Sky", 17)
-local blueGreen1SkyButton = createSkyButton("BlueGreen1SkyButton", "Blue-Green 1 Sky", 18)
-local purpleBlueSkyButton = createSkyButton("PurpleBlueSkyButton", "Purple-Blue Sky", 19)
+local darkSunsetSkyButton = createSkyButton("DarkSunsetSkyButton", "Dark-Sunset Sky", 8)
+local overcastSkyButton = createSkyButton("OvercastSkyButton", "Overcast Sky", 9)
+local overcast1SkyButton = createSkyButton("Overcast1SkyButton", "Overcast 1 Sky", 10)
+local overcast2SkyButton = createSkyButton("Overcast2SkyButton", "Overcast 2 Sky", 11)
+local overcast3SkyButton = createSkyButton("Overcast3SkyButton", "Overcast 3 Sky", 12)
+local purpleSkyButton = createSkyButton("PurpleSkyButton", "Purple Sky", 13)
+local purple2SkyButton = createSkyButton("Purple2SkyButton", "Purple 2 Sky", 14)
+local purple3SkyButton = createSkyButton("Purple3SkyButton", "Purple 3 Sky", 15)
+local cloudySkyButton = createSkyButton("CloudySkyButton", "Cloudy Sky", 16)
+local cloudy1SkyButton = createSkyButton("Cloudy1SkyButton", "Cloudy 1 Sky", 17)
+local redSkyButton = createSkyButton("RedSkyButton", "Red Sky", 18)
+local red1SkyButton = createSkyButton("Red1SkyButton", "Red 1 Sky", 19)
+local redGoldSkyButton = createSkyButton("RedGoldSkyButton", "Red-Gold Sky", 20)
+local blueGreenSkyButton = createSkyButton("BlueGreenSkyButton", "Blue-Green Sky", 21)
+local blueGreen1SkyButton = createSkyButton("BlueGreen1SkyButton", "Blue-Green 1 Sky", 22)
+local purpleBlueSkyButton = createSkyButton("PurpleBlueSkyButton", "Purple-Blue Sky", 23)
 
 local skyButtons = {
-	defaultSkyButton, pinkSkyButton, pink1SkyButton, sunsetSkyButton, sunset1SkyButton,
-	overcastSkyButton, overcast1SkyButton, purpleSkyButton, purple2SkyButton,
+	defaultSkyButton, pinkSkyButton, pink1SkyButton, sunsetSkyButton, sunset1SkyButton, darkSunsetSkyButton,
+	overcastSkyButton, overcast1SkyButton, overcast2SkyButton, overcast3SkyButton,
+	purpleSkyButton, purple2SkyButton, purple3SkyButton,
 	cloudySkyButton, cloudy1SkyButton, redSkyButton, red1SkyButton, redGoldSkyButton,
 	blueGreenSkyButton, blueGreen1SkyButton, purpleBlueSkyButton
 }
@@ -306,6 +311,12 @@ local SUNSET1_SKY = {
 	Back = "rbxassetid://600830446", Front = "rbxassetid://600832720",
 }
 
+local DARKSUNSET_SKY = {
+	Right = "rbxassetid://169210143", Left = "rbxassetid://169210133",
+	Up = "rbxassetid://169210149", Down = "rbxassetid://169210108",
+	Back = "rbxassetid://169210090", Front = "rbxassetid://169210121",
+}
+
 local OVERCAST_SKY = {
 	Right = "rbxassetid://113656297117229", Left = "rbxassetid://117387352674614",
 	Up = "rbxassetid://96118083498785", Down = "rbxassetid://136079591970856",
@@ -318,6 +329,18 @@ local OVERCAST1_SKY = {
 	Back = "rbxassetid://123436356714901", Front = "rbxassetid://111439831859778",
 }
 
+local OVERCAST2_SKY = {
+	Right = "rbxassetid://155657619", Left = "rbxassetid://155657671",
+	Up = "rbxassetid://155674931", Down = "rbxassetid://155674246",
+	Back = "rbxassetid://155657655", Front = "rbxassetid://155657609",
+}
+
+local OVERCAST3_SKY = {
+	Right = "rbxassetid://218448178", Left = "rbxassetid://218448234",
+	Up = "rbxassetid://218448296", Down = "rbxassetid://218448317",
+	Back = "rbxassetid://218448217", Front = "rbxassetid://218448269",
+}
+
 local PURPLE_SKY = {
 	Right = "rbxassetid://107582465298500", Left = "rbxassetid://116713499702383",
 	Up = "rbxassetid://104937569917275", Down = "rbxassetid://119424695859184",
@@ -328,6 +351,12 @@ local PURPLE2_SKY = {
 	Right = "rbxassetid://87508746807373", Left = "rbxassetid://72214429519631",
 	Up = "rbxassetid://93909905537579", Down = "rbxassetid://114305065346484",
 	Back = "rbxassetid://124039476809343", Front = "rbxassetid://85546626451946",
+}
+
+local PURPLE3_SKY = {
+	Right = "rbxassetid://16553665766", Left = "rbxassetid://16553664042",
+	Up = "rbxassetid://16553667750", Down = "rbxassetid://16553660713",
+	Back = "rbxassetid://16553658937", Front = "rbxassetid://16553662144",
 }
 
 local CLOUDY_SKY = {
@@ -437,10 +466,14 @@ local SKY_DATA = {
 	Pink1Sky = {PINK1_SKY, pink1SkyButton},
 	SunsetSky = {SUNSET_SKY, sunsetSkyButton},
 	Sunset1Sky = {SUNSET1_SKY, sunset1SkyButton},
+	DarkSunsetSky = {DARKSUNSET_SKY, darkSunsetSkyButton},
 	OvercastSky = {OVERCAST_SKY, overcastSkyButton},
 	Overcast1Sky = {OVERCAST1_SKY, overcast1SkyButton},
+	Overcast2Sky = {OVERCAST2_SKY, overcast2SkyButton},
+	Overcast3Sky = {OVERCAST3_SKY, overcast3SkyButton},
 	PurpleSky = {PURPLE_SKY, purpleSkyButton},
 	Purple2Sky = {PURPLE2_SKY, purple2SkyButton},
+	Purple3Sky = {PURPLE3_SKY, purple3SkyButton},
 	CloudySky = {CLOUDY_SKY, cloudySkyButton},
 	Cloudy1Sky = {CLOUDY1_SKY, cloudy1SkyButton},
 	RedSky = {RED_SKY, redSkyButton},
@@ -468,9 +501,10 @@ end
 for _, data in ipairs({
 	{"DefaultSky", defaultSkyButton},
 	{"PinkSky", pinkSkyButton}, {"Pink1Sky", pink1SkyButton},
-	{"SunsetSky", sunsetSkyButton}, {"Sunset1Sky", sunset1SkyButton},
+	{"SunsetSky", sunsetSkyButton}, {"Sunset1Sky", sunset1SkyButton}, {"DarkSunsetSky", darkSunsetSkyButton},
 	{"OvercastSky", overcastSkyButton}, {"Overcast1Sky", overcast1SkyButton},
-	{"PurpleSky", purpleSkyButton}, {"Purple2Sky", purple2SkyButton},
+	{"Overcast2Sky", overcast2SkyButton}, {"Overcast3Sky", overcast3SkyButton},
+	{"PurpleSky", purpleSkyButton}, {"Purple2Sky", purple2SkyButton}, {"Purple3Sky", purple3SkyButton},
 	{"CloudySky", cloudySkyButton}, {"Cloudy1Sky", cloudy1SkyButton},
 	{"RedSky", redSkyButton}, {"Red1Sky", red1SkyButton}, {"RedGoldSky", redGoldSkyButton},
 	{"BlueGreenSky", blueGreenSkyButton}, {"BlueGreen1Sky", blueGreen1SkyButton},
@@ -484,7 +518,7 @@ end
 -- ===== FOV section =====
 
 local FOV_MIN, FOV_MAX = 50, 120
-local fovLabel = sectionLabel("FOV (Field of View)", 20)
+local fovLabel = sectionLabel("FOV (Field of View)", 24)
 
 local fovValueBox = Instance.new("TextBox")
 fovValueBox.Size = UDim2.new(0, 56, 0, 18)
@@ -505,7 +539,7 @@ stroke(fovValueBox, Color3.fromRGB(252, 207, 242), 1)
 local fovSliderArea = Instance.new("Frame")
 fovSliderArea.Size = UDim2.new(1, 0, 0, 30)
 fovSliderArea.BackgroundTransparency = 1
-fovSliderArea.LayoutOrder = 21
+fovSliderArea.LayoutOrder = 25
 fovSliderArea.Parent = content
 
 local fovTrack = newFrame(
@@ -620,7 +654,7 @@ end)
 
 -- ===== Control section =====
 
-sectionLabel("Control", 22)
+sectionLabel("Control", 26)
 
 local resetButton = Instance.new("TextButton")
 resetButton.Size = UDim2.new(1, 0, 0, 36)
@@ -631,7 +665,7 @@ resetButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 resetButton.Font = Enum.Font.Gotham
 resetButton.TextSize = 14
 resetButton.AutoButtonColor = false
-resetButton.LayoutOrder = 23
+resetButton.LayoutOrder = 27
 resetButton.Parent = content
 corner(resetButton, UDim.new(0, 8))
 stroke(resetButton, Color3.fromRGB(252, 207, 242), 1)
@@ -674,7 +708,7 @@ destroyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 destroyButton.Font = Enum.Font.Gotham
 destroyButton.TextSize = 15
 destroyButton.AutoButtonColor = false
-destroyButton.LayoutOrder = 25
+destroyButton.LayoutOrder = 29
 destroyButton.Parent = content
 corner(destroyButton, UDim.new(0, 8))
 stroke(destroyButton, Color3.fromRGB(252, 207, 242), 1)
