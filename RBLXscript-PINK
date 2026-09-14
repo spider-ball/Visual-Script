@@ -1,6 +1,6 @@
--- RBLXscript-PINK — компактная версия
--- Sky / переключение / сохранение / очистка
--- Export удалён
+-- RBLXscript-PINK вЂ” РєРѕРјРїР°РєС‚РЅР°СЏ РІРµСЂСЃРёСЏ
+-- Sky / РїРµСЂРµРєР»СЋС‡РµРЅРёРµ / СЃРѕС…СЂР°РЅРµРЅРёРµ / РѕС‡РёСЃС‚РєР°
+-- Export СѓРґР°Р»С‘РЅ
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -20,11 +20,11 @@ _G[SCRIPT_TAG] = true
 
 local isMobileDevice = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
 
--- ===== Настройки сохранения =====
+-- ===== РќР°СЃС‚СЂРѕР№РєРё СЃРѕС…СЂР°РЅРµРЅРёСЏ =====
 local SETTINGS_FILE = "ftap_settings.json"
 local saveDebounce = false
 
--- ===== Значения по умолчанию =====
+-- ===== Р—РЅР°С‡РµРЅРёСЏ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ =====
 local DEFAULTS = {
 	sky = "DefaultSky",
 	fov = 70,
@@ -34,11 +34,13 @@ local DEFAULTS = {
 	menuH = 240,
 }
 
--- ===== Небо =====
+-- ===== РќРµР±Рѕ =====
 
 local CUSTOM_SKY_NAMES = {
-	"PinkSky", "Pink1Sky", "SunsetSky", "OvercastSky", "Overcast1Sky",
-	"PurpleSky", "CloudySky", "RedSky", "Red1Sky", "RedGoldSky", "FTAP_CustomSky"
+	"PinkSky", "Pink1Sky", "SunsetSky", "Sunset1Sky",
+	"OvercastSky", "Overcast1Sky", "PurpleSky", "Purple2Sky",
+	"CloudySky", "Cloudy1Sky", "RedSky", "Red1Sky", "RedGoldSky",
+	"BlueGreenSky", "BlueGreen1Sky", "PurpleBlueSky", "FTAP_CustomSky"
 }
 
 local function isCustomSkyName(name)
@@ -65,7 +67,7 @@ screenGui.IgnoreGuiInset = true
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = playerGui
 
--- ===== Мелкие хелперы для UI =====
+-- ===== РњРµР»РєРёРµ С…РµР»РїРµСЂС‹ РґР»СЏ UI =====
 
 local function corner(inst, radius)
 	local c = Instance.new("UICorner")
@@ -102,7 +104,7 @@ local function getSafeCamera()
 	return camera
 end
 
--- ===== Круглая иконка =====
+-- ===== РљСЂСѓРіР»Р°СЏ РёРєРѕРЅРєР° =====
 
 local iconSize = 26
 local viewportSize = getSafeCamera().ViewportSize
@@ -129,7 +131,7 @@ iconLabel.Font = Enum.Font.GothamBold
 iconLabel.ZIndex = 11
 iconLabel.Parent = icon
 
--- ===== Панель меню =====
+-- ===== РџР°РЅРµР»СЊ РјРµРЅСЋ =====
 
 local minPanelSize = Vector2.new(260, 160)
 local maxPanelSize = Vector2.new(560, 340)
@@ -161,7 +163,7 @@ dragBar.Size = UDim2.new(1, -30, 0, 30)
 dragBar.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 dragBar.BackgroundTransparency = 0.3
 dragBar.BorderSizePixel = 0
-dragBar.Text = "≡ Menu"
+dragBar.Text = "в‰Ў Menu"
 dragBar.TextColor3 = Color3.fromRGB(255, 255, 255)
 dragBar.Font = Enum.Font.Gotham
 dragBar.TextSize = 12
@@ -246,18 +248,25 @@ local defaultSkyButton = createSkyButton("DefaultSkyButton", "Default Sky", 3)
 local pinkSkyButton = createSkyButton("PinkSkyButton", "Pink Sky", 4)
 local pink1SkyButton = createSkyButton("Pink1SkyButton", "Pink 1 Sky", 5)
 local sunsetSkyButton = createSkyButton("SunsetSkyButton", "Sunset Sky", 6)
-local overcastSkyButton = createSkyButton("OvercastSkyButton", "Overcast Sky", 7)
-local overcast1SkyButton = createSkyButton("Overcast1SkyButton", "Overcast 1 Sky", 8)
-local purpleSkyButton = createSkyButton("PurpleSkyButton", "Purple Sky", 9)
-local cloudySkyButton = createSkyButton("CloudySkyButton", "Cloudy Sky", 10)
-local redSkyButton = createSkyButton("RedSkyButton", "Red Sky", 11)
-local red1SkyButton = createSkyButton("Red1SkyButton", "Red 1 Sky", 12)
-local redGoldSkyButton = createSkyButton("RedGoldSkyButton", "Red-Gold Sky", 13)
+local sunset1SkyButton = createSkyButton("Sunset1SkyButton", "Sunset 1 Sky", 7)
+local overcastSkyButton = createSkyButton("OvercastSkyButton", "Overcast Sky", 8)
+local overcast1SkyButton = createSkyButton("Overcast1SkyButton", "Overcast 1 Sky", 9)
+local purpleSkyButton = createSkyButton("PurpleSkyButton", "Purple Sky", 10)
+local purple2SkyButton = createSkyButton("Purple2SkyButton", "Purple 2 Sky", 11)
+local cloudySkyButton = createSkyButton("CloudySkyButton", "Cloudy Sky", 12)
+local cloudy1SkyButton = createSkyButton("Cloudy1SkyButton", "Cloudy 1 Sky", 13)
+local redSkyButton = createSkyButton("RedSkyButton", "Red Sky", 14)
+local red1SkyButton = createSkyButton("Red1SkyButton", "Red 1 Sky", 15)
+local redGoldSkyButton = createSkyButton("RedGoldSkyButton", "Red-Gold Sky", 16)
+local blueGreenSkyButton = createSkyButton("BlueGreenSkyButton", "Blue-Green Sky", 17)
+local blueGreen1SkyButton = createSkyButton("BlueGreen1SkyButton", "Blue-Green 1 Sky", 18)
+local purpleBlueSkyButton = createSkyButton("PurpleBlueSkyButton", "Purple-Blue Sky", 19)
 
 local skyButtons = {
-	defaultSkyButton, pinkSkyButton, pink1SkyButton, sunsetSkyButton,
-	overcastSkyButton, overcast1SkyButton, purpleSkyButton, cloudySkyButton,
-	redSkyButton, red1SkyButton, redGoldSkyButton
+	defaultSkyButton, pinkSkyButton, pink1SkyButton, sunsetSkyButton, sunset1SkyButton,
+	overcastSkyButton, overcast1SkyButton, purpleSkyButton, purple2SkyButton,
+	cloudySkyButton, cloudy1SkyButton, redSkyButton, red1SkyButton, redGoldSkyButton,
+	blueGreenSkyButton, blueGreen1SkyButton, purpleBlueSkyButton
 }
 
 local function setActiveSkyButton(activeButton)
@@ -265,106 +274,111 @@ local function setActiveSkyButton(activeButton)
 		button.BackgroundColor3 = (button == activeButton)
 			and Color3.fromRGB(252, 207, 242)
 			or Color3.fromRGB(20, 20, 20)
-
 		button.TextColor3 = (button == activeButton)
 			and Color3.fromRGB(0, 0, 0)
 			or Color3.fromRGB(255, 255, 255)
 	end
 end
 
--- ===== Текстуры неба =====
+-- ===== РўРµРєСЃС‚СѓСЂС‹ РЅРµР±Р° =====
 
 local PINK_SKY = {
-	Right = "rbxassetid://99178632470974",
-	Left = "rbxassetid://105698490046689",
-	Up = "rbxassetid://118938836131305",
-	Down = "rbxassetid://120618995645758",
-	Front = "rbxassetid://72769531974029",
-	Back = "rbxassetid://70646713355454",
+	Right = "rbxassetid://99178632470974", Left = "rbxassetid://105698490046689",
+	Up = "rbxassetid://118938836131305", Down = "rbxassetid://120618995645758",
+	Front = "rbxassetid://72769531974029", Back = "rbxassetid://70646713355454",
 }
 
 local PINK1_SKY = {
-	Right = "rbxassetid://121821717023864",
-	Left = "rbxassetid://122912820996210",
-	Up = "rbxassetid://136954498936115",
-	Down = "rbxassetid://120521166612928",
-	Back = "rbxassetid://75859338419870",
-	Front = "rbxassetid://87978450174413",
+	Right = "rbxassetid://121821717023864", Left = "rbxassetid://122912820996210",
+	Up = "rbxassetid://136954498936115", Down = "rbxassetid://120521166612928",
+	Back = "rbxassetid://75859338419870", Front = "rbxassetid://87978450174413",
 }
 
 local SUNSET_SKY = {
-	Right = "rbxassetid://81917192544565",
-	Left = "rbxassetid://123504218900071",
-	Up = "rbxassetid://102754091719425",
-	Down = "rbxassetid://120203815632456",
-	Back = "rbxassetid://80626011057173",
-	Front = "rbxassetid://71391772386689",
+	Right = "rbxassetid://81917192544565", Left = "rbxassetid://123504218900071",
+	Up = "rbxassetid://102754091719425", Down = "rbxassetid://120203815632456",
+	Back = "rbxassetid://80626011057173", Front = "rbxassetid://71391772386689",
+}
+
+local SUNSET1_SKY = {
+	Right = "rbxassetid://600833862", Left = "rbxassetid://600886090",
+	Up = "rbxassetid://600835177", Down = "rbxassetid://600831635",
+	Back = "rbxassetid://600830446", Front = "rbxassetid://600832720",
 }
 
 local OVERCAST_SKY = {
-	Right = "rbxassetid://113656297117229",
-	Left = "rbxassetid://117387352674614",
-	Up = "rbxassetid://96118083498785",
-	Down = "rbxassetid://136079591970856",
-	Back = "rbxassetid://71196675713878",
-	Front = "rbxassetid://81417222464090",
+	Right = "rbxassetid://113656297117229", Left = "rbxassetid://117387352674614",
+	Up = "rbxassetid://96118083498785", Down = "rbxassetid://136079591970856",
+	Back = "rbxassetid://71196675713878", Front = "rbxassetid://81417222464090",
 }
 
 local OVERCAST1_SKY = {
-	Right = "rbxassetid://109693044711016",
-	Left = "rbxassetid://100996126500320",
-	Up = "rbxassetid://97846107870268",
-	Down = "rbxassetid://130441754428343",
-	Back = "rbxassetid://123436356714901",
-	Front = "rbxassetid://111439831859778",
+	Right = "rbxassetid://109693044711016", Left = "rbxassetid://100996126500320",
+	Up = "rbxassetid://97846107870268", Down = "rbxassetid://130441754428343",
+	Back = "rbxassetid://123436356714901", Front = "rbxassetid://111439831859778",
 }
 
 local PURPLE_SKY = {
-	Right = "rbxassetid://107582465298500",
-	Left = "rbxassetid://116713499702383",
-	Up = "rbxassetid://104937569917275",
-	Down = "rbxassetid://119424695859184",
-	Back = "rbxassetid://94075096527595",
-	Front = "rbxassetid://107660858272322",
+	Right = "rbxassetid://107582465298500", Left = "rbxassetid://116713499702383",
+	Up = "rbxassetid://104937569917275", Down = "rbxassetid://119424695859184",
+	Back = "rbxassetid://94075096527595", Front = "rbxassetid://107660858272322",
+}
+
+local PURPLE2_SKY = {
+	Right = "rbxassetid://87508746807373", Left = "rbxassetid://72214429519631",
+	Up = "rbxassetid://93909905537579", Down = "rbxassetid://114305065346484",
+	Back = "rbxassetid://124039476809343", Front = "rbxassetid://85546626451946",
 }
 
 local CLOUDY_SKY = {
-	Right = "rbxassetid://73202475548459",
-	Left = "rbxassetid://110550431724515",
-	Up = "rbxassetid://99634001170418",
-	Down = "rbxassetid://116358698169847",
-	Back = "rbxassetid://105511758648998",
-	Front = "rbxassetid://109231634620741",
+	Right = "rbxassetid://73202475548459", Left = "rbxassetid://110550431724515",
+	Up = "rbxassetid://99634001170418", Down = "rbxassetid://116358698169847",
+	Back = "rbxassetid://105511758648998", Front = "rbxassetid://109231634620741",
+}
+
+local CLOUDY1_SKY = {
+	Right = "rbxassetid://108446505567246", Left = "rbxassetid://75881260386073",
+	Up = "rbxassetid://82241980967600", Down = "rbxassetid://97076965994511",
+	Back = "rbxassetid://106685350225588", Front = "rbxassetid://104055357726979",
 }
 
 local RED_SKY = {
-	Right = "rbxassetid://83665628990242",
-	Left = "rbxassetid://86812333109787",
-	Up = "rbxassetid://109944460974973",
-	Down = "rbxassetid://105372026083974",
-	Back = "rbxassetid://74210136209255",
-	Front = "rbxassetid://107353670375427",
+	Right = "rbxassetid://83665628990242", Left = "rbxassetid://86812333109787",
+	Up = "rbxassetid://109944460974973", Down = "rbxassetid://105372026083974",
+	Back = "rbxassetid://74210136209255", Front = "rbxassetid://107353670375427",
 }
 
 local RED1_SKY = {
-	Right = "rbxassetid://84415437719739",
-	Left = "rbxassetid://76789441314394",
-	Up = "rbxassetid://104270272146420",
-	Down = "rbxassetid://79387501967596",
-	Back = "rbxassetid://121089206402947",
-	Front = "rbxassetid://84022325891982",
+	Right = "rbxassetid://84415437719739", Left = "rbxassetid://76789441314394",
+	Up = "rbxassetid://104270272146420", Down = "rbxassetid://79387501967596",
+	Back = "rbxassetid://121089206402947", Front = "rbxassetid://84022325891982",
 }
 
 local REDGOLD_SKY = {
-	Right = "rbxassetid://108598432654836",
-	Left = "rbxassetid://119399958723600",
-	Up = "rbxassetid://113183443469309",
-	Down = "rbxassetid://96206083396471",
-	Back = "rbxassetid://96206083396471",
-	Front = "rbxassetid://118413184179068",
+	Right = "rbxassetid://108598432654836", Left = "rbxassetid://119399958723600",
+	Up = "rbxassetid://113183443469309", Down = "rbxassetid://96206083396471",
+	Back = "rbxassetid://96206083396471", Front = "rbxassetid://118413184179068",
 }
 
--- ===== Управление Sky =====
+local BLUEGREEN_SKY = {
+	Right = "rbxassetid://89051484543303", Left = "rbxassetid://76250732091424",
+	Up = "rbxassetid://102824883976098", Down = "rbxassetid://129089294700595",
+	Back = "rbxassetid://104922795812590", Front = "rbxassetid://117576797257071",
+}
+
+local BLUEGREEN1_SKY = {
+	Right = "rbxassetid://100525795679790", Left = "rbxassetid://126168304325701",
+	Up = "rbxassetid://131390851179591", Down = "rbxassetid://117310255409107",
+	Back = "rbxassetid://134735625405353", Front = "rbxassetid://74081048495142",
+}
+
+local PURPLEBLUE_SKY = {
+	Right = "rbxassetid://75513499724049", Left = "rbxassetid://130322025682877",
+	Up = "rbxassetid://87756010698046", Down = "rbxassetid://72544216742837",
+	Back = "rbxassetid://83511161961595", Front = "rbxassetid://102806492018777",
+}
+
+-- ===== РЈРїСЂР°РІР»РµРЅРёРµ Sky =====
 
 local originalSky, customSky
 
@@ -395,21 +409,14 @@ local currentFov = 70
 
 local function applyDefaultSky()
 	clearCustomSky()
-
-	if originalSky and not originalSky.Parent then
-		originalSky.Parent = Lighting
-	end
-
+	if originalSky and not originalSky.Parent then originalSky.Parent = Lighting end
 	setActiveSkyButton(defaultSkyButton)
 	currentSkyName = "DefaultSky"
 end
 
 local function applyCustomSky(name, textures, button)
 	clearCustomSky()
-
-	if originalSky then
-		originalSky.Parent = nil
-	end
+	if originalSky then originalSky.Parent = nil end
 
 	customSky = Instance.new("Sky")
 	customSky.Name = "FTAP_CustomSky"
@@ -429,13 +436,19 @@ local SKY_DATA = {
 	PinkSky = {PINK_SKY, pinkSkyButton},
 	Pink1Sky = {PINK1_SKY, pink1SkyButton},
 	SunsetSky = {SUNSET_SKY, sunsetSkyButton},
+	Sunset1Sky = {SUNSET1_SKY, sunset1SkyButton},
 	OvercastSky = {OVERCAST_SKY, overcastSkyButton},
 	Overcast1Sky = {OVERCAST1_SKY, overcast1SkyButton},
 	PurpleSky = {PURPLE_SKY, purpleSkyButton},
+	Purple2Sky = {PURPLE2_SKY, purple2SkyButton},
 	CloudySky = {CLOUDY_SKY, cloudySkyButton},
+	Cloudy1Sky = {CLOUDY1_SKY, cloudy1SkyButton},
 	RedSky = {RED_SKY, redSkyButton},
 	Red1Sky = {RED1_SKY, red1SkyButton},
 	RedGoldSky = {REDGOLD_SKY, redGoldSkyButton},
+	BlueGreenSky = {BLUEGREEN_SKY, blueGreenSkyButton},
+	BlueGreen1Sky = {BLUEGREEN1_SKY, blueGreen1SkyButton},
+	PurpleBlueSky = {PURPLEBLUE_SKY, purpleBlueSkyButton},
 }
 
 local function selectSky(name)
@@ -449,22 +462,19 @@ local function selectSky(name)
 			applyDefaultSky()
 		end
 	end
-
 	saveSettingsDelayed()
 end
 
 for _, data in ipairs({
 	{"DefaultSky", defaultSkyButton},
-	{"PinkSky", pinkSkyButton},
-	{"Pink1Sky", pink1SkyButton},
-	{"SunsetSky", sunsetSkyButton},
-	{"OvercastSky", overcastSkyButton},
-	{"Overcast1Sky", overcast1SkyButton},
-	{"PurpleSky", purpleSkyButton},
-	{"CloudySky", cloudySkyButton},
-	{"RedSky", redSkyButton},
-	{"Red1Sky", red1SkyButton},
-	{"RedGoldSky", redGoldSkyButton},
+	{"PinkSky", pinkSkyButton}, {"Pink1Sky", pink1SkyButton},
+	{"SunsetSky", sunsetSkyButton}, {"Sunset1Sky", sunset1SkyButton},
+	{"OvercastSky", overcastSkyButton}, {"Overcast1Sky", overcast1SkyButton},
+	{"PurpleSky", purpleSkyButton}, {"Purple2Sky", purple2SkyButton},
+	{"CloudySky", cloudySkyButton}, {"Cloudy1Sky", cloudy1SkyButton},
+	{"RedSky", redSkyButton}, {"Red1Sky", red1SkyButton}, {"RedGoldSky", redGoldSkyButton},
+	{"BlueGreenSky", blueGreenSkyButton}, {"BlueGreen1Sky", blueGreen1SkyButton},
+	{"PurpleBlueSky", purpleBlueSkyButton},
 }) do
 	data[2].MouseButton1Click:Connect(function()
 		selectSky(data[1])
@@ -474,7 +484,7 @@ end
 -- ===== FOV section =====
 
 local FOV_MIN, FOV_MAX = 50, 120
-local fovLabel = sectionLabel("FOV (Field of View)", 14)
+local fovLabel = sectionLabel("FOV (Field of View)", 20)
 
 local fovValueBox = Instance.new("TextBox")
 fovValueBox.Size = UDim2.new(0, 56, 0, 18)
@@ -495,7 +505,7 @@ stroke(fovValueBox, Color3.fromRGB(252, 207, 242), 1)
 local fovSliderArea = Instance.new("Frame")
 fovSliderArea.Size = UDim2.new(1, 0, 0, 30)
 fovSliderArea.BackgroundTransparency = 1
-fovSliderArea.LayoutOrder = 15
+fovSliderArea.LayoutOrder = 21
 fovSliderArea.Parent = content
 
 local fovTrack = newFrame(
@@ -610,7 +620,7 @@ end)
 
 -- ===== Control section =====
 
-sectionLabel("Control", 16)
+sectionLabel("Control", 22)
 
 local resetButton = Instance.new("TextButton")
 resetButton.Size = UDim2.new(1, 0, 0, 36)
@@ -621,7 +631,7 @@ resetButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 resetButton.Font = Enum.Font.Gotham
 resetButton.TextSize = 14
 resetButton.AutoButtonColor = false
-resetButton.LayoutOrder = 17
+resetButton.LayoutOrder = 23
 resetButton.Parent = content
 corner(resetButton, UDim.new(0, 8))
 stroke(resetButton, Color3.fromRGB(252, 207, 242), 1)
@@ -642,7 +652,7 @@ resetButton.MouseButton1Click:Connect(function()
 		20
 	)
 
-	resetButton.Text = "✓ RESET DONE"
+	resetButton.Text = "вњ“ RESET DONE"
 
 	task.delay(1.5, function()
 		if resetButton.Parent then
@@ -653,7 +663,7 @@ resetButton.MouseButton1Click:Connect(function()
 	saveSettings()
 end)
 
--- ===== Кнопка удаления =====
+-- ===== РљРЅРѕРїРєР° СѓРґР°Р»РµРЅРёСЏ =====
 
 local destroyButton = Instance.new("TextButton")
 destroyButton.Size = UDim2.new(1, 0, 0, 40)
@@ -664,7 +674,7 @@ destroyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 destroyButton.Font = Enum.Font.Gotham
 destroyButton.TextSize = 15
 destroyButton.AutoButtonColor = false
-destroyButton.LayoutOrder = 19
+destroyButton.LayoutOrder = 25
 destroyButton.Parent = content
 corner(destroyButton, UDim.new(0, 8))
 stroke(destroyButton, Color3.fromRGB(252, 207, 242), 1)
@@ -729,7 +739,7 @@ end
 resizeLine(UDim2.new(1, 0, 0, 2), UDim2.new(0, 0, 1, -2))
 resizeLine(UDim2.new(0, 2, 1, 0), UDim2.new(1, -2, 0, 0))
 
--- ===== Открытие/закрытие меню =====
+-- ===== РћС‚РєСЂС‹С‚РёРµ/Р·Р°РєСЂС‹С‚РёРµ РјРµРЅСЋ =====
 
 local isOpen, isAnimating = false, false
 
@@ -766,7 +776,7 @@ local function setMenuOpen(open)
 	end)
 end
 
--- ===== Перетаскивание иконки =====
+-- ===== РџРµСЂРµС‚Р°СЃРєРёРІР°РЅРёРµ РёРєРѕРЅРєРё =====
 
 local iconDragging = false
 local iconDragInput = nil
@@ -866,7 +876,7 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- ===== Перетаскивание меню =====
+-- ===== РџРµСЂРµС‚Р°СЃРєРёРІР°РЅРёРµ РјРµРЅСЋ =====
 
 local menuDragging = false
 local menuDragInput = nil
@@ -926,7 +936,7 @@ UserInputService.InputChanged:Connect(function(input)
 	menu.Position = UDim2.new(0, newX, 0, newY)
 end)
 
--- ===== Изменение размера меню =====
+-- ===== РР·РјРµРЅРµРЅРёРµ СЂР°Р·РјРµСЂР° РјРµРЅСЋ =====
 
 local resizing, resizeInput, resizeStart, sizeStart
 
@@ -982,7 +992,7 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- ===== Система сохранения =====
+-- ===== РЎРёСЃС‚РµРјР° СЃРѕС…СЂР°РЅРµРЅРёСЏ =====
 
 function saveSettings()
 	local data = {
