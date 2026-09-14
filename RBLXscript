@@ -1,6 +1,5 @@
--- RBLXscript-PINK вЂ” РєРѕРјРїР°РєС‚РЅР°СЏ РІРµСЂСЃРёСЏ
--- Sky / РїРµСЂРµРєР»СЋС‡РµРЅРёРµ / СЃРѕС…СЂР°РЅРµРЅРёРµ / РѕС‡РёСЃС‚РєР°
--- Export СѓРґР°Р»С‘РЅ
+-- RBLXscript — компактная версия
+-- Sky / переключение / сохранение / очистка
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -20,11 +19,11 @@ _G[SCRIPT_TAG] = true
 
 local isMobileDevice = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
 
--- ===== РќР°СЃС‚СЂРѕР№РєРё СЃРѕС…СЂР°РЅРµРЅРёСЏ =====
+-- ===== Настройки сохранения =====
 local SETTINGS_FILE = "ftap_settings.json"
 local saveDebounce = false
 
--- ===== Р—РЅР°С‡РµРЅРёСЏ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ =====
+-- ===== Значения по умолчанию =====
 local DEFAULTS = {
 	sky = "DefaultSky",
 	fov = 70,
@@ -34,7 +33,7 @@ local DEFAULTS = {
 	menuH = 240,
 }
 
--- ===== РќРµР±Рѕ =====
+-- ===== Небо =====
 
 local CUSTOM_SKY_NAMES = {
 	"PinkSky", "Pink1Sky", "SunsetSky", "Sunset1Sky", "DarkSunsetSky",
@@ -67,7 +66,7 @@ screenGui.IgnoreGuiInset = true
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = playerGui
 
--- ===== РњРµР»РєРёРµ С…РµР»РїРµСЂС‹ РґР»СЏ UI =====
+-- ===== Мелкие хелперы для UI =====
 
 local function corner(inst, radius)
 	local c = Instance.new("UICorner")
@@ -104,7 +103,7 @@ local function getSafeCamera()
 	return camera
 end
 
--- ===== РљСЂСѓРіР»Р°СЏ РёРєРѕРЅРєР° =====
+-- ===== Круглая иконка =====
 
 local iconSize = 26
 local viewportSize = getSafeCamera().ViewportSize
@@ -131,7 +130,7 @@ iconLabel.Font = Enum.Font.GothamBold
 iconLabel.ZIndex = 11
 iconLabel.Parent = icon
 
--- ===== РџР°РЅРµР»СЊ РјРµРЅСЋ =====
+-- ===== Панель меню =====
 
 local minPanelSize = Vector2.new(260, 160)
 local maxPanelSize = Vector2.new(560, 340)
@@ -163,7 +162,7 @@ dragBar.Size = UDim2.new(1, -30, 0, 30)
 dragBar.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 dragBar.BackgroundTransparency = 0.3
 dragBar.BorderSizePixel = 0
-dragBar.Text = "в‰Ў Menu"
+dragBar.Text = "≡ Menu"
 dragBar.TextColor3 = Color3.fromRGB(255, 255, 255)
 dragBar.Font = Enum.Font.Gotham
 dragBar.TextSize = 12
@@ -285,7 +284,7 @@ local function setActiveSkyButton(activeButton)
 	end
 end
 
--- ===== РўРµРєСЃС‚СѓСЂС‹ РЅРµР±Р° =====
+-- ===== Текстуры неба =====
 
 local PINK_SKY = {
 	Right = "rbxassetid://99178632470974", Left = "rbxassetid://105698490046689",
@@ -333,6 +332,14 @@ local OVERCAST2_SKY = {
 	Right = "rbxassetid://155657619", Left = "rbxassetid://155657671",
 	Up = "rbxassetid://155674931", Down = "rbxassetid://155674246",
 	Back = "rbxassetid://155657655", Front = "rbxassetid://155657609",
+}
+
+-- ColorCorrection, идущий в паре с Overcast 2 (значения со скриншота)
+local OVERCAST2_COLOR_CORRECTION = {
+	Brightness = -0.101,
+	Contrast = -0.401,
+	Saturation = 0,
+	TintColor = Color3.fromRGB(204, 204, 204),
 }
 
 local OVERCAST3_SKY = {
@@ -407,7 +414,7 @@ local PURPLEBLUE_SKY = {
 	Back = "rbxassetid://83511161961595", Front = "rbxassetid://102806492018777",
 }
 
--- ===== РЈРїСЂР°РІР»РµРЅРёРµ Sky =====
+-- ===== Управление Sky =====
 
 local originalSky, customSky
 
@@ -425,12 +432,33 @@ if not originalSky then
 	originalSky.Parent = Lighting
 end
 
+local CUSTOM_COLOR_CORRECTION_NAME = "FTAP_ColorCorrection"
+
+local function clearCustomColorCorrection()
+	local cc = Lighting:FindFirstChild(CUSTOM_COLOR_CORRECTION_NAME)
+	if cc then cc:Destroy() end
+end
+
+local function applyColorCorrection(settings)
+	clearCustomColorCorrection()
+
+	local cc = Instance.new("ColorCorrectionEffect")
+	cc.Name = CUSTOM_COLOR_CORRECTION_NAME
+	cc.Brightness = settings.Brightness or 0
+	cc.Contrast = settings.Contrast or 0
+	cc.Saturation = settings.Saturation or 0
+	cc.TintColor = settings.TintColor or Color3.new(1, 1, 1)
+	cc.Enabled = true
+	cc.Parent = Lighting
+end
+
 local function clearCustomSky()
 	if customSky then
 		customSky:Destroy()
 		customSky = nil
 	end
 	cleanupCustomSky()
+	clearCustomColorCorrection()
 end
 
 local currentSkyName = "DefaultSky"
@@ -443,7 +471,7 @@ local function applyDefaultSky()
 	currentSkyName = "DefaultSky"
 end
 
-local function applyCustomSky(name, textures, button)
+local function applyCustomSky(name, textures, button, colorCorrection)
 	clearCustomSky()
 	if originalSky then originalSky.Parent = nil end
 
@@ -457,6 +485,10 @@ local function applyCustomSky(name, textures, button)
 	customSky.SkyboxDn = textures.Down
 	customSky.Parent = Lighting
 
+	if colorCorrection then
+		applyColorCorrection(colorCorrection)
+	end
+
 	setActiveSkyButton(button)
 	currentSkyName = name
 end
@@ -469,7 +501,7 @@ local SKY_DATA = {
 	DarkSunsetSky = {DARKSUNSET_SKY, darkSunsetSkyButton},
 	OvercastSky = {OVERCAST_SKY, overcastSkyButton},
 	Overcast1Sky = {OVERCAST1_SKY, overcast1SkyButton},
-	Overcast2Sky = {OVERCAST2_SKY, overcast2SkyButton},
+	Overcast2Sky = {OVERCAST2_SKY, overcast2SkyButton, OVERCAST2_COLOR_CORRECTION},
 	Overcast3Sky = {OVERCAST3_SKY, overcast3SkyButton},
 	PurpleSky = {PURPLE_SKY, purpleSkyButton},
 	Purple2Sky = {PURPLE2_SKY, purple2SkyButton},
@@ -490,7 +522,7 @@ local function selectSky(name)
 	else
 		local data = SKY_DATA[name]
 		if data then
-			applyCustomSky(name, data[1], data[2])
+			applyCustomSky(name, data[1], data[2], data[3])
 		else
 			applyDefaultSky()
 		end
@@ -686,7 +718,7 @@ resetButton.MouseButton1Click:Connect(function()
 		20
 	)
 
-	resetButton.Text = "вњ“ RESET DONE"
+	resetButton.Text = "✓ RESET DONE"
 
 	task.delay(1.5, function()
 		if resetButton.Parent then
@@ -697,7 +729,7 @@ resetButton.MouseButton1Click:Connect(function()
 	saveSettings()
 end)
 
--- ===== РљРЅРѕРїРєР° СѓРґР°Р»РµРЅРёСЏ =====
+-- ===== Кнопка удаления =====
 
 local destroyButton = Instance.new("TextButton")
 destroyButton.Size = UDim2.new(1, 0, 0, 40)
@@ -773,7 +805,7 @@ end
 resizeLine(UDim2.new(1, 0, 0, 2), UDim2.new(0, 0, 1, -2))
 resizeLine(UDim2.new(0, 2, 1, 0), UDim2.new(1, -2, 0, 0))
 
--- ===== РћС‚РєСЂС‹С‚РёРµ/Р·Р°РєСЂС‹С‚РёРµ РјРµРЅСЋ =====
+-- ===== Открытие/закрытие меню =====
 
 local isOpen, isAnimating = false, false
 
@@ -810,7 +842,7 @@ local function setMenuOpen(open)
 	end)
 end
 
--- ===== РџРµСЂРµС‚Р°СЃРєРёРІР°РЅРёРµ РёРєРѕРЅРєРё =====
+-- ===== Перетаскивание иконки =====
 
 local iconDragging = false
 local iconDragInput = nil
@@ -910,7 +942,7 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- ===== РџРµСЂРµС‚Р°СЃРєРёРІР°РЅРёРµ РјРµРЅСЋ =====
+-- ===== Перетаскивание меню =====
 
 local menuDragging = false
 local menuDragInput = nil
@@ -970,7 +1002,7 @@ UserInputService.InputChanged:Connect(function(input)
 	menu.Position = UDim2.new(0, newX, 0, newY)
 end)
 
--- ===== РР·РјРµРЅРµРЅРёРµ СЂР°Р·РјРµСЂР° РјРµРЅСЋ =====
+-- ===== Изменение размера меню =====
 
 local resizing, resizeInput, resizeStart, sizeStart
 
@@ -1026,7 +1058,7 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- ===== РЎРёСЃС‚РµРјР° СЃРѕС…СЂР°РЅРµРЅРёСЏ =====
+-- ===== Система сохранения =====
 
 function saveSettings()
 	local data = {
@@ -1076,7 +1108,7 @@ local function applyLoadedSettings(data)
 		local entry = SKY_DATA[data.sky]
 
 		if entry then
-			applyCustomSky(data.sky, entry[1], entry[2])
+			applyCustomSky(data.sky, entry[1], entry[2], entry[3])
 		else
 			applyDefaultSky()
 		end
