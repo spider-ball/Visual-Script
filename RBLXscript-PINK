@@ -17,10 +17,12 @@ _G[SCRIPT_TAG] = true
 local isMobileDevice = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
 
 -- ===== Настройки сохранения =====
+
 local SETTINGS_FILE = "ftap_settings.json"
 local saveDebounce = false
 
 -- ===== Значения по умолчанию =====
+
 local DEFAULTS = {
 	sky = "DefaultSky",
 	fov = 70,
@@ -30,20 +32,36 @@ local DEFAULTS = {
 	menuH = 240,
 }
 
--- ===== Небо =====
+-- ============================================================
+-- ===== НЕБО =====
+-- ============================================================
 
 local CUSTOM_SKY_NAMES = {
-	"PinkSky", "Pink1Sky", "SunsetSky", "OvercastSky", "Overcast1Sky",
-	"PurpleSky", "CloudySky", "RedSky", "Red1Sky", "RedGoldSky"
+	"PinkSky",
+	"Pink1Sky",
+	"SunsetSky",
+	"OvercastSky",
+	"Overcast1Sky",
+	"PurpleSky",
+	"CloudySky",
+	"RedSky",
+	"Red1Sky",
+	"RedGoldSky",
+	"FTAP_CustomSky"
 }
 
 local function isCustomSkyName(name)
 	for _, n in ipairs(CUSTOM_SKY_NAMES) do
-		if name == n then return true end
+		if name == n then
+			return true
+		end
 	end
+
 	return false
 end
 
+-- Удаляем старые кастомные Sky, которые могли остаться
+-- от предыдущего запуска/версии скрипта.
 local function cleanupCustomSky()
 	for _, child in ipairs(Lighting:GetChildren()) do
 		if child:IsA("Sky") and isCustomSkyName(child.Name) then
@@ -51,7 +69,12 @@ local function cleanupCustomSky()
 		end
 	end
 end
+
 cleanupCustomSky()
+
+-- ============================================================
+-- ===== GUI =====
+-- ============================================================
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = GUI_NAME
@@ -80,24 +103,33 @@ end
 local function newFrame(parent, size, pos, color, transparency)
 	local f = Instance.new("Frame")
 	f.Size = size
-	if pos then f.Position = pos end
+
+	if pos then
+		f.Position = pos
+	end
+
 	f.BackgroundColor3 = color or Color3.fromRGB(45, 45, 52)
 	f.BackgroundTransparency = transparency or 0
 	f.BorderSizePixel = 0
 	f.Parent = parent
+
 	return f
 end
 
 local function getSafeCamera()
 	local camera = workspace.CurrentCamera
+
 	if not camera then
 		workspace:GetPropertyChangedSignal("CurrentCamera"):Wait()
 		camera = workspace.CurrentCamera
 	end
+
 	return camera
 end
 
--- ===== Круглая иконка =====
+-- ============================================================
+-- ===== КРУГЛАЯ ИКОНКА =====
+-- ============================================================
 
 local iconSize = 26
 local viewportSize = getSafeCamera().ViewportSize
@@ -105,12 +137,18 @@ local viewportSize = getSafeCamera().ViewportSize
 local icon = Instance.new("ImageButton")
 icon.Name = "ToggleIcon"
 icon.Size = UDim2.new(0, iconSize, 0, iconSize)
-icon.Position = UDim2.new(0, viewportSize.X / 2 - iconSize / 2, 0, 20)
+icon.Position = UDim2.new(
+	0,
+	viewportSize.X / 2 - iconSize / 2,
+	0,
+	20
+)
 icon.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 icon.BorderSizePixel = 0
 icon.AutoButtonColor = false
 icon.ZIndex = 10
 icon.Parent = screenGui
+
 corner(icon)
 stroke(icon, Color3.fromRGB(252, 207, 242), 2)
 
@@ -124,7 +162,9 @@ iconLabel.Font = Enum.Font.GothamBold
 iconLabel.ZIndex = 11
 iconLabel.Parent = icon
 
--- ===== Панель меню =====
+-- ============================================================
+-- ===== ПАНЕЛЬ МЕНЮ =====
+-- ============================================================
 
 local minPanelSize = Vector2.new(260, 160)
 local maxPanelSize = Vector2.new(560, 340)
@@ -139,7 +179,12 @@ end
 local menu = Instance.new("Frame")
 menu.Name = "MenuPanel"
 menu.Size = UDim2.new(0, 0, 0, 0)
-menu.Position = UDim2.new(0, viewportSize.X / 2, 0, 80)
+menu.Position = UDim2.new(
+	0,
+	viewportSize.X / 2,
+	0,
+	80
+)
 menu.AnchorPoint = Vector2.new(0.5, 0)
 menu.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 menu.BorderSizePixel = 0
@@ -147,6 +192,7 @@ menu.ClipsDescendants = true
 menu.ZIndex = 5
 menu.Visible = false
 menu.Parent = screenGui
+
 corner(menu, UDim.new(0, 8))
 stroke(menu, Color3.fromRGB(252, 207, 242), 2)
 
@@ -163,6 +209,7 @@ dragBar.TextSize = 12
 dragBar.AutoButtonColor = false
 dragBar.ZIndex = 7
 dragBar.Parent = menu
+
 corner(dragBar, UDim.new(0, 8))
 stroke(dragBar, Color3.fromRGB(252, 207, 242), 1.5)
 
@@ -201,7 +248,9 @@ title.TextXAlignment = Enum.TextXAlignment.Left
 title.LayoutOrder = 1
 title.Parent = content
 
--- ===== Sky section =====
+-- ============================================================
+-- ===== SECTION LABEL =====
+-- ============================================================
 
 local function sectionLabel(text, order)
 	local l = Instance.new("TextLabel")
@@ -214,13 +263,19 @@ local function sectionLabel(text, order)
 	l.TextXAlignment = Enum.TextXAlignment.Left
 	l.LayoutOrder = order
 	l.Parent = content
+
 	return l
 end
+
+-- ============================================================
+-- ===== SKY SECTION =====
+-- ============================================================
 
 sectionLabel("Sky", 2)
 
 local function createSkyButton(name, text, layoutOrder)
 	local button = Instance.new("TextButton")
+
 	button.Name = name
 	button.Size = UDim2.new(1, 0, 0, 36)
 	button.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
@@ -232,36 +287,110 @@ local function createSkyButton(name, text, layoutOrder)
 	button.AutoButtonColor = false
 	button.LayoutOrder = layoutOrder
 	button.Parent = content
+
 	corner(button, UDim.new(0, 8))
 	stroke(button, Color3.fromRGB(252, 207, 242), 1)
+
 	return button
 end
 
-local defaultSkyButton = createSkyButton("DefaultSkyButton", "Default Sky", 3)
-local pinkSkyButton = createSkyButton("PinkSkyButton", "Pink Sky", 4)
-local pink1SkyButton = createSkyButton("Pink1SkyButton", "Pink 1 Sky", 5)
-local sunsetSkyButton = createSkyButton("SunsetSkyButton", "Sunset Sky", 6)
-local overcastSkyButton = createSkyButton("OvercastSkyButton", "Overcast Sky", 7)
-local overcast1SkyButton = createSkyButton("Overcast1SkyButton", "Overcast 1 Sky", 8)
-local purpleSkyButton = createSkyButton("PurpleSkyButton", "Purple Sky", 9)
-local cloudySkyButton = createSkyButton("CloudySkyButton", "Cloudy Sky", 10)
-local redSkyButton = createSkyButton("RedSkyButton", "Red Sky", 11)
-local red1SkyButton = createSkyButton("Red1SkyButton", "Red 1 Sky", 12)
-local redGoldSkyButton = createSkyButton("RedGoldSkyButton", "Red-Gold Sky", 13)
-local skyButtons = {defaultSkyButton, pinkSkyButton, pink1SkyButton, sunsetSkyButton, overcastSkyButton, overcast1SkyButton, purpleSkyButton, cloudySkyButton, redSkyButton, red1SkyButton, redGoldSkyButton}
+local defaultSkyButton = createSkyButton(
+	"DefaultSkyButton",
+	"Default Sky",
+	3
+)
+
+local pinkSkyButton = createSkyButton(
+	"PinkSkyButton",
+	"Pink Sky",
+	4
+)
+
+local pink1SkyButton = createSkyButton(
+	"Pink1SkyButton",
+	"Pink 1 Sky",
+	5
+)
+
+local sunsetSkyButton = createSkyButton(
+	"SunsetSkyButton",
+	"Sunset Sky",
+	6
+)
+
+local overcastSkyButton = createSkyButton(
+	"OvercastSkyButton",
+	"Overcast Sky",
+	7
+)
+
+local overcast1SkyButton = createSkyButton(
+	"Overcast1SkyButton",
+	"Overcast 1 Sky",
+	8
+)
+
+local purpleSkyButton = createSkyButton(
+	"PurpleSkyButton",
+	"Purple Sky",
+	9
+)
+
+local cloudySkyButton = createSkyButton(
+	"CloudySkyButton",
+	"Cloudy Sky",
+	10
+)
+
+local redSkyButton = createSkyButton(
+	"RedSkyButton",
+	"Red Sky",
+	11
+)
+
+local red1SkyButton = createSkyButton(
+	"Red1SkyButton",
+	"Red 1 Sky",
+	12
+)
+
+local redGoldSkyButton = createSkyButton(
+	"RedGoldSkyButton",
+	"Red-Gold Sky",
+	13
+)
+
+local skyButtons = {
+	defaultSkyButton,
+	pinkSkyButton,
+	pink1SkyButton,
+	sunsetSkyButton,
+	overcastSkyButton,
+	overcast1SkyButton,
+	purpleSkyButton,
+	cloudySkyButton,
+	redSkyButton,
+	red1SkyButton,
+	redGoldSkyButton
+}
 
 local function setActiveSkyButton(activeButton)
 	for _, button in ipairs(skyButtons) do
-		button.BackgroundColor3 = (button == activeButton)
+		button.BackgroundColor3 =
+			(button == activeButton)
 			and Color3.fromRGB(252, 207, 242)
 			or Color3.fromRGB(20, 20, 20)
-		button.TextColor3 = (button == activeButton)
+
+		button.TextColor3 =
+			(button == activeButton)
 			and Color3.fromRGB(0, 0, 0)
 			or Color3.fromRGB(255, 255, 255)
 	end
 end
 
--- ===== Текстуры неба =====
+-- ============================================================
+-- ===== ТЕКСТУРЫ НЕБА =====
+-- ============================================================
 
 local PINK_SKY = {
 	Right = "rbxassetid://99178632470974",
@@ -353,7 +482,12 @@ local REDGOLD_SKY = {
 	Front = "rbxassetid://118413184179068",
 }
 
-local originalSky, customSky
+-- ============================================================
+-- ===== УПРАВЛЕНИЕ НЕБОМ =====
+-- ============================================================
+
+local originalSky
+local customSky
 
 local function findOriginalSky()
 	for _, child in ipairs(Lighting:GetChildren()) do
@@ -364,102 +498,184 @@ local function findOriginalSky()
 end
 
 originalSky = findOriginalSky()
+
 if not originalSky then
 	originalSky = Instance.new("Sky")
 	originalSky.Name = "DefaultSky"
 	originalSky.Parent = Lighting
 end
 
+-- Один общий объект Sky.
+-- Мы не создаём новый Sky при каждом переключении.
+local function getCustomSky()
+	if customSky then
+		return customSky
+	end
+
+	local existingCustom = Lighting:FindFirstChild("FTAP_CustomSky")
+
+	if existingCustom and existingCustom:IsA("Sky") then
+		customSky = existingCustom
+		return customSky
+	end
+
+	customSky = Instance.new("Sky")
+	customSky.Name = "FTAP_CustomSky"
+
+	return customSky
+end
+
+local function hideCustomSky()
+	if customSky then
+		customSky.Parent = nil
+	end
+end
+
 local function clearCustomSky()
+	hideCustomSky()
+
 	if customSky then
 		customSky:Destroy()
 		customSky = nil
 	end
+
 	cleanupCustomSky()
 end
 
--- ===== Переменные состояния =====
+-- ============================================================
+-- ===== СОСТОЯНИЕ =====
+-- ============================================================
+
 local currentSkyName = "DefaultSky"
 local currentFov = 70
 
 local function applyDefaultSky()
-	clearCustomSky()
+	hideCustomSky()
+
 	if originalSky and not originalSky.Parent then
 		originalSky.Parent = Lighting
 	end
+
 	setActiveSkyButton(defaultSkyButton)
 	currentSkyName = "DefaultSky"
 end
 
 local function applyCustomSky(name, textures, button)
-	clearCustomSky()
-	if originalSky then originalSky.Parent = nil end
+	if originalSky then
+		originalSky.Parent = nil
+	end
 
-	local sky = Instance.new("Sky")
-	sky.Name = name
+	local sky = getCustomSky()
+
 	sky.SkyboxFt = textures.Front
 	sky.SkyboxRt = textures.Right
 	sky.SkyboxBk = textures.Back
 	sky.SkyboxUp = textures.Up
 	sky.SkyboxLf = textures.Left
 	sky.SkyboxDn = textures.Down
+
 	sky.Parent = Lighting
 
-	customSky = sky
 	setActiveSkyButton(button)
 	currentSkyName = name
 end
 
-defaultSkyButton.MouseButton1Click:Connect(function()
-	applyDefaultSky()
-	saveSettingsDelayed()
-end)
-pinkSkyButton.MouseButton1Click:Connect(function()
-	applyCustomSky("PinkSky", PINK_SKY, pinkSkyButton)
-	saveSettingsDelayed()
-end)
-pink1SkyButton.MouseButton1Click:Connect(function()
-	applyCustomSky("Pink1Sky", PINK1_SKY, pink1SkyButton)
-	saveSettingsDelayed()
-end)
-sunsetSkyButton.MouseButton1Click:Connect(function()
-	applyCustomSky("SunsetSky", SUNSET_SKY, sunsetSkyButton)
-	saveSettingsDelayed()
-end)
-overcastSkyButton.MouseButton1Click:Connect(function()
-	applyCustomSky("OvercastSky", OVERCAST_SKY, overcastSkyButton)
-	saveSettingsDelayed()
-end)
-overcast1SkyButton.MouseButton1Click:Connect(function()
-	applyCustomSky("Overcast1Sky", OVERCAST1_SKY, overcast1SkyButton)
-	saveSettingsDelayed()
-end)
-purpleSkyButton.MouseButton1Click:Connect(function()
-	applyCustomSky("PurpleSky", PURPLE_SKY, purpleSkyButton)
-	saveSettingsDelayed()
-end)
-cloudySkyButton.MouseButton1Click:Connect(function()
-	applyCustomSky("CloudySky", CLOUDY_SKY, cloudySkyButton)
-	saveSettingsDelayed()
-end)
-redSkyButton.MouseButton1Click:Connect(function()
-	applyCustomSky("RedSky", RED_SKY, redSkyButton)
-	saveSettingsDelayed()
-end)
-red1SkyButton.MouseButton1Click:Connect(function()
-	applyCustomSky("Red1Sky", RED1_SKY, red1SkyButton)
-	saveSettingsDelayed()
-end)
-redGoldSkyButton.MouseButton1Click:Connect(function()
-	applyCustomSky("RedGoldSky", REDGOLD_SKY, redGoldSkyButton)
-	saveSettingsDelayed()
-end)
+-- ============================================================
+-- ===== ДАННЫЕ НЕБЕС =====
+-- ============================================================
 
--- ===== FOV section =====
+local SKY_DATA = {
+	DefaultSky = {
+		button = defaultSkyButton
+	},
 
-local FOV_MIN, FOV_MAX = 50, 120
+	PinkSky = {
+		textures = PINK_SKY,
+		button = pinkSkyButton
+	},
 
-local fovLabel = sectionLabel("FOV (Field of View)", 14)
+	Pink1Sky = {
+		textures = PINK1_SKY,
+		button = pink1SkyButton
+	},
+
+	SunsetSky = {
+		textures = SUNSET_SKY,
+		button = sunsetSkyButton
+	},
+
+	OvercastSky = {
+		textures = OVERCAST_SKY,
+		button = overcastSkyButton
+	},
+
+	Overcast1Sky = {
+		textures = OVERCAST1_SKY,
+		button = overcast1SkyButton
+	},
+
+	PurpleSky = {
+		textures = PURPLE_SKY,
+		button = purpleSkyButton
+	},
+
+	CloudySky = {
+		textures = CLOUDY_SKY,
+		button = cloudySkyButton
+	},
+
+	RedSky = {
+		textures = RED_SKY,
+		button = redSkyButton
+	},
+
+	Red1Sky = {
+		textures = RED1_SKY,
+		button = red1SkyButton
+	},
+
+	RedGoldSky = {
+		textures = REDGOLD_SKY,
+		button = redGoldSkyButton
+	},
+}
+
+local function selectSky(name)
+	local data = SKY_DATA[name]
+
+	if not data or name == "DefaultSky" then
+		applyDefaultSky()
+	else
+		applyCustomSky(
+			name,
+			data.textures,
+			data.button
+		)
+	end
+
+	saveSettingsDelayed()
+end
+
+for name, data in pairs(SKY_DATA) do
+	data.button.MouseButton1Click:Connect(function()
+		selectSky(name)
+	end)
+end
+
+-- ============================================================
+-- ===== FOV =====
+-- ============================================================
+
+local FOV_MIN
+local FOV_MAX
+
+FOV_MIN = 50
+FOV_MAX = 120
+
+local fovLabel = sectionLabel(
+	"FOV (Field of View)",
+	14
+)
 
 local fovValueBox = Instance.new("TextBox")
 fovValueBox.Size = UDim2.new(0, 56, 0, 18)
@@ -474,8 +690,13 @@ fovValueBox.TextSize = 13
 fovValueBox.ClearTextOnFocus = false
 fovValueBox.ZIndex = 8
 fovValueBox.Parent = fovLabel
+
 corner(fovValueBox, UDim.new(0, 5))
-stroke(fovValueBox, Color3.fromRGB(252, 207, 242), 1)
+stroke(
+	fovValueBox,
+	Color3.fromRGB(252, 207, 242),
+	1
+)
 
 local fovSliderArea = Instance.new("Frame")
 fovSliderArea.Size = UDim2.new(1, 0, 0, 30)
@@ -483,11 +704,23 @@ fovSliderArea.BackgroundTransparency = 1
 fovSliderArea.LayoutOrder = 15
 fovSliderArea.Parent = content
 
-local fovTrack = newFrame(fovSliderArea, UDim2.new(1, 0, 0, 6), UDim2.new(0, 0, 0.5, 0), Color3.fromRGB(40, 40, 40))
+local fovTrack = newFrame(
+	fovSliderArea,
+	UDim2.new(1, 0, 0, 6),
+	UDim2.new(0, 0, 0.5, 0),
+	Color3.fromRGB(40, 40, 40)
+)
+
 fovTrack.AnchorPoint = Vector2.new(0, 0.5)
 corner(fovTrack)
 
-local fovFill = newFrame(fovSliderArea, UDim2.new(0, 0, 0, 6), UDim2.new(0, 0, 0.5, 0), Color3.fromRGB(252, 207, 242))
+local fovFill = newFrame(
+	fovSliderArea,
+	UDim2.new(0, 0, 0, 6),
+	UDim2.new(0, 0, 0.5, 0),
+	Color3.fromRGB(252, 207, 242)
+)
+
 fovFill.AnchorPoint = Vector2.new(0, 0.5)
 corner(fovFill)
 
@@ -500,65 +733,139 @@ fovKnob.BorderSizePixel = 0
 fovKnob.AutoButtonColor = false
 fovKnob.ZIndex = 9
 fovKnob.Parent = fovSliderArea
+
 corner(fovKnob)
 
-currentFov = math.clamp(getSafeCamera().FieldOfView or 70, FOV_MIN, FOV_MAX)
+currentFov = math.clamp(
+	getSafeCamera().FieldOfView or 70,
+	FOV_MIN,
+	FOV_MAX
+)
 
 local function setFov(value)
-	value = math.clamp(value, FOV_MIN, FOV_MAX)
+	value = math.clamp(
+		value,
+		FOV_MIN,
+		FOV_MAX
+	)
+
 	currentFov = value
 
-	local percent = (value - FOV_MIN) / (FOV_MAX - FOV_MIN)
-	fovFill.Size = UDim2.new(percent, 0, 0, 6)
-	fovKnob.Position = UDim2.new(percent, 0, 0.5, 0)
-	fovValueBox.Text = tostring(math.floor(value + 0.5))
+	local percent =
+		(value - FOV_MIN)
+		/
+		(FOV_MAX - FOV_MIN)
+
+	fovFill.Size = UDim2.new(
+		percent,
+		0,
+		0,
+		6
+	)
+
+	fovKnob.Position = UDim2.new(
+		percent,
+		0,
+		0.5,
+		0
+	)
+
+	fovValueBox.Text = tostring(
+		math.floor(value + 0.5)
+	)
 
 	local camera = workspace.CurrentCamera
-	if camera then camera.FieldOfView = value end
+
+	if camera then
+		camera.FieldOfView = value
+	end
 end
 
 setFov(currentFov)
 
-workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
+workspace:GetPropertyChangedSignal(
+	"CurrentCamera"
+):Connect(function()
 	local camera = workspace.CurrentCamera
-	if camera then camera.FieldOfView = currentFov end
+
+	if camera then
+		camera.FieldOfView = currentFov
+	end
 end)
 
 fovValueBox.FocusLost:Connect(function()
 	local num = tonumber(fovValueBox.Text)
+
 	if num then
 		setFov(num)
 	else
-		fovValueBox.Text = tostring(math.floor(currentFov + 0.5))
+		fovValueBox.Text = tostring(
+			math.floor(currentFov + 0.5)
+		)
 	end
+
 	saveSettingsDelayed()
 end)
 
-local fovDragging, fovDragInput = false, nil
+local fovDragging = false
+local fovDragInput = nil
 
 local function updateFovFromPosition(inputPosition)
 	local trackSize = fovTrack.AbsoluteSize.X
-	if trackSize <= 0 then return end
-	local relative = math.clamp((inputPosition.X - fovTrack.AbsolutePosition.X) / trackSize, 0, 1)
-	setFov(FOV_MIN + relative * (FOV_MAX - FOV_MIN))
+
+	if trackSize <= 0 then
+		return
+	end
+
+	local relative = math.clamp(
+		(
+			inputPosition.X
+			-
+			fovTrack.AbsolutePosition.X
+		)
+		/
+		trackSize,
+		0,
+		1
+	)
+
+	setFov(
+		FOV_MIN
+		+
+		relative
+		*
+		(FOV_MAX - FOV_MIN)
+	)
 end
 
 fovKnob.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		fovDragging = true
-		fovDragInput = input
-		updateFovFromPosition(input.Position)
-
-		local connection
-		connection = input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				fovDragging = false
-				fovDragInput = nil
-				connection:Disconnect()
-				saveSettingsDelayed()
-			end
-		end)
+	if
+		input.UserInputType
+			~= Enum.UserInputType.MouseButton1
+		and
+		input.UserInputType
+			~= Enum.UserInputType.Touch
+	then
+		return
 	end
+
+	fovDragging = true
+	fovDragInput = input
+
+	updateFovFromPosition(input.Position)
+
+	local connection
+
+	connection = input.Changed:Connect(function()
+		if input.UserInputState == Enum.UserInputState.End then
+			fovDragging = false
+			fovDragInput = nil
+
+			connection:Disconnect()
+
+			saveSettingsDelayed()
+		end
+	end)
 end)
 
 UserInputService.InputChanged:Connect(function(input)
@@ -567,11 +874,14 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- ===== Control section =====
+-- ============================================================
+-- ===== CONTROL =====
+-- ============================================================
 
 sectionLabel("Control", 16)
 
--- Кнопка сброса
+-- ===== RESET =====
+
 local resetButton = Instance.new("TextButton")
 resetButton.Size = UDim2.new(1, 0, 0, 36)
 resetButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
@@ -583,11 +893,17 @@ resetButton.TextSize = 14
 resetButton.AutoButtonColor = false
 resetButton.LayoutOrder = 17
 resetButton.Parent = content
+
 corner(resetButton, UDim.new(0, 8))
-stroke(resetButton, Color3.fromRGB(252, 207, 242), 1)
+stroke(
+	resetButton,
+	Color3.fromRGB(252, 207, 242),
+	1
+)
 
 resetButton.MouseButton1Click:Connect(function()
 	applyDefaultSky()
+
 	setFov(DEFAULTS.fov)
 
 	currentPanelSize = Vector2.new(
@@ -595,9 +911,15 @@ resetButton.MouseButton1Click:Connect(function()
 		isMobileDevice and 280 or 240
 	)
 
-	icon.Position = UDim2.new(0, viewportSize.X / 2 - iconSize / 2, 0, 20)
+	icon.Position = UDim2.new(
+		0,
+		viewportSize.X / 2 - iconSize / 2,
+		0,
+		20
+	)
 
 	resetButton.Text = "✓ RESET DONE"
+
 	task.delay(1.5, function()
 		if resetButton.Parent then
 			resetButton.Text = "RESET SETTINGS"
@@ -607,45 +929,10 @@ resetButton.MouseButton1Click:Connect(function()
 	saveSettings()
 end)
 
--- Кнопка экспорта
-local exportButton = Instance.new("TextButton")
-exportButton.Size = UDim2.new(1, 0, 0, 36)
-exportButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-exportButton.BorderSizePixel = 0
-exportButton.Text = "EXPORT CONFIG"
-exportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-exportButton.Font = Enum.Font.Gotham
-exportButton.TextSize = 14
-exportButton.AutoButtonColor = false
-exportButton.LayoutOrder = 18
-exportButton.Parent = content
-corner(exportButton, UDim.new(0, 8))
-stroke(exportButton, Color3.fromRGB(252, 207, 242), 1)
+-- ============================================================
+-- ===== DELETE SCRIPT =====
+-- ============================================================
 
-exportButton.MouseButton1Click:Connect(function()
-	local data = {
-		sky = currentSkyName,
-		fov = math.floor(currentFov),
-		iconX = icon.Position.X.Offset,
-		iconY = icon.Position.Y.Offset,
-		menuW = math.floor(currentPanelSize.X),
-		menuH = math.floor(currentPanelSize.Y),
-	}
-	local json = HttpService:JSONEncode(data)
-	if setclipboard then
-		setclipboard(json)
-		exportButton.Text = "✓ COPIED TO CLIPBOARD"
-	else
-		exportButton.Text = json
-	end
-	task.delay(2, function()
-		if exportButton.Parent then
-			exportButton.Text = "EXPORT CONFIG"
-		end
-	end)
-end)
-
--- Кнопка удаления
 local destroyButton = Instance.new("TextButton")
 destroyButton.Size = UDim2.new(1, 0, 0, 40)
 destroyButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
@@ -657,34 +944,49 @@ destroyButton.TextSize = 15
 destroyButton.AutoButtonColor = false
 destroyButton.LayoutOrder = 19
 destroyButton.Parent = content
+
 corner(destroyButton, UDim.new(0, 8))
-stroke(destroyButton, Color3.fromRGB(252, 207, 242), 1)
+stroke(
+	destroyButton,
+	Color3.fromRGB(252, 207, 242),
+	1
+)
 
 local confirmDestroy = false
 
 local function destroyScript()
+	-- Полностью убираем наше кастомное небо
 	clearCustomSky()
+
+	-- Возвращаем оригинальное небо
 	if originalSky and not originalSky.Parent then
 		originalSky.Parent = Lighting
 	end
+
+	-- Возвращаем стандартный FOV
 	if workspace.CurrentCamera then
 		workspace.CurrentCamera.FieldOfView = 70
 	end
+
 	_G[SCRIPT_TAG] = nil
+
 	screenGui:Destroy()
 end
 
 destroyButton.MouseButton1Click:Connect(function()
 	if not confirmDestroy then
 		confirmDestroy = true
+
 		destroyButton.Text = "CLICK AGAIN"
-		destroyButton.BackgroundColor3 = Color3.fromRGB(80, 0, 0)
+		destroyButton.BackgroundColor3 =
+			Color3.fromRGB(80, 0, 0)
 
 		task.delay(3, function()
 			if confirmDestroy and destroyButton.Parent then
 				confirmDestroy = false
 				destroyButton.Text = "DELETE SCRIPT"
-				destroyButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+				destroyButton.BackgroundColor3 =
+					Color3.fromRGB(20, 20, 20)
 			end
 		end)
 	else
@@ -692,7 +994,9 @@ destroyButton.MouseButton1Click:Connect(function()
 	end
 end)
 
--- ===== Resize handle =====
+-- ============================================================
+-- ===== RESIZE HANDLE =====
+-- ============================================================
 
 local resizeHandle = Instance.new("ImageButton")
 resizeHandle.Size = UDim2.new(0, 20, 0, 20)
@@ -707,81 +1011,186 @@ local function resizeLine(size, pos)
 	local l = Instance.new("Frame")
 	l.Size = size
 	l.Position = pos
-	l.BackgroundColor3 = Color3.fromRGB(252, 207, 242)
+	l.BackgroundColor3 =
+		Color3.fromRGB(252, 207, 242)
 	l.BorderSizePixel = 0
 	l.ZIndex = 21
 	l.Parent = resizeHandle
+
 	return l
 end
-resizeLine(UDim2.new(1, 0, 0, 2), UDim2.new(0, 0, 1, -2))
-resizeLine(UDim2.new(0, 2, 1, 0), UDim2.new(1, -2, 0, 0))
 
--- ===== Открытие/закрытие меню =====
+resizeLine(
+	UDim2.new(1, 0, 0, 2),
+	UDim2.new(0, 0, 1, -2)
+)
 
-local isOpen, isAnimating = false, false
+resizeLine(
+	UDim2.new(0, 2, 1, 0),
+	UDim2.new(1, -2, 0, 0)
+)
+
+-- ============================================================
+-- ===== ОТКРЫТИЕ / ЗАКРЫТИЕ МЕНЮ =====
+-- ============================================================
+
+local isOpen = false
+local isAnimating = false
 
 local function setMenuOpen(open)
-	if isAnimating then return end
+	if isAnimating then
+		return
+	end
+
 	isAnimating = true
 	isOpen = open
 
-	local targetSize = open and UDim2.new(0, currentPanelSize.X, 0, currentPanelSize.Y) or UDim2.new(0, 0, 0, 0)
-	local info = open
-		and TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-		or TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+	local targetSize
 
-	if open then menu.Visible = true end
+	if open then
+		targetSize = UDim2.new(
+			0,
+			currentPanelSize.X,
+			0,
+			currentPanelSize.Y
+		)
+	else
+		targetSize = UDim2.new(
+			0,
+			0,
+			0,
+			0
+		)
+	end
 
-	local tween = TweenService:Create(menu, info, { Size = targetSize })
+	local info
+
+	if open then
+		info = TweenInfo.new(
+			0.28,
+			Enum.EasingStyle.Back,
+			Enum.EasingDirection.Out
+		)
+	else
+		info = TweenInfo.new(
+			0.22,
+			Enum.EasingStyle.Quad,
+			Enum.EasingDirection.In
+		)
+	end
+
+	if open then
+		menu.Visible = true
+	end
+
+	local tween = TweenService:Create(
+		menu,
+		info,
+		{
+			Size = targetSize
+		}
+	)
+
 	tween:Play()
+
 	tween.Completed:Connect(function()
-		if not open then menu.Visible = false end
+		if not open then
+			menu.Visible = false
+		end
+
 		isAnimating = false
 	end)
 end
 
--- ===== Перетаскивание иконки =====
+-- ============================================================
+-- ===== ПЕРЕТАСКИВАНИЕ ИКОНКИ =====
+-- ============================================================
 
 local iconDragging = false
 local iconDragInput = nil
 local iconDragStart = nil
 local iconStartPos = nil
 local iconMoved = false
+
 local DRAG_THRESHOLD = 3
 
 local function updateMenuPosition()
-	local vp = workspace.CurrentCamera.ViewportSize
-	local menuX = icon.Position.X.Offset + iconSize / 2
-	local menuY = icon.Position.Y.Offset + iconSize + 10
+	local camera = workspace.CurrentCamera
+
+	if not camera then
+		return
+	end
+
+	local vp = camera.ViewportSize
+
+	local menuX =
+		icon.Position.X.Offset
+		+
+		iconSize / 2
+
+	local menuY =
+		icon.Position.Y.Offset
+		+
+		iconSize
+		+
+		10
 
 	if menuX + currentPanelSize.X / 2 > vp.X then
-		menuX = vp.X - currentPanelSize.X / 2
+		menuX =
+			vp.X
+			-
+			currentPanelSize.X / 2
+
 	elseif menuX - currentPanelSize.X / 2 < 0 then
-		menuX = currentPanelSize.X / 2
-	end
-	if menuY + currentPanelSize.Y > vp.Y then
-		menuY = vp.Y - currentPanelSize.Y - 10
+		menuX =
+			currentPanelSize.X / 2
 	end
 
-	menu.Position = UDim2.new(0, menuX, 0, menuY)
+	if menuY + currentPanelSize.Y > vp.Y then
+		menuY =
+			vp.Y
+			-
+			currentPanelSize.Y
+			-
+			10
+	end
+
+	menu.Position = UDim2.new(
+		0,
+		menuX,
+		0,
+		menuY
+	)
 end
 
 icon.InputBegan:Connect(function(input)
-	if input.UserInputType ~= Enum.UserInputType.MouseButton1 and input.UserInputType ~= Enum.UserInputType.Touch then
+	if
+		input.UserInputType
+			~= Enum.UserInputType.MouseButton1
+		and
+		input.UserInputType
+			~= Enum.UserInputType.Touch
+	then
 		return
 	end
 
 	iconDragging = true
 	iconMoved = false
+
 	iconDragStart = input.Position
 	iconStartPos = icon.Position
 
 	local endConnection
+
 	endConnection = input.Changed:Connect(function()
-		if input.UserInputState ~= Enum.UserInputState.End then return end
+		if input.UserInputState ~= Enum.UserInputState.End then
+			return
+		end
+
 		endConnection:Disconnect()
 
 		local wasDragged = iconMoved
+
 		iconDragging = false
 		iconDragInput = nil
 
@@ -794,28 +1203,74 @@ icon.InputBegan:Connect(function(input)
 end)
 
 icon.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+	if
+		input.UserInputType
+			== Enum.UserInputType.MouseMovement
+		or
+		input.UserInputType
+			== Enum.UserInputType.Touch
+	then
 		iconDragInput = input
 	end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-	if not iconDragging or input ~= iconDragInput then return end
+	if
+		not iconDragging
+		or
+		input ~= iconDragInput
+	then
+		return
+	end
 
-	local delta = input.Position - iconDragStart
-	if math.abs(delta.X) > DRAG_THRESHOLD or math.abs(delta.Y) > DRAG_THRESHOLD then
+	local delta =
+		input.Position
+		-
+		iconDragStart
+
+	if
+		math.abs(delta.X) > DRAG_THRESHOLD
+		or
+		math.abs(delta.Y) > DRAG_THRESHOLD
+	then
 		iconMoved = true
 	end
 
-	local vp = workspace.CurrentCamera.ViewportSize
-	local newX = math.clamp(iconStartPos.X.Offset + delta.X, 0, vp.X - iconSize)
-	local newY = math.clamp(iconStartPos.Y.Offset + delta.Y, 0, vp.Y - iconSize)
-	icon.Position = UDim2.new(0, newX, 0, newY)
+	local camera = workspace.CurrentCamera
 
-	if isOpen then updateMenuPosition() end
+	if not camera then
+		return
+	end
+
+	local vp = camera.ViewportSize
+
+	local newX = math.clamp(
+		iconStartPos.X.Offset + delta.X,
+		0,
+		vp.X - iconSize
+	)
+
+	local newY = math.clamp(
+		iconStartPos.Y.Offset + delta.Y,
+		0,
+		vp.Y - iconSize
+	)
+
+	icon.Position = UDim2.new(
+		0,
+		newX,
+		0,
+		newY
+	)
+
+	if isOpen then
+		updateMenuPosition()
+	end
 end)
 
--- ===== Перетаскивание меню =====
+-- ============================================================
+-- ===== ПЕРЕТАСКИВАНИЕ МЕНЮ =====
+-- ============================================================
 
 local menuDragging = false
 local menuDragInput = nil
@@ -823,7 +1278,13 @@ local menuDragStart = nil
 local menuStartPos = nil
 
 dragBar.InputBegan:Connect(function(input)
-	if input.UserInputType ~= Enum.UserInputType.MouseButton1 and input.UserInputType ~= Enum.UserInputType.Touch then
+	if
+		input.UserInputType
+			~= Enum.UserInputType.MouseButton1
+		and
+		input.UserInputType
+			~= Enum.UserInputType.Touch
+	then
 		return
 	end
 
@@ -832,46 +1293,107 @@ dragBar.InputBegan:Connect(function(input)
 	menuStartPos = menu.Position
 
 	local endConnection
+
 	endConnection = input.Changed:Connect(function()
-		if input.UserInputState ~= Enum.UserInputState.End then return end
+		if input.UserInputState ~= Enum.UserInputState.End then
+			return
+		end
+
 		endConnection:Disconnect()
+
 		menuDragging = false
 		menuDragInput = nil
 	end)
 end)
 
 dragBar.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+	if
+		input.UserInputType
+			== Enum.UserInputType.MouseMovement
+		or
+		input.UserInputType
+			== Enum.UserInputType.Touch
+	then
 		menuDragInput = input
 	end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-	if not menuDragging or input ~= menuDragInput then return end
+	if
+		not menuDragging
+		or
+		input ~= menuDragInput
+	then
+		return
+	end
 
-	local delta = input.Position - menuDragStart
-	local vp = workspace.CurrentCamera.ViewportSize
-	local newX = math.clamp(menuStartPos.X.Offset + delta.X, -currentPanelSize.X / 2, vp.X - currentPanelSize.X / 2)
-	local newY = math.clamp(menuStartPos.Y.Offset + delta.Y, 0, vp.Y - 30)
-	menu.Position = UDim2.new(0, newX, 0, newY)
+	local delta =
+		input.Position
+		-
+		menuDragStart
+
+	local camera = workspace.CurrentCamera
+
+	if not camera then
+		return
+	end
+
+	local vp = camera.ViewportSize
+
+	local newX = math.clamp(
+		menuStartPos.X.Offset + delta.X,
+		-currentPanelSize.X / 2,
+		vp.X - currentPanelSize.X / 2
+	)
+
+	local newY = math.clamp(
+		menuStartPos.Y.Offset + delta.Y,
+		0,
+		vp.Y - 30
+	)
+
+	menu.Position = UDim2.new(
+		0,
+		newX,
+		0,
+		newY
+	)
 end)
 
--- ===== Изменение размера меню =====
+-- ============================================================
+-- ===== ИЗМЕНЕНИЕ РАЗМЕРА МЕНЮ =====
+-- ============================================================
 
-local resizing, resizeInput, resizeStart, sizeStart
+local resizing
+local resizeInput
+local resizeStart
+local sizeStart
 
 resizeHandle.InputBegan:Connect(function(input)
-	if not isOpen or isAnimating then return end
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+	if not isOpen or isAnimating then
+		return
+	end
+
+	if
+		input.UserInputType
+			== Enum.UserInputType.MouseButton1
+		or
+		input.UserInputType
+			== Enum.UserInputType.Touch
+	then
 		resizing = true
+
 		resizeStart = input.Position
 		sizeStart = currentPanelSize
 
 		local connection
+
 		connection = input.Changed:Connect(function()
 			if input.UserInputState == Enum.UserInputState.End then
 				resizing = false
+
 				connection:Disconnect()
+
 				saveSettingsDelayed()
 			end
 		end)
@@ -879,18 +1401,47 @@ resizeHandle.InputBegan:Connect(function(input)
 end)
 
 resizeHandle.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+	if
+		input.UserInputType
+			== Enum.UserInputType.MouseMovement
+		or
+		input.UserInputType
+			== Enum.UserInputType.Touch
+	then
 		resizeInput = input
 	end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
 	if resizing and input == resizeInput then
-		local delta = input.Position - resizeStart
-		local newWidth = math.clamp(sizeStart.X + delta.X, minPanelSize.X, maxPanelSize.X)
-		local newHeight = math.clamp(sizeStart.Y + delta.Y, minPanelSize.Y, maxPanelSize.Y)
-		currentPanelSize = Vector2.new(newWidth, newHeight)
-		menu.Size = UDim2.new(0, newWidth, 0, newHeight)
+		local delta =
+			input.Position
+			-
+			resizeStart
+
+		local newWidth = math.clamp(
+			sizeStart.X + delta.X,
+			minPanelSize.X,
+			maxPanelSize.X
+		)
+
+		local newHeight = math.clamp(
+			sizeStart.Y + delta.Y,
+			minPanelSize.Y,
+			maxPanelSize.Y
+		)
+
+		currentPanelSize = Vector2.new(
+			newWidth,
+			newHeight
+		)
+
+		menu.Size = UDim2.new(
+			0,
+			newWidth,
+			0,
+			newHeight
+		)
 	end
 end)
 
@@ -907,80 +1458,157 @@ function saveSettings()
 		menuW = math.floor(currentPanelSize.X),
 		menuH = math.floor(currentPanelSize.Y),
 	}
+
 	local ok, err = pcall(function()
-		writefile(SETTINGS_FILE, HttpService:JSONEncode(data))
+		writefile(
+			SETTINGS_FILE,
+			HttpService:JSONEncode(data)
+		)
 	end)
+
 	if not ok then
-		warn("[FTAP] Save error:", err)
+		warn(
+			"[FTAP] Save error:",
+			err
+		)
 	end
 end
 
 function saveSettingsDelayed()
-	if saveDebounce then return end
+	if saveDebounce then
+		return
+	end
+
 	saveDebounce = true
+
 	task.delay(0.5, function()
 		saveDebounce = false
 		saveSettings()
 	end)
 end
 
-local function applyLoadedSettings(data)
-	if type(data) ~= "table" then return end
+-- ============================================================
+-- ===== ЗАГРУЗКА НАСТРОЕК =====
+-- ============================================================
 
-	if data.fov then
+local function applyLoadedSettings(data)
+	if type(data) ~= "table" then
+		return
+	end
+
+	-- FOV
+	if data.fov ~= nil then
 		setFov(data.fov)
 	end
 
-	if data.sky and data.sky ~= "DefaultSky" then
-		local skyMap = {
-			PinkSky = {textures = PINK_SKY, button = pinkSkyButton},
-			Pink1Sky = {textures = PINK1_SKY, button = pink1SkyButton},
-			SunsetSky = {textures = SUNSET_SKY, button = sunsetSkyButton},
-			OvercastSky = {textures = OVERCAST_SKY, button = overcastSkyButton},
-			Overcast1Sky = {textures = OVERCAST1_SKY, button = overcast1SkyButton},
-			PurpleSky = {textures = PURPLE_SKY, button = purpleSkyButton},
-			CloudySky = {textures = CLOUDY_SKY, button = cloudySkyButton},
-			RedSky = {textures = RED_SKY, button = redSkyButton},
-			Red1Sky = {textures = RED1_SKY, button = red1SkyButton},
-			RedGoldSky = {textures = REDGOLD_SKY, button = redGoldSkyButton},
-		}
-		local entry = skyMap[data.sky]
-		if entry then
-			applyCustomSky(data.sky, entry.textures, entry.button)
-		else
+	-- Sky
+	if data.sky then
+		local entry = SKY_DATA[data.sky]
+
+		if
+			data.sky == "DefaultSky"
+			or
+			not entry
+			or
+			not entry.textures
+		then
 			applyDefaultSky()
+		else
+			applyCustomSky(
+				data.sky,
+				entry.textures,
+				entry.button
+			)
 		end
 	else
 		applyDefaultSky()
 	end
 
-	if data.iconX and data.iconY then
-		local vp = workspace.CurrentCamera.ViewportSize
-		local newX = math.clamp(data.iconX, 0, vp.X - iconSize)
-		local newY = math.clamp(data.iconY, 0, vp.Y - iconSize)
-		icon.Position = UDim2.new(0, newX, 0, newY)
+	-- Положение иконки
+	if
+		data.iconX ~= nil
+		and
+		data.iconY ~= nil
+	then
+		local camera = workspace.CurrentCamera
+
+		if camera then
+			local vp = camera.ViewportSize
+
+			local newX = math.clamp(
+				data.iconX,
+				0,
+				vp.X - iconSize
+			)
+
+			local newY = math.clamp(
+				data.iconY,
+				0,
+				vp.Y - iconSize
+			)
+
+			icon.Position = UDim2.new(
+				0,
+				newX,
+				0,
+				newY
+			)
+		end
 	end
 
-	if data.menuW and data.menuH then
+	-- Размер меню
+	if
+		data.menuW ~= nil
+		and
+		data.menuH ~= nil
+	then
 		currentPanelSize = Vector2.new(
-			math.clamp(data.menuW, minPanelSize.X, maxPanelSize.X),
-			math.clamp(data.menuH, minPanelSize.Y, maxPanelSize.Y)
+			math.clamp(
+				data.menuW,
+				minPanelSize.X,
+				maxPanelSize.X
+			),
+			math.clamp(
+				data.menuH,
+				minPanelSize.Y,
+				maxPanelSize.Y
+			)
 		)
 	end
 end
 
 local function loadSettings()
-	if not isfile or not isfile(SETTINGS_FILE) then return end
+	if
+		not isfile
+		or
+		not isfile(SETTINGS_FILE)
+	then
+		return
+	end
 
-	local ok, raw = pcall(readfile, SETTINGS_FILE)
-	if not ok or not raw then return end
+	local ok, raw = pcall(
+		readfile,
+		SETTINGS_FILE
+	)
+
+	if not ok or not raw then
+		return
+	end
 
 	local ok2, data = pcall(function()
 		return HttpService:JSONDecode(raw)
 	end)
-	if not ok2 or type(data) ~= "table" then return end
+
+	if
+		not ok2
+		or
+		type(data) ~= "table"
+	then
+		return
+	end
 
 	applyLoadedSettings(data)
 end
 
+-- Загружаем настройки после создания всех элементов.
 loadSettings()
