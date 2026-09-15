@@ -1,0 +1,1331 @@
+-- RBLXscript-PINK — compact version
+-- Sky / toggle / save / cleanup
+-- Export removed
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+local HttpService = game:GetService("HttpService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local GUI_NAME = "MobileToggleMenuGui"
+
+local existing = playerGui:FindFirstChild(GUI_NAME)
+if existing then existing:Destroy() end
+
+local SCRIPT_TAG = "MobileToggleMenuScript"
+_G[SCRIPT_TAG] = true
+
+local isMobileDevice = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
+
+-- ===== Save settings =====
+local SETTINGS_FILE = "ftap_settings.json"
+local saveDebounce = false
+
+-- ===== Default values =====
+local DEFAULTS = {
+	sky = "DefaultSky",
+	fov = 70,
+	iconX = nil,
+	iconY = 20,
+	menuW = 380,
+	menuH = 240,
+}
+
+-- ===== Sky =====
+
+local CUSTOM_SKY_NAMES = {
+	"PinkSky", "Pink1Sky", "SunsetSky", "Sunset1Sky", "DarkSunsetSky",
+	"OvercastSky", "Overcast1Sky", "Overcast2Sky", "Overcast3Sky", "PurpleSky", "Purple2Sky", "Purple3Sky",
+	"CloudySky", "Cloudy1Sky", "RedSky", "Red1Sky", "RedGoldSky",
+	"BlueGreenSky", "BlueGreen1Sky", "PurpleBlueSky", "FTAP_CustomSky"
+}
+
+local function isCustomSkyName(name)
+	for _, n in ipairs(CUSTOM_SKY_NAMES) do
+		if name == n then return true end
+	end
+	return false
+end
+
+local function cleanupCustomSky()
+	for _, child in ipairs(Lighting:GetChildren()) do
+		if child:IsA("Sky") and isCustomSkyName(child.Name) then
+			child:Destroy()
+		end
+	end
+end
+
+cleanupCustomSky()
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = GUI_NAME
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = playerGui
+
+-- ===== Small UI helpers =====
+
+local function corner(inst, radius)
+	local c = Instance.new("UICorner")
+	c.CornerRadius = radius or UDim.new(1, 0)
+	c.Parent = inst
+	return c
+end
+
+local function stroke(inst, color, thickness)
+	local s = Instance.new("UIStroke")
+	s.Color = color
+	s.Thickness = thickness or 1.5
+	s.Parent = inst
+	return s
+end
+
+local function newFrame(parent, size, pos, color, transparency)
+	local f = Instance.new("Frame")
+	f.Size = size
+	if pos then f.Position = pos end
+	f.BackgroundColor3 = color or Color3.fromRGB(45, 45, 52)
+	f.BackgroundTransparency = transparency or 0
+	f.BorderSizePixel = 0
+	f.Parent = parent
+	return f
+end
+
+local function getSafeCamera()
+	local camera = workspace.CurrentCamera
+	if not camera then
+		workspace:GetPropertyChangedSignal("CurrentCamera"):Wait()
+		camera = workspace.CurrentCamera
+	end
+	return camera
+end
+
+-- ===== Round icon =====
+
+local iconSize = 26
+local viewportSize = getSafeCamera().ViewportSize
+
+local icon = Instance.new("ImageButton")
+icon.Name = "ToggleIcon"
+icon.Size = UDim2.new(0, iconSize, 0, iconSize)
+icon.Position = UDim2.new(0, viewportSize.X / 2 - iconSize / 2, 0, 20)
+icon.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+icon.BorderSizePixel = 0
+icon.AutoButtonColor = false
+icon.ZIndex = 10
+icon.Parent = screenGui
+corner(icon)
+stroke(icon, Color3.fromRGB(252, 207, 242), 2)
+
+local iconLabel = Instance.new("TextLabel")
+iconLabel.Size = UDim2.new(1, 0, 1, 0)
+iconLabel.BackgroundTransparency = 1
+iconLabel.Text = "FTAP"
+iconLabel.TextColor3 = Color3.fromRGB(252, 207, 242)
+iconLabel.TextScaled = true
+iconLabel.Font = Enum.Font.GothamBold
+iconLabel.ZIndex = 11
+iconLabel.Parent = icon
+
+-- ===== Menu panel =====
+
+local minPanelSize = Vector2.new(260, 160)
+local maxPanelSize = Vector2.new(560, 340)
+local currentPanelSize = Vector2.new(380, 240)
+
+if isMobileDevice then
+	minPanelSize = Vector2.new(300, 200)
+	maxPanelSize = Vector2.new(600, 400)
+	currentPanelSize = Vector2.new(420, 280)
+end
+
+local menu = Instance.new("Frame")
+menu.Name = "MenuPanel"
+menu.Size = UDim2.new(0, 0, 0, 0)
+menu.Position = UDim2.new(0, viewportSize.X / 2, 0, 80)
+menu.AnchorPoint = Vector2.new(0.5, 0)
+menu.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+menu.BorderSizePixel = 0
+menu.ClipsDescendants = true
+menu.ZIndex = 5
+menu.Visible = false
+menu.Parent = screenGui
+corner(menu, UDim.new(0, 8))
+stroke(menu, Color3.fromRGB(252, 207, 242), 2)
+
+local dragBar = Instance.new("TextButton")
+dragBar.Name = "DragBar"
+dragBar.Size = UDim2.new(1, -30, 0, 30)
+dragBar.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+dragBar.BackgroundTransparency = 0.3
+dragBar.BorderSizePixel = 0
+dragBar.Text = "≡ Menu"
+dragBar.TextColor3 = Color3.fromRGB(255, 255, 255)
+dragBar.Font = Enum.Font.Gotham
+dragBar.TextSize = 12
+dragBar.AutoButtonColor = false
+dragBar.ZIndex = 7
+dragBar.Parent = menu
+corner(dragBar, UDim.new(0, 8))
+stroke(dragBar, Color3.fromRGB(252, 207, 242), 1.5)
+
+local content = Instance.new("ScrollingFrame")
+content.Name = "Content"
+content.Size = UDim2.new(1, 0, 1, -30)
+content.Position = UDim2.new(0, 0, 0, 30)
+content.BackgroundTransparency = 1
+content.ZIndex = 6
+content.ScrollBarThickness = 4
+content.ScrollBarImageColor3 = Color3.fromRGB(252, 207, 242)
+content.AutomaticCanvasSize = Enum.AutomaticSize.Y
+content.CanvasSize = UDim2.new(0, 0, 0, 0)
+content.Parent = menu
+
+local contentLayout = Instance.new("UIListLayout")
+contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+contentLayout.Padding = UDim.new(0, 10)
+contentLayout.Parent = content
+
+local contentPadding = Instance.new("UIPadding")
+contentPadding.PaddingTop = UDim.new(0, 12)
+contentPadding.PaddingBottom = UDim.new(0, 20)
+contentPadding.PaddingLeft = UDim.new(0, 14)
+contentPadding.PaddingRight = UDim.new(0, 14)
+contentPadding.Parent = content
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 26)
+title.BackgroundTransparency = 1
+title.Text = "Settings"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.Gotham
+title.TextSize = 17
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.LayoutOrder = 1
+title.Parent = content
+
+-- ===== Section label helper =====
+
+local function sectionLabel(text, order)
+	local l = Instance.new("TextLabel")
+	l.Size = UDim2.new(1, 0, 0, 18)
+	l.BackgroundTransparency = 1
+	l.Text = text
+	l.TextColor3 = Color3.fromRGB(255, 255, 255)
+	l.Font = Enum.Font.Gotham
+	l.TextSize = 13
+	l.TextXAlignment = Enum.TextXAlignment.Left
+	l.LayoutOrder = order
+	l.Parent = content
+	return l
+end
+
+-- ===== Sky section =====
+
+sectionLabel("Sky", 2)
+
+local function createSkyButton(name, text, layoutOrder)
+	local button = Instance.new("TextButton")
+	button.Name = name
+	button.Size = UDim2.new(1, 0, 0, 36)
+	button.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+	button.BorderSizePixel = 0
+	button.Text = text
+	button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	button.Font = Enum.Font.Gotham
+	button.TextSize = 15
+	button.AutoButtonColor = false
+	button.LayoutOrder = layoutOrder
+	button.Parent = content
+	corner(button, UDim.new(0, 8))
+	stroke(button, Color3.fromRGB(252, 207, 242), 1)
+	return button
+end
+
+local defaultSkyButton = createSkyButton("DefaultSkyButton", "Default Sky", 3)
+local pinkSkyButton = createSkyButton("PinkSkyButton", "Pink Sky", 4)
+local pink1SkyButton = createSkyButton("Pink1SkyButton", "Pink 1 Sky", 5)
+local sunsetSkyButton = createSkyButton("SunsetSkyButton", "Sunset Sky", 6)
+local sunset1SkyButton = createSkyButton("Sunset1SkyButton", "Sunset 1 Sky", 7)
+local darkSunsetSkyButton = createSkyButton("DarkSunsetSkyButton", "Dark-Sunset Sky", 8)
+local overcastSkyButton = createSkyButton("OvercastSkyButton", "Overcast Sky", 9)
+local overcast1SkyButton = createSkyButton("Overcast1SkyButton", "Overcast 1 Sky", 10)
+local overcast2SkyButton = createSkyButton("Overcast2SkyButton", "Overcast 2 Sky", 11)
+local overcast3SkyButton = createSkyButton("Overcast3SkyButton", "Overcast 3 Sky", 12)
+local purpleSkyButton = createSkyButton("PurpleSkyButton", "Purple Sky", 13)
+local purple2SkyButton = createSkyButton("Purple2SkyButton", "Purple 2 Sky", 14)
+local purple3SkyButton = createSkyButton("Purple3SkyButton", "Purple 3 Sky", 15)
+local cloudySkyButton = createSkyButton("CloudySkyButton", "Cloudy Sky", 16)
+local cloudy1SkyButton = createSkyButton("Cloudy1SkyButton", "Cloudy 1 Sky", 17)
+local redSkyButton = createSkyButton("RedSkyButton", "Red Sky", 18)
+local red1SkyButton = createSkyButton("Red1SkyButton", "Red 1 Sky", 19)
+local redGoldSkyButton = createSkyButton("RedGoldSkyButton", "Red-Gold Sky", 20)
+local blueGreenSkyButton = createSkyButton("BlueGreenSkyButton", "Blue-Green Sky", 21)
+local blueGreen1SkyButton = createSkyButton("BlueGreen1SkyButton", "Blue-Green 1 Sky", 22)
+local purpleBlueSkyButton = createSkyButton("PurpleBlueSkyButton", "Purple-Blue Sky", 23)
+
+local skyButtons = {
+	defaultSkyButton, pinkSkyButton, pink1SkyButton, sunsetSkyButton, sunset1SkyButton, darkSunsetSkyButton,
+	overcastSkyButton, overcast1SkyButton, overcast2SkyButton, overcast3SkyButton,
+	purpleSkyButton, purple2SkyButton, purple3SkyButton,
+	cloudySkyButton, cloudy1SkyButton, redSkyButton, red1SkyButton, redGoldSkyButton,
+	blueGreenSkyButton, blueGreen1SkyButton, purpleBlueSkyButton
+}
+
+local function setActiveSkyButton(activeButton)
+	for _, button in ipairs(skyButtons) do
+		button.BackgroundColor3 = (button == activeButton)
+			and Color3.fromRGB(252, 207, 242)
+			or Color3.fromRGB(20, 20, 20)
+		button.TextColor3 = (button == activeButton)
+			and Color3.fromRGB(0, 0, 0)
+			or Color3.fromRGB(255, 255, 255)
+	end
+end
+
+-- ===== Sky textures =====
+
+local PINK_SKY = {
+	Right = "rbxassetid://99178632470974", Left = "rbxassetid://105698490046689",
+	Up = "rbxassetid://118938836131305", Down = "rbxassetid://120618995645758",
+	Front = "rbxassetid://72769531974029", Back = "rbxassetid://70646713355454",
+}
+
+local PINK1_SKY = {
+	Right = "rbxassetid://121821717023864", Left = "rbxassetid://122912820996210",
+	Up = "rbxassetid://136954498936115", Down = "rbxassetid://120521166612928",
+	Back = "rbxassetid://75859338419870", Front = "rbxassetid://87978450174413",
+}
+
+local SUNSET_SKY = {
+	Right = "rbxassetid://81917192544565", Left = "rbxassetid://123504218900071",
+	Up = "rbxassetid://102754091719425", Down = "rbxassetid://120203815632456",
+	Back = "rbxassetid://80626011057173", Front = "rbxassetid://71391772386689",
+}
+
+local SUNSET1_SKY = {
+	Right = "rbxassetid://600833862", Left = "rbxassetid://600886090",
+	Up = "rbxassetid://600835177", Down = "rbxassetid://600831635",
+	Back = "rbxassetid://600830446", Front = "rbxassetid://600832720",
+}
+
+local DARKSUNSET_SKY = {
+	Right = "rbxassetid://169210143", Left = "rbxassetid://169210133",
+	Up = "rbxassetid://169210149", Down = "rbxassetid://169210108",
+	Back = "rbxassetid://169210090", Front = "rbxassetid://169210121",
+}
+
+local OVERCAST_SKY = {
+	Right = "rbxassetid://113656297117229", Left = "rbxassetid://117387352674614",
+	Up = "rbxassetid://96118083498785", Down = "rbxassetid://136079591970856",
+	Back = "rbxassetid://71196675713878", Front = "rbxassetid://81417222464090",
+}
+
+local OVERCAST1_SKY = {
+	Right = "rbxassetid://109693044711016", Left = "rbxassetid://100996126500320",
+	Up = "rbxassetid://97846107870268", Down = "rbxassetid://130441754428343",
+	Back = "rbxassetid://123436356714901", Front = "rbxassetid://111439831859778",
+}
+
+local OVERCAST2_SKY = {
+	Right = "rbxassetid://155657619", Left = "rbxassetid://155657671",
+	Up = "rbxassetid://155674931", Down = "rbxassetid://155674246",
+	Back = "rbxassetid://155657655", Front = "rbxassetid://155657609",
+}
+
+local OVERCAST3_SKY = {
+	Right = "rbxassetid://218448178", Left = "rbxassetid://218448234",
+	Up = "rbxassetid://218448296", Down = "rbxassetid://218448317",
+	Back = "rbxassetid://218448217", Front = "rbxassetid://218448269",
+}
+
+local PURPLE_SKY = {
+	Right = "rbxassetid://107582465298500", Left = "rbxassetid://116713499702383",
+	Up = "rbxassetid://104937569917275", Down = "rbxassetid://119424695859184",
+	Back = "rbxassetid://94075096527595", Front = "rbxassetid://107660858272322",
+}
+
+local PURPLE2_SKY = {
+	Right = "rbxassetid://87508746807373", Left = "rbxassetid://72214429519631",
+	Up = "rbxassetid://93909905537579", Down = "rbxassetid://114305065346484",
+	Back = "rbxassetid://124039476809343", Front = "rbxassetid://85546626451946",
+}
+
+local PURPLE3_SKY = {
+	Right = "rbxassetid://16553665766", Left = "rbxassetid://16553664042",
+	Up = "rbxassetid://16553667750", Down = "rbxassetid://16553660713",
+	Back = "rbxassetid://16553658937", Front = "rbxassetid://16553662144",
+}
+
+local CLOUDY_SKY = {
+	Right = "rbxassetid://73202475548459", Left = "rbxassetid://110550431724515",
+	Up = "rbxassetid://99634001170418", Down = "rbxassetid://116358698169847",
+	Back = "rbxassetid://105511758648998", Front = "rbxassetid://109231634620741",
+}
+
+local CLOUDY1_SKY = {
+	Right = "rbxassetid://108446505567246", Left = "rbxassetid://75881260386073",
+	Up = "rbxassetid://82241980967600", Down = "rbxassetid://97076965994511",
+	Back = "rbxassetid://106685350225588", Front = "rbxassetid://104055357726979",
+}
+
+local RED_SKY = {
+	Right = "rbxassetid://83665628990242", Left = "rbxassetid://86812333109787",
+	Up = "rbxassetid://109944460974973", Down = "rbxassetid://105372026083974",
+	Back = "rbxassetid://74210136209255", Front = "rbxassetid://107353670375427",
+}
+
+local RED1_SKY = {
+	Right = "rbxassetid://84415437719739", Left = "rbxassetid://76789441314394",
+	Up = "rbxassetid://104270272146420", Down = "rbxassetid://79387501967596",
+	Back = "rbxassetid://121089206402947", Front = "rbxassetid://84022325891982",
+}
+
+local REDGOLD_SKY = {
+	Right = "rbxassetid://108598432654836", Left = "rbxassetid://119399958723600",
+	Up = "rbxassetid://113183443469309", Down = "rbxassetid://96206083396471",
+	Back = "rbxassetid://96206083396471", Front = "rbxassetid://118413184179068",
+}
+
+local BLUEGREEN_SKY = {
+	Right = "rbxassetid://89051484543303", Left = "rbxassetid://76250732091424",
+	Up = "rbxassetid://102824883976098", Down = "rbxassetid://129089294700595",
+	Back = "rbxassetid://104922795812590", Front = "rbxassetid://117576797257071",
+}
+
+local BLUEGREEN1_SKY = {
+	Right = "rbxassetid://100525795679790", Left = "rbxassetid://126168304325701",
+	Up = "rbxassetid://131390851179591", Down = "rbxassetid://117310255409107",
+	Back = "rbxassetid://134735625405353", Front = "rbxassetid://74081048495142",
+}
+
+local PURPLEBLUE_SKY = {
+	Right = "rbxassetid://75513499724049", Left = "rbxassetid://130322025682877",
+	Up = "rbxassetid://87756010698046", Down = "rbxassetid://72544216742837",
+	Back = "rbxassetid://83511161961595", Front = "rbxassetid://102806492018777",
+}
+
+-- ===== Sky management =====
+
+local originalSky, customSky
+
+local function findOriginalSky()
+	for _, child in ipairs(Lighting:GetChildren()) do
+		if child:IsA("Sky") and not isCustomSkyName(child.Name) then return child end
+	end
+end
+
+originalSky = findOriginalSky()
+
+if not originalSky then
+	originalSky = Instance.new("Sky")
+	originalSky.Name = "DefaultSky"
+	originalSky.Parent = Lighting
+end
+
+local function clearCustomSky()
+	if customSky then
+		customSky:Destroy()
+		customSky = nil
+	end
+	cleanupCustomSky()
+end
+
+local currentSkyName = "DefaultSky"
+local currentFov = 70
+
+local function applyDefaultSky()
+	clearCustomSky()
+	if originalSky and not originalSky.Parent then originalSky.Parent = Lighting end
+	setActiveSkyButton(defaultSkyButton)
+	currentSkyName = "DefaultSky"
+end
+
+local function applyCustomSky(name, textures, button)
+	clearCustomSky()
+	if originalSky then originalSky.Parent = nil end
+
+	customSky = Instance.new("Sky")
+	customSky.Name = "FTAP_CustomSky"
+	customSky.SkyboxFt = textures.Front
+	customSky.SkyboxRt = textures.Right
+	customSky.SkyboxBk = textures.Back
+	customSky.SkyboxUp = textures.Up
+	customSky.SkyboxLf = textures.Left
+	customSky.SkyboxDn = textures.Down
+	customSky.Parent = Lighting
+
+	setActiveSkyButton(button)
+	currentSkyName = name
+end
+
+local SKY_DATA = {
+	PinkSky = {PINK_SKY, pinkSkyButton},
+	Pink1Sky = {PINK1_SKY, pink1SkyButton},
+	SunsetSky = {SUNSET_SKY, sunsetSkyButton},
+	Sunset1Sky = {SUNSET1_SKY, sunset1SkyButton},
+	DarkSunsetSky = {DARKSUNSET_SKY, darkSunsetSkyButton},
+	OvercastSky = {OVERCAST_SKY, overcastSkyButton},
+	Overcast1Sky = {OVERCAST1_SKY, overcast1SkyButton},
+	Overcast2Sky = {OVERCAST2_SKY, overcast2SkyButton},
+	Overcast3Sky = {OVERCAST3_SKY, overcast3SkyButton},
+	PurpleSky = {PURPLE_SKY, purpleSkyButton},
+	Purple2Sky = {PURPLE2_SKY, purple2SkyButton},
+	Purple3Sky = {PURPLE3_SKY, purple3SkyButton},
+	CloudySky = {CLOUDY_SKY, cloudySkyButton},
+	Cloudy1Sky = {CLOUDY1_SKY, cloudy1SkyButton},
+	RedSky = {RED_SKY, redSkyButton},
+	Red1Sky = {RED1_SKY, red1SkyButton},
+	RedGoldSky = {REDGOLD_SKY, redGoldSkyButton},
+	BlueGreenSky = {BLUEGREEN_SKY, blueGreenSkyButton},
+	BlueGreen1Sky = {BLUEGREEN1_SKY, blueGreen1SkyButton},
+	PurpleBlueSky = {PURPLEBLUE_SKY, purpleBlueSkyButton},
+}
+
+local function selectSky(name)
+	if name == "DefaultSky" then
+		applyDefaultSky()
+	else
+		local data = SKY_DATA[name]
+		if data then
+			applyCustomSky(name, data[1], data[2])
+		else
+			applyDefaultSky()
+		end
+	end
+	saveSettingsDelayed()
+end
+
+for _, data in ipairs({
+	{"DefaultSky", defaultSkyButton},
+	{"PinkSky", pinkSkyButton}, {"Pink1Sky", pink1SkyButton},
+	{"SunsetSky", sunsetSkyButton}, {"Sunset1Sky", sunset1SkyButton}, {"DarkSunsetSky", darkSunsetSkyButton},
+	{"OvercastSky", overcastSkyButton}, {"Overcast1Sky", overcast1SkyButton},
+	{"Overcast2Sky", overcast2SkyButton}, {"Overcast3Sky", overcast3SkyButton},
+	{"PurpleSky", purpleSkyButton}, {"Purple2Sky", purple2SkyButton}, {"Purple3Sky", purple3SkyButton},
+	{"CloudySky", cloudySkyButton}, {"Cloudy1Sky", cloudy1SkyButton},
+	{"RedSky", redSkyButton}, {"Red1Sky", red1SkyButton}, {"RedGoldSky", redGoldSkyButton},
+	{"BlueGreenSky", blueGreenSkyButton}, {"BlueGreen1Sky", blueGreen1SkyButton},
+	{"PurpleBlueSky", purpleBlueSkyButton},
+}) do
+	data[2].MouseButton1Click:Connect(function()
+		selectSky(data[1])
+	end)
+end
+
+
+-- ============================================================
+-- ===== Visual Presets (moved here, right after Sky) =====
+-- ============================================================
+
+sectionLabel("Visual Presets", 24)
+
+local VISUAL_PRESET_TAG = "FTAP_VisualPreset"
+
+local function clearVisualPreset()
+	for _, obj in ipairs(Lighting:GetChildren()) do
+		if obj:GetAttribute(VISUAL_PRESET_TAG) == true then obj:Destroy() end
+	end
+end
+
+local function newVisual(className, name)
+	local obj = Instance.new(className)
+	obj.Name = name
+	obj:SetAttribute(VISUAL_PRESET_TAG, true)
+	obj.Parent = Lighting
+	return obj
+end
+
+local function applyVisualPreset(preset)
+	clearVisualPreset()
+
+	if preset == "Blue" then
+		Lighting.ClockTime = 9; Lighting.Brightness = 2
+		Lighting.Ambient = Color3.fromRGB(16, 16, 16)
+		Lighting.ColorShift_Top = Color3.fromRGB(196, 222, 255)
+		Lighting.OutdoorAmbient = Color3.fromRGB(134, 158, 190)
+		Lighting.ShadowSoftness = 0; Lighting.GeographicLatitude = 78
+		local A = newVisual("Atmosphere", "FTAP_Visual_Atmosphere")
+		A.Density = 0.375; A.Offset = 0.17
+
+	elseif preset == "Realistic" then
+		Lighting.ClockTime = 17; Lighting.Brightness = 1.6
+		Lighting.GeographicLatitude = 45
+		Lighting.EnvironmentDiffuseScale = 0.3; Lighting.EnvironmentSpecularScale = 0.1
+		local A = newVisual("Atmosphere", "FTAP_Visual_Atmosphere")
+		A.Density = 0.10; A.Offset = 0.3; A.Color = Color3.fromRGB(200, 215, 230)
+		A.Decay = Color3.fromRGB(130, 120, 110); A.Glare = 0; A.Haze = 2
+		local C = newVisual("ColorCorrectionEffect", "FTAP_Visual_ColorCorrection")
+		C.Saturation = -0.12; C.Contrast = 0.01; C.Brightness = -0.02
+		local B = newVisual("BloomEffect", "FTAP_Visual_Bloom")
+		B.Intensity = 0.1; B.Size = 28; B.Threshold = 1.1
+		local R = newVisual("SunRaysEffect", "FTAP_Visual_SunRays")
+		R.Intensity = 0.05; R.Spread = 0.6
+
+	elseif preset == "Sunset" then
+		Lighting.ClockTime = 18; Lighting.Brightness = 2
+		Lighting.Ambient = Color3.fromRGB(90, 75, 95)
+		Lighting.OutdoorAmbient = Color3.fromRGB(150, 125, 145)
+		Lighting.ColorShift_Top = Color3.fromRGB(235, 165, 190)
+		Lighting.ColorShift_Bottom = Color3.fromRGB(100, 75, 125)
+		local A = newVisual("Atmosphere", "FTAP_Visual_Atmosphere")
+		A.Density = 0.18; A.Haze = 0.8; A.Glare = 0.15
+		A.Color = Color3.fromRGB(255, 210, 220); A.Decay = Color3.fromRGB(150, 120, 175)
+		local C = newVisual("ColorCorrectionEffect", "FTAP_Visual_ColorCorrection")
+		C.Brightness = 0.03; C.Contrast = 0.15; C.Saturation = 0.1
+		C.TintColor = Color3.fromRGB(255, 225, 235)
+		local B = newVisual("BloomEffect", "FTAP_Visual_Bloom")
+		B.Intensity = 0.8; B.Size = 28; B.Threshold = 0.9
+
+	elseif preset == "GoldenHour" then
+		Lighting.ClockTime = 17.2; Lighting.Brightness = 2.1
+		Lighting.Ambient = Color3.fromRGB(105, 90, 75)
+		Lighting.OutdoorAmbient = Color3.fromRGB(170, 145, 115)
+		Lighting.ColorShift_Top = Color3.fromRGB(255, 205, 145)
+		Lighting.ColorShift_Bottom = Color3.fromRGB(120, 90, 65)
+		local A = newVisual("Atmosphere", "FTAP_Visual_Atmosphere")
+		A.Density = 0.15; A.Haze = 0.7; A.Glare = 0.25
+		A.Color = Color3.fromRGB(255, 220, 185); A.Decay = Color3.fromRGB(175, 130, 95)
+		local C = newVisual("ColorCorrectionEffect", "FTAP_Visual_ColorCorrection")
+		C.Brightness = 0.04; C.Contrast = 0.12; C.Saturation = 0.12
+		C.TintColor = Color3.fromRGB(255, 235, 210)
+		local B = newVisual("BloomEffect", "FTAP_Visual_Bloom")
+		B.Intensity = 0.7; B.Size = 30; B.Threshold = 0.9
+
+	elseif preset == "Night" then
+		Lighting.ClockTime = 0; Lighting.Brightness = 1
+		Lighting.Ambient = Color3.fromRGB(20, 25, 45)
+		Lighting.OutdoorAmbient = Color3.fromRGB(35, 45, 80)
+		Lighting.ColorShift_Top = Color3.fromRGB(45, 55, 110)
+		Lighting.ColorShift_Bottom = Color3.fromRGB(15, 20, 45)
+		local A = newVisual("Atmosphere", "FTAP_Visual_Atmosphere")
+		A.Density = 0.25; A.Haze = 1.2; A.Glare = 0
+		A.Color = Color3.fromRGB(100, 120, 180); A.Decay = Color3.fromRGB(35, 45, 90)
+		local C = newVisual("ColorCorrectionEffect", "FTAP_Visual_ColorCorrection")
+		C.Brightness = -0.04; C.Contrast = 0.3; C.Saturation = -0.05
+		C.TintColor = Color3.fromRGB(180, 195, 240)
+		local B = newVisual("BloomEffect", "FTAP_Visual_Bloom")
+		B.Intensity = 0.35; B.Size = 24; B.Threshold = 1.1
+
+	elseif preset == "Twilight" then
+		Lighting.ClockTime = 19.1; Lighting.Brightness = 1.5
+		Lighting.Ambient = Color3.fromRGB(55, 45, 85)
+		Lighting.OutdoorAmbient = Color3.fromRGB(85, 70, 125)
+		Lighting.ColorShift_Top = Color3.fromRGB(110, 80, 180)
+		Lighting.ColorShift_Bottom = Color3.fromRGB(45, 35, 85)
+		local A = newVisual("Atmosphere", "FTAP_Visual_Atmosphere")
+		A.Density = 0.23; A.Haze = 1.1; A.Glare = 0.1
+		A.Color = Color3.fromRGB(170, 155, 230); A.Decay = Color3.fromRGB(70, 55, 125)
+		local C = newVisual("ColorCorrectionEffect", "FTAP_Visual_ColorCorrection")
+		C.Contrast = 0.25; C.Saturation = 0.2; C.TintColor = Color3.fromRGB(210, 200, 245)
+		local B = newVisual("BloomEffect", "FTAP_Visual_Bloom")
+		B.Intensity = 0.8; B.Size = 32; B.Threshold = 0.8
+
+	elseif preset == "Cyberpunk" then
+		Lighting.ClockTime = 21; Lighting.Brightness = 1.5
+		Lighting.Ambient = Color3.fromRGB(25, 10, 50)
+		Lighting.OutdoorAmbient = Color3.fromRGB(55, 20, 90)
+		Lighting.ColorShift_Top = Color3.fromRGB(255, 20, 180)
+		Lighting.ColorShift_Bottom = Color3.fromRGB(45, 0, 140)
+		local A = newVisual("Atmosphere", "FTAP_Visual_Atmosphere")
+		A.Density = 0.28; A.Haze = 1.4; A.Glare = 0.4
+		A.Color = Color3.fromRGB(255, 100, 220); A.Decay = Color3.fromRGB(60, 15, 140)
+		local C = newVisual("ColorCorrectionEffect", "FTAP_Visual_ColorCorrection")
+		C.Contrast = 0.35; C.Saturation = 0.6; C.TintColor = Color3.fromRGB(255, 190, 245)
+		local B = newVisual("BloomEffect", "FTAP_Visual_Bloom")
+		B.Intensity = 1.8; B.Size = 45; B.Threshold = 0.55
+
+	elseif preset == "Cloudy" then
+		Lighting.ClockTime = 13; Lighting.Brightness = 1.8
+		Lighting.Ambient = Color3.fromRGB(95, 100, 110)
+		Lighting.OutdoorAmbient = Color3.fromRGB(130, 135, 145)
+		Lighting.ColorShift_Top = Color3.fromRGB(210, 215, 225)
+		Lighting.ColorShift_Bottom = Color3.fromRGB(100, 105, 115)
+		local A = newVisual("Atmosphere", "FTAP_Visual_Atmosphere")
+		A.Density = 0.32; A.Haze = 1.8; A.Glare = 0
+		A.Color = Color3.fromRGB(205, 210, 220); A.Decay = Color3.fromRGB(115, 120, 130)
+		local C = newVisual("ColorCorrectionEffect", "FTAP_Visual_ColorCorrection")
+		C.Brightness = -0.02; C.Contrast = 0.08; C.Saturation = -0.15
+		C.TintColor = Color3.fromRGB(220, 225, 235)
+
+	elseif preset == "Vibrant" then
+		Lighting.ClockTime = 14; Lighting.Brightness = 2.4
+		Lighting.Ambient = Color3.fromRGB(75, 75, 85)
+		Lighting.OutdoorAmbient = Color3.fromRGB(155, 165, 185)
+		Lighting.ColorShift_Top = Color3.fromRGB(180, 210, 255)
+		Lighting.ColorShift_Bottom = Color3.fromRGB(90, 110, 170)
+		local A = newVisual("Atmosphere", "FTAP_Visual_Atmosphere")
+		A.Density = 0.08; A.Haze = 0.35; A.Glare = 0.1
+		A.Color = Color3.fromRGB(210, 225, 255); A.Decay = Color3.fromRGB(130, 150, 205)
+		local C = newVisual("ColorCorrectionEffect", "FTAP_Visual_ColorCorrection")
+		C.Brightness = 0.04; C.Contrast = 0.28; C.Saturation = 0.55
+		C.TintColor = Color3.fromRGB(235, 240, 255)
+		local B = newVisual("BloomEffect", "FTAP_Visual_Bloom")
+		B.Intensity = 0.7; B.Size = 25; B.Threshold = 0.85
+
+	elseif preset == "Dark" then
+		Lighting.ClockTime = 22; Lighting.Brightness = 0.9
+		Lighting.Ambient = Color3.fromRGB(18, 18, 30)
+		Lighting.OutdoorAmbient = Color3.fromRGB(40, 40, 65)
+		Lighting.ColorShift_Top = Color3.fromRGB(45, 35, 90)
+		Lighting.ColorShift_Bottom = Color3.fromRGB(12, 12, 30)
+		local A = newVisual("Atmosphere", "FTAP_Visual_Atmosphere")
+		A.Density = 0.3; A.Haze = 1.6; A.Glare = 0
+		A.Color = Color3.fromRGB(90, 95, 140); A.Decay = Color3.fromRGB(35, 35, 70)
+		local C = newVisual("ColorCorrectionEffect", "FTAP_Visual_ColorCorrection")
+		C.Brightness = -0.05; C.Contrast = 0.42; C.Saturation = -0.05
+		C.TintColor = Color3.fromRGB(175, 180, 220)
+	end
+end
+
+local visualPresets = {
+	{"Blue", " Blue"}, {"Realistic", " Realistic"}, {"Sunset", " Sunset"},
+	{"GoldenHour", " Golden Hour"}, {"Night", " Night"}, {"Twilight", " Twilight"},
+	{"Cyberpunk", " Cyberpunk"}, {"Cloudy", " Cloudy"}, {"Vibrant", " Vibrant"}, {"Dark", " Dark"},
+}
+
+local visualButtons = {}
+for i, data in ipairs(visualPresets) do
+	local b = Instance.new("TextButton")
+	b.Name = "VisualPreset_" .. data[1]; b.Size = UDim2.new(1, 0, 0, 34)
+	b.BackgroundColor3 = Color3.fromRGB(20, 20, 20); b.BorderSizePixel = 0
+	b.Text = data[2]; b.TextColor3 = Color3.fromRGB(255, 255, 255)
+	b.Font = Enum.Font.Gotham; b.TextSize = 14; b.AutoButtonColor = false
+	b.LayoutOrder = 24 + i; b.Parent = content
+	corner(b, UDim.new(0, 8)); stroke(b, Color3.fromRGB(252, 207, 242), 1)
+	visualButtons[data[1]] = b
+	b.MouseButton1Click:Connect(function()
+		applyVisualPreset(data[1])
+		for name, button in pairs(visualButtons) do
+			button.BackgroundColor3 = name == data[1] and Color3.fromRGB(252, 207, 242) or Color3.fromRGB(20, 20, 20)
+			button.TextColor3 = name == data[1] and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
+		end
+	end)
+end
+
+applyVisualPreset("Realistic")
+
+
+-- ===== FOV section =====
+
+local FOV_MIN, FOV_MAX = 50, 120
+local fovLabel = sectionLabel("FOV (Field of View)", 40)
+
+local fovValueBox = Instance.new("TextBox")
+fovValueBox.Size = UDim2.new(0, 56, 0, 18)
+fovValueBox.AnchorPoint = Vector2.new(1, 0)
+fovValueBox.Position = UDim2.new(1, 0, 0, 0)
+fovValueBox.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+fovValueBox.BorderSizePixel = 0
+fovValueBox.Text = "70"
+fovValueBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+fovValueBox.Font = Enum.Font.Gotham
+fovValueBox.TextSize = 13
+fovValueBox.ClearTextOnFocus = false
+fovValueBox.ZIndex = 8
+fovValueBox.Parent = fovLabel
+corner(fovValueBox, UDim.new(0, 5))
+stroke(fovValueBox, Color3.fromRGB(252, 207, 242), 1)
+
+local fovSliderArea = Instance.new("Frame")
+fovSliderArea.Size = UDim2.new(1, 0, 0, 30)
+fovSliderArea.BackgroundTransparency = 1
+fovSliderArea.LayoutOrder = 41
+fovSliderArea.Parent = content
+
+local fovTrack = newFrame(
+	fovSliderArea,
+	UDim2.new(1, 0, 0, 6),
+	UDim2.new(0, 0, 0.5, 0),
+	Color3.fromRGB(40, 40, 40)
+)
+fovTrack.AnchorPoint = Vector2.new(0, 0.5)
+corner(fovTrack)
+
+local fovFill = newFrame(
+	fovSliderArea,
+	UDim2.new(0, 0, 0, 6),
+	UDim2.new(0, 0, 0.5, 0),
+	Color3.fromRGB(252, 207, 242)
+)
+fovFill.AnchorPoint = Vector2.new(0, 0.5)
+corner(fovFill)
+
+local fovKnob = Instance.new("ImageButton")
+fovKnob.AnchorPoint = Vector2.new(0.5, 0.5)
+fovKnob.Size = UDim2.new(0, 20, 0, 20)
+fovKnob.Position = UDim2.new(0, 0, 0.5, 0)
+fovKnob.BackgroundColor3 = Color3.fromRGB(252, 207, 242)
+fovKnob.BorderSizePixel = 0
+fovKnob.AutoButtonColor = false
+fovKnob.ZIndex = 9
+fovKnob.Parent = fovSliderArea
+corner(fovKnob)
+
+currentFov = math.clamp(getSafeCamera().FieldOfView or 70, FOV_MIN, FOV_MAX)
+
+local function setFov(value)
+	value = math.clamp(value, FOV_MIN, FOV_MAX)
+	currentFov = value
+
+	local percent = (value - FOV_MIN) / (FOV_MAX - FOV_MIN)
+
+	fovFill.Size = UDim2.new(percent, 0, 0, 6)
+	fovKnob.Position = UDim2.new(percent, 0, 0.5, 0)
+	fovValueBox.Text = tostring(math.floor(value + 0.5))
+
+	local camera = workspace.CurrentCamera
+	if camera then
+		camera.FieldOfView = value
+	end
+end
+
+setFov(currentFov)
+
+workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
+	local camera = workspace.CurrentCamera
+	if camera then
+		camera.FieldOfView = currentFov
+	end
+end)
+
+fovValueBox.FocusLost:Connect(function()
+	local num = tonumber(fovValueBox.Text)
+
+	if num then
+		setFov(num)
+	else
+		fovValueBox.Text = tostring(math.floor(currentFov + 0.5))
+	end
+
+	saveSettingsDelayed()
+end)
+
+local fovDragging, fovDragInput = false, nil
+
+local function updateFovFromPosition(inputPosition)
+	local trackSize = fovTrack.AbsoluteSize.X
+	if trackSize <= 0 then return end
+
+	local relative = math.clamp(
+		(inputPosition.X - fovTrack.AbsolutePosition.X) / trackSize,
+		0,
+		1
+	)
+
+	setFov(FOV_MIN + relative * (FOV_MAX - FOV_MIN))
+end
+
+fovKnob.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		fovDragging = true
+		fovDragInput = input
+		updateFovFromPosition(input.Position)
+
+		local connection
+
+		connection = input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				fovDragging = false
+				fovDragInput = nil
+				connection:Disconnect()
+				saveSettingsDelayed()
+			end
+		end)
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if fovDragging and input == fovDragInput then
+		updateFovFromPosition(input.Position)
+	end
+end)
+
+-- ===== Control section =====
+
+sectionLabel("Control", 50)
+
+local resetButton = Instance.new("TextButton")
+resetButton.Size = UDim2.new(1, 0, 0, 36)
+resetButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+resetButton.BorderSizePixel = 0
+resetButton.Text = "RESET SETTINGS"
+resetButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+resetButton.Font = Enum.Font.Gotham
+resetButton.TextSize = 14
+resetButton.AutoButtonColor = false
+resetButton.LayoutOrder = 51
+resetButton.Parent = content
+corner(resetButton, UDim.new(0, 8))
+stroke(resetButton, Color3.fromRGB(252, 207, 242), 1)
+
+resetButton.MouseButton1Click:Connect(function()
+	applyDefaultSky()
+	setFov(DEFAULTS.fov)
+
+	currentPanelSize = Vector2.new(
+		isMobileDevice and 420 or 380,
+		isMobileDevice and 280 or 240
+	)
+
+	icon.Position = UDim2.new(
+		0,
+		viewportSize.X / 2 - iconSize / 2,
+		0,
+		20
+	)
+
+	resetButton.Text = "✓ RESET DONE"
+
+	task.delay(1.5, function()
+		if resetButton.Parent then
+			resetButton.Text = "RESET SETTINGS"
+		end
+	end)
+
+	saveSettings()
+end)
+
+-- ===== Delete button =====
+
+local destroyButton = Instance.new("TextButton")
+destroyButton.Size = UDim2.new(1, 0, 0, 40)
+destroyButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+destroyButton.BorderSizePixel = 0
+destroyButton.Text = "DELETE SCRIPT"
+destroyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+destroyButton.Font = Enum.Font.Gotham
+destroyButton.TextSize = 15
+destroyButton.AutoButtonColor = false
+destroyButton.LayoutOrder = 53
+destroyButton.Parent = content
+corner(destroyButton, UDim.new(0, 8))
+stroke(destroyButton, Color3.fromRGB(252, 207, 242), 1)
+
+local confirmDestroy = false
+
+local function destroyScript()
+	clearCustomSky()
+	clearVisualPreset()
+
+	if originalSky and not originalSky.Parent then
+		originalSky.Parent = Lighting
+	end
+
+	if workspace.CurrentCamera then
+		workspace.CurrentCamera.FieldOfView = 70
+	end
+
+	_G[SCRIPT_TAG] = nil
+	screenGui:Destroy()
+end
+
+destroyButton.MouseButton1Click:Connect(function()
+	if not confirmDestroy then
+		confirmDestroy = true
+		destroyButton.Text = "CLICK AGAIN"
+		destroyButton.BackgroundColor3 = Color3.fromRGB(80, 0, 0)
+
+		task.delay(3, function()
+			if confirmDestroy and destroyButton.Parent then
+				confirmDestroy = false
+				destroyButton.Text = "DELETE SCRIPT"
+				destroyButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+			end
+		end)
+	else
+		destroyScript()
+	end
+end)
+
+-- ===== Resize handle =====
+
+local resizeHandle = Instance.new("ImageButton")
+resizeHandle.Size = UDim2.new(0, 20, 0, 20)
+resizeHandle.AnchorPoint = Vector2.new(1, 1)
+resizeHandle.Position = UDim2.new(1, 0, 1, 0)
+resizeHandle.BackgroundTransparency = 1
+resizeHandle.AutoButtonColor = false
+resizeHandle.ZIndex = 20
+resizeHandle.Parent = menu
+
+local function resizeLine(size, pos)
+	local l = Instance.new("Frame")
+	l.Size = size
+	l.Position = pos
+	l.BackgroundColor3 = Color3.fromRGB(252, 207, 242)
+	l.BorderSizePixel = 0
+	l.ZIndex = 21
+	l.Parent = resizeHandle
+	return l
+end
+
+resizeLine(UDim2.new(1, 0, 0, 2), UDim2.new(0, 0, 1, -2))
+resizeLine(UDim2.new(0, 2, 1, 0), UDim2.new(1, -2, 0, 0))
+
+-- ===== Open/close menu =====
+
+local isOpen, isAnimating = false, false
+
+local function setMenuOpen(open)
+	if isAnimating then return end
+
+	isAnimating = true
+	isOpen = open
+
+	local targetSize = open
+		and UDim2.new(0, currentPanelSize.X, 0, currentPanelSize.Y)
+		or UDim2.new(0, 0, 0, 0)
+
+	local info = open
+		and TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+		or TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+
+	if open then
+		menu.Visible = true
+	end
+
+	local tween = TweenService:Create(menu, info, {
+		Size = targetSize
+	})
+
+	tween:Play()
+
+	tween.Completed:Connect(function()
+		if not open then
+			menu.Visible = false
+		end
+
+		isAnimating = false
+	end)
+end
+
+-- ===== Icon dragging =====
+
+local iconDragging = false
+local iconDragInput = nil
+local iconDragStart = nil
+local iconStartPos = nil
+local iconMoved = false
+local DRAG_THRESHOLD = 3
+
+local function updateMenuPosition()
+	local vp = workspace.CurrentCamera.ViewportSize
+	local menuX = icon.Position.X.Offset + iconSize / 2
+	local menuY = icon.Position.Y.Offset + iconSize + 10
+
+	if menuX + currentPanelSize.X / 2 > vp.X then
+		menuX = vp.X - currentPanelSize.X / 2
+	elseif menuX - currentPanelSize.X / 2 < 0 then
+		menuX = currentPanelSize.X / 2
+	end
+
+	if menuY + currentPanelSize.Y > vp.Y then
+		menuY = vp.Y - currentPanelSize.Y - 10
+	end
+
+	menu.Position = UDim2.new(0, menuX, 0, menuY)
+end
+
+icon.InputBegan:Connect(function(input)
+	if input.UserInputType ~= Enum.UserInputType.MouseButton1
+		and input.UserInputType ~= Enum.UserInputType.Touch then
+		return
+	end
+
+	iconDragging = true
+	iconMoved = false
+	iconDragStart = input.Position
+	iconStartPos = icon.Position
+
+	local endConnection
+
+	endConnection = input.Changed:Connect(function()
+		if input.UserInputState ~= Enum.UserInputState.End then
+			return
+		end
+
+		endConnection:Disconnect()
+
+		local wasDragged = iconMoved
+
+		iconDragging = false
+		iconDragInput = nil
+
+		if not wasDragged then
+			setMenuOpen(not isOpen)
+		else
+			saveSettingsDelayed()
+		end
+	end)
+end)
+
+icon.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch then
+		iconDragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if not iconDragging or input ~= iconDragInput then
+		return
+	end
+
+	local delta = input.Position - iconDragStart
+
+	if math.abs(delta.X) > DRAG_THRESHOLD
+		or math.abs(delta.Y) > DRAG_THRESHOLD then
+		iconMoved = true
+	end
+
+	local vp = workspace.CurrentCamera.ViewportSize
+
+	local newX = math.clamp(
+		iconStartPos.X.Offset + delta.X,
+		0,
+		vp.X - iconSize
+	)
+
+	local newY = math.clamp(
+		iconStartPos.Y.Offset + delta.Y,
+		0,
+		vp.Y - iconSize
+	)
+
+	icon.Position = UDim2.new(0, newX, 0, newY)
+
+	if isOpen then
+		updateMenuPosition()
+	end
+end)
+
+-- ===== Menu dragging =====
+
+local menuDragging = false
+local menuDragInput = nil
+local menuDragStart = nil
+local menuStartPos = nil
+
+dragBar.InputBegan:Connect(function(input)
+	if input.UserInputType ~= Enum.UserInputType.MouseButton1
+		and input.UserInputType ~= Enum.UserInputType.Touch then
+		return
+	end
+
+	menuDragging = true
+	menuDragStart = input.Position
+	menuStartPos = menu.Position
+
+	local endConnection
+
+	endConnection = input.Changed:Connect(function()
+		if input.UserInputState ~= Enum.UserInputState.End then
+			return
+		end
+
+		endConnection:Disconnect()
+		menuDragging = false
+		menuDragInput = nil
+	end)
+end)
+
+dragBar.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch then
+		menuDragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if not menuDragging or input ~= menuDragInput then
+		return
+	end
+
+	local delta = input.Position - menuDragStart
+	local vp = workspace.CurrentCamera.ViewportSize
+
+	local newX = math.clamp(
+		menuStartPos.X.Offset + delta.X,
+		-currentPanelSize.X / 2,
+		vp.X - currentPanelSize.X / 2
+	)
+
+	local newY = math.clamp(
+		menuStartPos.Y.Offset + delta.Y,
+		0,
+		vp.Y - 30
+	)
+
+	menu.Position = UDim2.new(0, newX, 0, newY)
+end)
+
+-- ===== Menu resizing =====
+
+local resizing, resizeInput, resizeStart, sizeStart
+
+resizeHandle.InputBegan:Connect(function(input)
+	if not isOpen or isAnimating then
+		return
+	end
+
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		resizing = true
+		resizeStart = input.Position
+		sizeStart = currentPanelSize
+
+		local connection
+
+		connection = input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				resizing = false
+				connection:Disconnect()
+				saveSettingsDelayed()
+			end
+		end)
+	end
+end)
+
+resizeHandle.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch then
+		resizeInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if resizing and input == resizeInput then
+		local delta = input.Position - resizeStart
+
+		local newWidth = math.clamp(
+			sizeStart.X + delta.X,
+			minPanelSize.X,
+			maxPanelSize.X
+		)
+
+		local newHeight = math.clamp(
+			sizeStart.Y + delta.Y,
+			minPanelSize.Y,
+			maxPanelSize.Y
+		)
+
+		currentPanelSize = Vector2.new(newWidth, newHeight)
+		menu.Size = UDim2.new(0, newWidth, 0, newHeight)
+	end
+end)
+
+-- ===== Save system =====
+
+function saveSettings()
+	local data = {
+		sky = currentSkyName,
+		fov = math.floor(currentFov),
+		iconX = icon.Position.X.Offset,
+		iconY = icon.Position.Y.Offset,
+		menuW = math.floor(currentPanelSize.X),
+		menuH = math.floor(currentPanelSize.Y),
+	}
+
+	local ok, err = pcall(function()
+		writefile(
+			SETTINGS_FILE,
+			HttpService:JSONEncode(data)
+		)
+	end)
+
+	if not ok then
+		warn("[FTAP] Save error:", err)
+	end
+end
+
+function saveSettingsDelayed()
+	if saveDebounce then
+		return
+	end
+
+	saveDebounce = true
+
+	task.delay(0.5, function()
+		saveDebounce = false
+		saveSettings()
+	end)
+end
+
+local function applyLoadedSettings(data)
+	if type(data) ~= "table" then
+		return
+	end
+
+	if data.fov then
+		setFov(data.fov)
+	end
+
+	if data.sky and data.sky ~= "DefaultSky" then
+		local entry = SKY_DATA[data.sky]
+
+		if entry then
+			applyCustomSky(data.sky, entry[1], entry[2])
+		else
+			applyDefaultSky()
+		end
+	else
+		applyDefaultSky()
+	end
+
+	if data.iconX ~= nil and data.iconY ~= nil then
+		local vp = workspace.CurrentCamera.ViewportSize
+
+		local newX = math.clamp(
+			data.iconX,
+			0,
+			vp.X - iconSize
+		)
+
+		local newY = math.clamp(
+			data.iconY,
+			0,
+			vp.Y - iconSize
+		)
+
+		icon.Position = UDim2.new(0, newX, 0, newY)
+	end
+
+	if data.menuW ~= nil and data.menuH ~= nil then
+		currentPanelSize = Vector2.new(
+			math.clamp(data.menuW, minPanelSize.X, maxPanelSize.X),
+			math.clamp(data.menuH, minPanelSize.Y, maxPanelSize.Y)
+		)
+	end
+end
+
+local function loadSettings()
+	if not isfile or not isfile(SETTINGS_FILE) then
+		return
+	end
+
+	local ok, raw = pcall(readfile, SETTINGS_FILE)
+
+	if not ok or not raw then
+		return
+	end
+
+	local ok2, data = pcall(function()
+		return HttpService:JSONDecode(raw)
+	end)
+
+	if not ok2 or type(data) ~= "table" then
+		return
+	end
+
+	applyLoadedSettings(data)
+end
+
+loadSettings()
