@@ -567,19 +567,34 @@ local function applyVisualPreset(preset)
 		R.Intensity = 0.05; R.Spread = 0.6
 
 	elseif preset == "Sunset" then
-		Lighting.ClockTime = 18; Lighting.Brightness = 2
-		Lighting.Ambient = Color3.fromRGB(90, 75, 95)
-		Lighting.OutdoorAmbient = Color3.fromRGB(150, 125, 145)
-		Lighting.ColorShift_Top = Color3.fromRGB(235, 165, 190)
-		Lighting.ColorShift_Bottom = Color3.fromRGB(100, 75, 125)
-		local A = newVisual("Atmosphere", "FTAP_Visual_Atmosphere")
-		A.Density = 0.18; A.Haze = 0.8; A.Glare = 0.15
-		A.Color = Color3.fromRGB(255, 210, 220); A.Decay = Color3.fromRGB(150, 120, 175)
+		-- Sunset visual preset
 		local C = newVisual("ColorCorrectionEffect", "FTAP_Visual_ColorCorrection")
-		C.Brightness = 0.03; C.Contrast = 0.15; C.Saturation = 0.1
-		C.TintColor = Color3.fromRGB(255, 225, 235)
+		C.Brightness = 0.08
+		C.Contrast = -0.15
+		C.Saturation = -0.08
+		C.TintColor = Color3.fromRGB(255, 242, 235)
+
 		local B = newVisual("BloomEffect", "FTAP_Visual_Bloom")
-		B.Intensity = 0.8; B.Size = 28; B.Threshold = 0.9
+		B.Intensity = 1.8
+		B.Size = 32
+		B.Threshold = 0.75
+
+		local DOF = newVisual("DepthOfFieldEffect", "FTAP_Visual_DOF")
+		DOF.FarIntensity = 0.38
+		DOF.FocusDistance = 45
+		DOF.InFocusRadius = 18
+		DOF.NearIntensity = 0.08
+
+		local A = newVisual("Atmosphere", "FTAP_Visual_Atmosphere")
+		A.Density = 0.32
+		A.Offset = 0.05
+		A.Color = Color3.fromRGB(255, 238, 230)
+		A.Decay = Color3.fromRGB(210, 205, 195)
+		A.Glare = 0.45
+		A.Haze = 2.2
+
+		local Blur = newVisual("BlurEffect", "FTAP_Visual_Blur")
+		Blur.Size = 2
 
 	elseif preset == "GoldenHour" then
 		Lighting.ClockTime = 17.2; Lighting.Brightness = 2.1
@@ -708,6 +723,57 @@ for i, data in ipairs(visualPresets) do
 end
 
 applyVisualPreset("Realistic")
+
+
+-- ===== Remove All Effects button =====
+
+local removeEffectsButton = Instance.new("TextButton")
+removeEffectsButton.Name = "RemoveAllEffectsButton"
+removeEffectsButton.Size = UDim2.new(1, 0, 0, 34)
+removeEffectsButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+removeEffectsButton.BorderSizePixel = 0
+removeEffectsButton.Text = "Remove All Effects"
+removeEffectsButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+removeEffectsButton.Font = Enum.Font.Gotham
+removeEffectsButton.TextSize = 14
+removeEffectsButton.AutoButtonColor = false
+removeEffectsButton.LayoutOrder = 24 + #visualPresets + 1
+removeEffectsButton.Parent = content
+corner(removeEffectsButton, UDim.new(0, 8))
+stroke(removeEffectsButton, Color3.fromRGB(252, 207, 242), 1)
+
+removeEffectsButton.MouseButton1Click:Connect(function()
+	-- Remove all custom visual effects
+	clearVisualPreset()
+	
+	-- Reset Lighting properties to default
+	Lighting.ClockTime = 14
+	Lighting.Brightness = 2
+	Lighting.Ambient = Color3.fromRGB(70, 70, 70)
+	Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+	Lighting.ColorShift_Top = Color3.fromRGB(0, 0, 0)
+	Lighting.ColorShift_Bottom = Color3.fromRGB(0, 0, 0)
+	Lighting.ShadowSoftness = 0.2
+	Lighting.GeographicLatitude = 41.733
+	Lighting.EnvironmentDiffuseScale = 1
+	Lighting.EnvironmentSpecularScale = 1
+	
+	-- Deselect all visual preset buttons
+	for name, button in pairs(visualButtons) do
+		button.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+		button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	end
+	
+	-- Show confirmation
+	removeEffectsButton.Text = "✓ Effects Removed"
+	task.delay(1.5, function()
+		if removeEffectsButton.Parent then
+			removeEffectsButton.Text = "Remove All Effects"
+		end
+	end)
+	
+	saveSettingsDelayed()
+end)
 
 
 -- ===== FOV section =====
