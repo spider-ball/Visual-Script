@@ -1,6 +1,6 @@
--- RBLXscript-PINK вЂ” РєРѕРјРїР°РєС‚РЅР°СЏ РІРµСЂСЃРёСЏ
--- Sky / РїРµСЂРµРєР»СЋС‡РµРЅРёРµ / СЃРѕС…СЂР°РЅРµРЅРёРµ / РѕС‡РёСЃС‚РєР°
--- Export СѓРґР°Р»С‘РЅ
+-- RBLXscript-PINK — compact version
+-- Sky / toggle / save / clear
+-- Export removed
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -20,11 +20,11 @@ _G[SCRIPT_TAG] = true
 
 local isMobileDevice = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
 
--- ===== РќР°СЃС‚СЂРѕР№РєРё СЃРѕС…СЂР°РЅРµРЅРёСЏ =====
+-- ===== Save settings =====
 local SETTINGS_FILE = "ftap_settings.json"
 local saveDebounce = false
 
--- ===== Р—РЅР°С‡РµРЅРёСЏ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ =====
+-- ===== Default values =====
 local DEFAULTS = {
 	sky = "DefaultSky",
 	fov = 70,
@@ -34,7 +34,7 @@ local DEFAULTS = {
 	menuH = 240,
 }
 
--- ===== РќРµР±Рѕ =====
+-- ===== Sky =====
 
 local CUSTOM_SKY_NAMES = {
 	"PinkSky", "Pink1Sky", "SunsetSky", "Sunset1Sky", "DarkSunsetSky",
@@ -67,7 +67,7 @@ screenGui.IgnoreGuiInset = true
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = playerGui
 
--- ===== РњРµР»РєРёРµ С…РµР»РїРµСЂС‹ РґР»СЏ UI =====
+-- ===== Small helpers for UI =====
 
 local function corner(inst, radius)
 	local c = Instance.new("UICorner")
@@ -104,7 +104,7 @@ local function getSafeCamera()
 	return camera
 end
 
--- ===== РљСЂСѓРіР»Р°СЏ РёРєРѕРЅРєР° =====
+-- ===== Round icon =====
 
 local iconSize = 26
 local viewportSize = getSafeCamera().ViewportSize
@@ -131,7 +131,7 @@ iconLabel.Font = Enum.Font.GothamBold
 iconLabel.ZIndex = 11
 iconLabel.Parent = icon
 
--- ===== РџР°РЅРµР»СЊ РјРµРЅСЋ =====
+-- ===== Menu panel =====
 
 local minPanelSize = Vector2.new(260, 160)
 local maxPanelSize = Vector2.new(560, 340)
@@ -163,7 +163,7 @@ dragBar.Size = UDim2.new(1, -30, 0, 30)
 dragBar.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 dragBar.BackgroundTransparency = 0.3
 dragBar.BorderSizePixel = 0
-dragBar.Text = "в‰Ў Menu"
+dragBar.Text = "≡ Menu"
 dragBar.TextColor3 = Color3.fromRGB(255, 255, 255)
 dragBar.Font = Enum.Font.Gotham
 dragBar.TextSize = 12
@@ -285,7 +285,7 @@ local function setActiveSkyButton(activeButton)
 	end
 end
 
--- ===== РўРµРєСЃС‚СѓСЂС‹ РЅРµР±Р° =====
+-- ===== Sky textures =====
 
 local PINK_SKY = {
 	Right = "rbxassetid://99178632470974", Left = "rbxassetid://105698490046689",
@@ -407,7 +407,7 @@ local PURPLEBLUE_SKY = {
 	Back = "rbxassetid://83511161961595", Front = "rbxassetid://102806492018777",
 }
 
--- ===== РЈРїСЂР°РІР»РµРЅРёРµ Sky =====
+-- ===== Sky control =====
 
 local originalSky, customSky
 
@@ -686,7 +686,7 @@ resetButton.MouseButton1Click:Connect(function()
 		20
 	)
 
-	resetButton.Text = "вњ“ RESET DONE"
+	resetButton.Text = "✓ RESET DONE"
 
 	task.delay(1.5, function()
 		if resetButton.Parent then
@@ -697,7 +697,7 @@ resetButton.MouseButton1Click:Connect(function()
 	saveSettings()
 end)
 
--- ===== РљРЅРѕРїРєР° СѓРґР°Р»РµРЅРёСЏ =====
+-- ===== Delete button =====
 
 local destroyButton = Instance.new("TextButton")
 destroyButton.Size = UDim2.new(1, 0, 0, 40)
@@ -773,7 +773,7 @@ end
 resizeLine(UDim2.new(1, 0, 0, 2), UDim2.new(0, 0, 1, -2))
 resizeLine(UDim2.new(0, 2, 1, 0), UDim2.new(1, -2, 0, 0))
 
--- ===== РћС‚РєСЂС‹С‚РёРµ/Р·Р°РєСЂС‹С‚РёРµ РјРµРЅСЋ =====
+-- ===== Opening/closing menu =====
 
 local isOpen, isAnimating = false, false
 
@@ -810,7 +810,7 @@ local function setMenuOpen(open)
 	end)
 end
 
--- ===== РџРµСЂРµС‚Р°СЃРєРёРІР°РЅРёРµ РёРєРѕРЅРєРё =====
+-- ===== Dragging icon =====
 
 local iconDragging = false
 local iconDragInput = nil
@@ -910,7 +910,7 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- ===== РџРµСЂРµС‚Р°СЃРєРёРІР°РЅРёРµ РјРµРЅСЋ =====
+-- ===== Dragging menu =====
 
 local menuDragging = false
 local menuDragInput = nil
@@ -970,7 +970,7 @@ UserInputService.InputChanged:Connect(function(input)
 	menu.Position = UDim2.new(0, newX, 0, newY)
 end)
 
--- ===== РР·РјРµРЅРµРЅРёРµ СЂР°Р·РјРµСЂР° РјРµРЅСЋ =====
+-- ===== Resizing menu =====
 
 local resizing, resizeInput, resizeStart, sizeStart
 
@@ -1026,7 +1026,7 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- ===== РЎРёСЃС‚РµРјР° СЃРѕС…СЂР°РЅРµРЅРёСЏ =====
+-- ===== Save system =====
 
 function saveSettings()
 	local data = {
