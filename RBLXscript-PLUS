@@ -21,7 +21,7 @@ _G[SCRIPT_TAG] = true
 local isMobileDevice = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
 
 -- ===== Save settings =====
-local SETTINGS_FILE = "ftap_settings.json"
+local SETTINGS_FILE = "RBLXscript.json"
 local saveDebounce = false
 
 -- ===== Default values =====
@@ -163,7 +163,7 @@ dragBar.Size = UDim2.new(1, -30, 0, 30)
 dragBar.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 dragBar.BackgroundTransparency = 0.3
 dragBar.BorderSizePixel = 0
-dragBar.Text = "≡ Menu"
+dragBar.Text = "= Menu"
 dragBar.TextColor3 = Color3.fromRGB(255, 255, 255)
 dragBar.Font = Enum.Font.Gotham
 dragBar.TextSize = 12
@@ -526,6 +526,19 @@ sectionLabel("Visual Presets", 24)
 
 local VISUAL_PRESET_TAG = "FTAP_VisualPreset"
 
+local ORIGINAL_LIGHTING = {
+	ClockTime = Lighting.ClockTime,
+	Brightness = Lighting.Brightness,
+	Ambient = Lighting.Ambient,
+	OutdoorAmbient = Lighting.OutdoorAmbient,
+	ColorShift_Top = Lighting.ColorShift_Top,
+	ColorShift_Bottom = Lighting.ColorShift_Bottom,
+	ShadowSoftness = Lighting.ShadowSoftness,
+	GeographicLatitude = Lighting.GeographicLatitude,
+	EnvironmentDiffuseScale = Lighting.EnvironmentDiffuseScale,
+	EnvironmentSpecularScale = Lighting.EnvironmentSpecularScale,
+}
+
 local function clearVisualPreset()
 	for _, obj in ipairs(Lighting:GetChildren()) do
 		if obj:GetAttribute(VISUAL_PRESET_TAG) == true then obj:Destroy() end
@@ -543,7 +556,19 @@ end
 local function applyVisualPreset(preset)
 	clearVisualPreset()
 
-	if preset == "Blue" then
+	if preset == "None" then
+		Lighting.ClockTime = ORIGINAL_LIGHTING.ClockTime
+		Lighting.Brightness = ORIGINAL_LIGHTING.Brightness
+		Lighting.Ambient = ORIGINAL_LIGHTING.Ambient
+		Lighting.OutdoorAmbient = ORIGINAL_LIGHTING.OutdoorAmbient
+		Lighting.ColorShift_Top = ORIGINAL_LIGHTING.ColorShift_Top
+		Lighting.ColorShift_Bottom = ORIGINAL_LIGHTING.ColorShift_Bottom
+		Lighting.ShadowSoftness = ORIGINAL_LIGHTING.ShadowSoftness
+		Lighting.GeographicLatitude = ORIGINAL_LIGHTING.GeographicLatitude
+		Lighting.EnvironmentDiffuseScale = ORIGINAL_LIGHTING.EnvironmentDiffuseScale
+		Lighting.EnvironmentSpecularScale = ORIGINAL_LIGHTING.EnvironmentSpecularScale
+
+	elseif preset == "Blue" then
 		Lighting.ClockTime = 9; Lighting.Brightness = 2
 		Lighting.Ambient = Color3.fromRGB(16, 16, 16)
 		Lighting.ColorShift_Top = Color3.fromRGB(196, 222, 255)
@@ -698,7 +723,7 @@ local function applyVisualPreset(preset)
 end
 
 local visualPresets = {
-	{"Blue", " Blue"}, {"Realistic", " Realistic"}, {"Sunset", " Sunset"},
+	{"None", " None"}, {"Blue", " Blue"}, {"Realistic", " Realistic"}, {"Sunset", " Sunset"},
 	{"GoldenHour", " Golden Hour"}, {"Night", " Night"}, {"Twilight", " Twilight"},
 	{"Cyberpunk", " Cyberpunk"}, {"Cloudy", " Cloudy"}, {"Vibrant", " Vibrant"}, {"Dark", " Dark"},
 }
@@ -722,7 +747,11 @@ for i, data in ipairs(visualPresets) do
 	end)
 end
 
-applyVisualPreset("Realistic")
+applyVisualPreset("None")
+for name, button in pairs(visualButtons) do
+	button.BackgroundColor3 = name == "None" and Color3.fromRGB(252, 207, 242) or Color3.fromRGB(20, 20, 20)
+	button.TextColor3 = name == "None" and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
+end
 
 
 -- ===== Remove All Effects button =====
@@ -746,26 +775,26 @@ removeEffectsButton.MouseButton1Click:Connect(function()
 	-- Remove all custom visual effects
 	clearVisualPreset()
 	
-	-- Reset Lighting properties to default
-	Lighting.ClockTime = 14
-	Lighting.Brightness = 2
-	Lighting.Ambient = Color3.fromRGB(70, 70, 70)
-	Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
-	Lighting.ColorShift_Top = Color3.fromRGB(0, 0, 0)
-	Lighting.ColorShift_Bottom = Color3.fromRGB(0, 0, 0)
-	Lighting.ShadowSoftness = 0.2
-	Lighting.GeographicLatitude = 41.733
-	Lighting.EnvironmentDiffuseScale = 1
-	Lighting.EnvironmentSpecularScale = 1
+	-- Reset Lighting properties to the values that were present before this script ran
+	Lighting.ClockTime = ORIGINAL_LIGHTING.ClockTime
+	Lighting.Brightness = ORIGINAL_LIGHTING.Brightness
+	Lighting.Ambient = ORIGINAL_LIGHTING.Ambient
+	Lighting.OutdoorAmbient = ORIGINAL_LIGHTING.OutdoorAmbient
+	Lighting.ColorShift_Top = ORIGINAL_LIGHTING.ColorShift_Top
+	Lighting.ColorShift_Bottom = ORIGINAL_LIGHTING.ColorShift_Bottom
+	Lighting.ShadowSoftness = ORIGINAL_LIGHTING.ShadowSoftness
+	Lighting.GeographicLatitude = ORIGINAL_LIGHTING.GeographicLatitude
+	Lighting.EnvironmentDiffuseScale = ORIGINAL_LIGHTING.EnvironmentDiffuseScale
+	Lighting.EnvironmentSpecularScale = ORIGINAL_LIGHTING.EnvironmentSpecularScale
 	
-	-- Deselect all visual preset buttons
+	-- Mark "None" as the active visual preset
 	for name, button in pairs(visualButtons) do
-		button.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-		button.TextColor3 = Color3.fromRGB(255, 255, 255)
+		button.BackgroundColor3 = name == "None" and Color3.fromRGB(252, 207, 242) or Color3.fromRGB(20, 20, 20)
+		button.TextColor3 = name == "None" and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
 	end
 	
 	-- Show confirmation
-	removeEffectsButton.Text = "✓ Effects Removed"
+	removeEffectsButton.Text = "OK Effects Removed"
 	task.delay(1.5, function()
 		if removeEffectsButton.Parent then
 			removeEffectsButton.Text = "Remove All Effects"
@@ -947,7 +976,7 @@ resetButton.MouseButton1Click:Connect(function()
 		20
 	)
 
-	resetButton.Text = "✓ RESET DONE"
+	resetButton.Text = "OK RESET DONE"
 
 	task.delay(1.5, function()
 		if resetButton.Parent then
@@ -1081,24 +1110,6 @@ local iconStartPos = nil
 local iconMoved = false
 local DRAG_THRESHOLD = 3
 
-local function updateMenuPosition()
-	local vp = workspace.CurrentCamera.ViewportSize
-	local menuX = icon.Position.X.Offset + iconSize / 2
-	local menuY = icon.Position.Y.Offset + iconSize + 10
-
-	if menuX + currentPanelSize.X / 2 > vp.X then
-		menuX = vp.X - currentPanelSize.X / 2
-	elseif menuX - currentPanelSize.X / 2 < 0 then
-		menuX = currentPanelSize.X / 2
-	end
-
-	if menuY + currentPanelSize.Y > vp.Y then
-		menuY = vp.Y - currentPanelSize.Y - 10
-	end
-
-	menu.Position = UDim2.new(0, menuX, 0, menuY)
-end
-
 icon.InputBegan:Connect(function(input)
 	if input.UserInputType ~= Enum.UserInputType.MouseButton1
 		and input.UserInputType ~= Enum.UserInputType.Touch then
@@ -1167,9 +1178,8 @@ UserInputService.InputChanged:Connect(function(input)
 
 	icon.Position = UDim2.new(0, newX, 0, newY)
 
-	if isOpen then
-		updateMenuPosition()
-	end
+	-- Menu does NOT follow the icon anymore.
+	-- It stays where it was opened.
 end)
 
 -- ===== Menu dragging =====
