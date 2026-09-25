@@ -1,0 +1,200 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Создание основного ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CustomGameUI"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = playerGui
+
+-- 1. КНОПКА "ИКОНКА 3" (ВСЕГДА ВИДНА)
+local toggleButton = Instance.new("TextButton")
+toggleButton.Name = "ToggleButton"
+toggleButton.Size = UDim2.new(0, 70, 0, 70)
+toggleButton.Position = UDim2.new(1, -30, 0, 30)
+toggleButton.AnchorPoint = Vector2.new(1, 0)
+toggleButton.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+toggleButton.Text = "Иконка\n3"
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.TextSize = 14
+toggleButton.ZIndex = 10
+toggleButton.Parent = screenGui
+
+local trCorner = Instance.new("UICorner")
+trCorner.CornerRadius = UDim.new(0.5, 0)
+trCorner.Parent = toggleButton
+
+-- 2. КОНТЕЙНЕР МЕНЮ
+local menuContainer = Instance.new("Frame")
+menuContainer.Name = "MenuContainer"
+menuContainer.Size = UDim2.new(0.8, 0, 0.65, 0)
+menuContainer.Position = UDim2.new(0.5, 0, 0.5, 0)
+menuContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+menuContainer.BackgroundTransparency = 1 
+menuContainer.BorderSizePixel = 0
+menuContainer.ClipsDescendants = true 
+menuContainer.Parent = screenGui
+
+-- ==========================================
+-- 3. СЕРАЯ ПАНЕЛЬ (Поднята вверх на половину верхней панели)
+-- ==========================================
+
+local greyPanel = Instance.new("Frame")
+greyPanel.Name = "GreyPanel"
+-- Высота = 100% минус 26 пикселей (половина верхней панели)
+greyPanel.Size = UDim2.new(1, 0, 1, -26) 
+-- Позиция: поднята вверх на 26 пикселей (половина от 52)
+greyPanel.Position = UDim2.new(0, 0, 0, 26)
+greyPanel.BackgroundColor3 = Color3.fromRGB(100, 100, 100) 
+greyPanel.BorderSizePixel = 0
+greyPanel.ZIndex = 1
+greyPanel.Parent = menuContainer
+
+local greyCorner = Instance.new("UICorner")
+greyCorner.CornerRadius = UDim.new(0, 12) 
+greyCorner.Parent = greyPanel
+
+-- ==========================================
+-- 4. СИНЯЯ ПАНЕЛЬ (11/12, начинается после Иконки 1)
+-- ==========================================
+
+local bluePanel = Instance.new("Frame")
+bluePanel.Name = "BluePanel"
+bluePanel.Size = UDim2.new(11/12, 0, 1, 0) 
+bluePanel.Position = UDim2.new(1/12, 0, 0, 0) 
+bluePanel.BackgroundColor3 = Color3.fromRGB(0, 100, 150) 
+bluePanel.BorderSizePixel = 0
+bluePanel.ZIndex = 2
+bluePanel.Parent = greyPanel
+
+local blueCorner = Instance.new("UICorner")
+blueCorner.CornerRadius = UDim.new(0, 12) 
+blueCorner.Parent = bluePanel
+
+-- ==========================================
+-- 5. РОЗОВЫЙ БЛОК (Прижат к нижнему левому углу синей панели)
+-- ==========================================
+
+local pinkBox = Instance.new("Frame")
+pinkBox.Name = "PinkBox"
+pinkBox.Size = UDim2.new(0, 80, 0, 60) 
+pinkBox.Position = UDim2.new(0, 0, 1, 0) 
+pinkBox.AnchorPoint = Vector2.new(0, 1) 
+pinkBox.BackgroundColor3 = Color3.fromRGB(255, 105, 180) 
+pinkBox.BorderSizePixel = 0
+pinkBox.ZIndex = 3
+pinkBox.Parent = bluePanel
+
+-- Острые углы (нет UICorner)
+
+-- ==========================================
+-- 6. ВЕРХНЯЯ ПАНЕЛЬ (12 КНОПОК)
+-- ==========================================
+
+local borderBase = Instance.new("Frame")
+borderBase.Name = "BorderBase"
+borderBase.Size = UDim2.new(1, 0, 0, 52)
+borderBase.BackgroundColor3 = Color3.fromRGB(30, 30, 30) 
+borderBase.BorderSizePixel = 0
+borderBase.ZIndex = 5 
+borderBase.Parent = menuContainer
+
+local borderCorner = Instance.new("UICorner")
+borderCorner.CornerRadius = UDim.new(0, 20)
+borderCorner.Parent = borderBase
+
+local greenTop = Instance.new("Frame")
+greenTop.Name = "GreenTop"
+greenTop.Size = UDim2.new(1, -4, 1, -4) 
+greenTop.Position = UDim2.new(0, 2, 0, 2) 
+greenTop.BackgroundColor3 = Color3.fromRGB(80, 160, 80) 
+greenTop.BorderSizePixel = 0
+greenTop.ZIndex = 6
+greenTop.Parent = borderBase
+
+local greenCorner = Instance.new("UICorner")
+greenCorner.CornerRadius = UDim.new(0, 18) 
+greenCorner.Parent = greenTop
+
+local blueMask = Instance.new("Frame")
+blueMask.Name = "BlueMask"
+blueMask.Size = UDim2.new(1, 0, 0.5, 0)
+blueMask.Position = UDim2.new(0, 0, 0.5, 0)
+blueMask.BackgroundColor3 = Color3.fromRGB(60, 60, 180) 
+blueMask.BorderSizePixel = 0
+blueMask.ZIndex = 7
+blueMask.Parent = greenTop
+
+local bottomBorder = Instance.new("Frame")
+bottomBorder.Name = "BottomBorder"
+bottomBorder.Size = UDim2.new(1, 0, 0, 2) 
+bottomBorder.Position = UDim2.new(0, 0, 1, -2) 
+bottomBorder.BackgroundColor3 = Color3.fromRGB(30, 30, 30) 
+bottomBorder.BorderSizePixel = 0
+bottomBorder.ZIndex = 8
+bottomBorder.Parent = borderBase
+
+-- Контейнер для 12 кнопок
+local buttonsContainer = Instance.new("Frame")
+buttonsContainer.Name = "ButtonsContainer"
+buttonsContainer.Size = UDim2.new(1, -10, 0, 40)
+buttonsContainer.Position = UDim2.new(0, 5, 0, 6) 
+buttonsContainer.BackgroundTransparency = 1
+buttonsContainer.ZIndex = 9
+buttonsContainer.Parent = menuContainer
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.FillDirection = Enum.FillDirection.Horizontal
+listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+listLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+listLayout.Padding = UDim.new(0, 4)
+listLayout.Parent = buttonsContainer
+
+local function createRedPanel(text)
+	local panel = Instance.new("TextButton")
+	panel.Size = UDim2.new(1/12, -4, 0, 34) 
+	panel.BackgroundColor3 = Color3.fromRGB(200, 50, 50) 
+	panel.BorderSizePixel = 0
+	panel.Text = text
+	panel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	panel.Font = Enum.Font.GothamBold
+	panel.TextScaled = true
+	panel.ZIndex = 10
+	panel.ClipsDescendants = false 
+	panel.Parent = buttonsContainer
+	
+	local panelCorner = Instance.new("UICorner")
+	panelCorner.CornerRadius = UDim.new(0, 6) 
+	panelCorner.Parent = panel
+
+	local separator = Instance.new("Frame")
+	separator.Name = "Divider"
+	separator.Size = UDim2.new(0, 2, 1.5, 0) 
+	separator.Position = UDim2.new(1, 1, -0.25, 0) 
+	separator.BackgroundColor3 = Color3.fromRGB(0, 0, 0) 
+	separator.BorderSizePixel = 0
+	separator.ZIndex = 11 
+	separator.Parent = panel
+end
+
+local panelNames = {
+	"Иконка\n1", 
+	"Раздел\n1", "Раздел\n2", "Раздел\n3", "Раздел\n4", "Раздел\n5", 
+	"Раздел\n6", "Раздел\n7", "Раздел\n8", "Раздел\n9", "Раздел\n10", 
+	"Иконка\n2"
+}
+
+for _, name in ipairs(panelNames) do
+	createRedPanel(name)
+end
+
+-- 7. ЛОГИКА ОТКРЫТИЯ / ЗАКРЫТИЯ МЕНЮ
+local isMenuOpen = true
+
+toggleButton.MouseButton1Click:Connect(function()
+	isMenuOpen = not isMenuOpen
+	menuContainer.Visible = isMenuOpen
+end)
