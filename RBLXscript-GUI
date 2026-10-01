@@ -2,21 +2,21 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- РЎРѕР·РґР°РЅРёРµ РѕСЃРЅРѕРІРЅРѕРіРѕ ScreenGui
+-- Main ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "CustomGameUI"
 screenGui.ResetOnSpawn = false
 screenGui.IgnoreGuiInset = true
 screenGui.Parent = playerGui
 
--- 1. РљРќРћРџРљРђ "РРљРћРќРљРђ 3" (Р’РЎР•Р“Р”Рђ Р’РР”РќРђ)
+-- 1. "Icon 3" button (always visible)
 local toggleButton = Instance.new("TextButton")
 toggleButton.Name = "ToggleButton"
 toggleButton.Size = UDim2.new(0, 70, 0, 70)
 toggleButton.Position = UDim2.new(1, -30, 0, 30)
 toggleButton.AnchorPoint = Vector2.new(1, 0)
 toggleButton.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-toggleButton.Text = "\u{0418}\u{043A}\u{043E}\u{043D}\u{043A}\u{0430}\n3"
+toggleButton.Text = "Icon\n3"
 toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 toggleButton.Font = Enum.Font.GothamBold
 toggleButton.TextSize = 14
@@ -27,7 +27,7 @@ local trCorner = Instance.new("UICorner")
 trCorner.CornerRadius = UDim.new(0.5, 0)
 trCorner.Parent = toggleButton
 
--- 2. РљРћРќРўР•Р™РќР•Р  РњР•РќР®
+-- 2. Menu container
 local menuContainer = Instance.new("Frame")
 menuContainer.Name = "MenuContainer"
 menuContainer.Size = UDim2.new(0.8, 0, 0.75, 0)
@@ -38,25 +38,21 @@ menuContainer.BorderSizePixel = 0
 menuContainer.ClipsDescendants = true
 menuContainer.Parent = screenGui
 
--- buttonsContainer (СЃРѕР·РґР°РЅ РЅРёР¶Рµ) РёРјРµРµС‚ РѕС‚СЃС‚СѓРїС‹ Position(0,5,0,6) Рё Size(1,-10,0,40).
--- Р§С‚РѕР±С‹ РіСЂР°РЅРёС†Р° СЃРµСЂРѕР№/СЃРёРЅРµР№ РїР°РЅРµР»Рё СЃРѕРІРїР°РґР°Р»Р° СЃ РіСЂР°РЅРёС†РµР№ "РРєРѕРЅРєР°1"/"Р Р°Р·РґРµР»1",
--- РЅСѓР¶РµРЅ С‚РѕС‚ Р¶Рµ РѕС‚СЃС‚СѓРї: 5 - 10/12
--- РЁРёСЂРёРЅС‹ СЏС‡РµРµРє РІРµСЂС…РЅРµРіРѕ СЂСЏРґР°: РєСЂР°Р№РЅРёРµ СЏС‡РµР№РєРё ("РРєРѕРЅРєР° 1" / "РРєРѕРЅРєР° 2") РїРѕР»СѓС‡Р°СЋС‚ EDGE_EXTRA px
--- СЃРІРµСЂС… Р±Р°Р·РѕРІРѕР№ С€РёСЂРёРЅС‹, СЃСЂРµРґРЅРёРµ РїРѕР»СѓС‡Р°СЋС‚ MID_EXTRA px, С‡С‚РѕР±С‹ РІРµСЃСЊ СЂСЏРґ РІСЃС‘ РµС‰С‘ СЂР°РІРЅСЏР»СЃСЏ С€РёСЂРёРЅРµ РјРµРЅСЋ
--- (2*EDGE + 10*MID = 14).
+-- buttonsContainer (created below) has offsets Position(0,5,0,6) and Size(1,-10,0,40).
+-- Top row cell widths: edge cells ("Icon 1" / "Icon 2") get EDGE_EXTRA px
+-- over the base width, middle cells get MID_EXTRA px, so the row still
+-- matches the menu width (2*EDGE + 10*MID = 14).
 local EDGE_EXTRA = 0
 local MID_EXTRA = (14 - 2 * EDGE_EXTRA) / 10
 local COLUMN_OFFSET = EDGE_EXTRA - 2 - 10/12
 
 -- ==========================================
--- 3. РЎР•Р РђРЇ РџРђРќР•Р›Р¬ (РџРѕРґРЅСЏС‚Р° РІРІРµСЂС… РЅР° РїРѕР»РѕРІРёРЅСѓ РІРµСЂС…РЅРµР№ РїР°РЅРµР»Рё)
+-- 3. GREY PANEL (raised by half of the top panel)
 -- ==========================================
 
 local greyPanel = Instance.new("Frame")
 greyPanel.Name = "GreyPanel"
--- Р’С‹СЃРѕС‚Р° = 100% РјРёРЅСѓСЃ 26 РїРёРєСЃРµР»РµР№ (РїРѕР»РѕРІРёРЅР° РІРµСЂС…РЅРµР№ РїР°РЅРµР»Рё)
 greyPanel.Size = UDim2.new(1, 0, 1, -26)
--- РџРѕР·РёС†РёСЏ: РїРѕРґРЅСЏС‚Р° РІРІРµСЂС… РЅР° 26 РїРёРєСЃРµР»РµР№ (РїРѕР»РѕРІРёРЅР° РѕС‚ 52)
 greyPanel.Position = UDim2.new(0, 0, 0, 26)
 greyPanel.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
 greyPanel.BorderSizePixel = 0
@@ -68,7 +64,7 @@ greyCorner.CornerRadius = UDim.new(0, 20)
 greyCorner.Parent = greyPanel
 
 -- ==========================================
--- 4. РЎРРќРЇРЇ РџРђРќР•Р›Р¬ (РЅР°С‡РёРЅР°РµС‚СЃСЏ СЂРѕРІРЅРѕ РїРѕРґ "Р Р°Р·РґРµР» 1")
+-- 4. BLUE PANEL (starts right below "Section 1")
 -- ==========================================
 
 local bluePanel = Instance.new("Frame")
@@ -84,10 +80,10 @@ local blueCorner = Instance.new("UICorner")
 blueCorner.CornerRadius = UDim.new(0, 20)
 blueCorner.Parent = bluePanel
 
--- РўРѕР»С‰РёРЅР° РІСЃРµС… СЂР°Р·РґРµР»РёС‚РµР»СЊРЅС‹С… Р»РёРЅРёР№ РІ РёРЅС‚РµСЂС„РµР№СЃРµ (РѕР±С‰Р°СЏ РїРµСЂРµРјРµРЅРЅР°СЏ)
+-- Thickness of all divider lines in the interface
 local DIVIDER_WIDTH = 4
 
--- РџРµСЂРµРіРѕСЂРѕРґРєР° РјРµР¶РґСѓ СЃРµСЂРѕР№ Рё СЃРёРЅРµР№ РїР°РЅРµР»СЏРјРё
+-- Divider between grey and blue panels
 local greyBlueDivider = Instance.new("Frame")
 greyBlueDivider.Name = "GreyBlueDivider"
 greyBlueDivider.Size = UDim2.new(0, DIVIDER_WIDTH, 1, 0)
@@ -98,13 +94,12 @@ greyBlueDivider.ZIndex = 3
 greyBlueDivider.Parent = greyPanel
 
 -- ==========================================
--- 5. Р РћР—РћР’Р«Р™ Р‘Р›РћРљ (РІРїР»РѕС‚РЅСѓСЋ Рє РїСЂР°РІРѕРјСѓ РєСЂР°СЋ РїРµСЂРµРіРѕСЂРѕРґРєРё)
+-- 5. PINK BOX (against the right edge of the divider)
 -- ==========================================
 
 local pinkBox = Instance.new("Frame")
 pinkBox.Name = "PinkBox"
 pinkBox.Size = UDim2.new(0, 80, 0, 60)
--- РЎР”Р’РР“ РќРђ 2 РџРРљРЎР•Р›РЇ Р’РџР РђР’Рћ (РЅРµРјРЅРѕРіРѕ РјРµРЅСЊС€Рµ С€РёСЂРёРЅС‹ РїРµСЂРµРіРѕСЂРѕРґРєРё), С‡С‚РѕР±С‹ РєРѕСЃРЅСѓС‚СЊСЃСЏ РµС‘ РїСЂР°РІРѕРіРѕ РєСЂР°СЏ Р±РµР· РЅР°Р»РѕР¶РµРЅРёСЏ
 pinkBox.Position = UDim2.new(0, 2, 1, 0)
 pinkBox.AnchorPoint = Vector2.new(0, 1)
 pinkBox.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
@@ -112,10 +107,8 @@ pinkBox.BorderSizePixel = 0
 pinkBox.ZIndex = 4
 pinkBox.Parent = bluePanel
 
--- РћСЃС‚СЂС‹Рµ СѓРіР»С‹ (РЅРµС‚ UICorner)
-
 -- ==========================================
--- 6. Р’Р•Р РҐРќРЇРЇ РџРђРќР•Р›Р¬ (12 РљРќРћРџРћРљ)
+-- 6. TOP PANEL (12 BUTTONS)
 -- ==========================================
 
 local borderBase = Instance.new("Frame")
@@ -130,9 +123,9 @@ local borderCorner = Instance.new("UICorner")
 borderCorner.CornerRadius = UDim.new(0, 20)
 borderCorner.Parent = borderBase
 
--- FIX: UICorner СЃРєСЂСѓРіР»СЏРµС‚ Р’РЎР• 4 СѓРіР»Р° borderBase, РёР·-Р·Р° С‡РµРіРѕ РЅРёР· РїР°РЅРµР»Рё
--- С‚РѕР¶Рµ СЃРєСЂСѓРіР»СЏР»СЃСЏ Рё СЃРєРІРѕР·СЊ РЅРµРіРѕ РїСЂРѕРіР»СЏРґС‹РІР°Р» С†РІРµС‚ greyPanel/bluePanel,
--- СЃРѕР·РґР°РІР°СЏ РєСЂРёРІРѕР№ СЃС‚С‹Рє СЃ С‚РµР»РѕРј РјРµРЅСЋ. РџР°С‚С‡Рё "РєРІР°РґСЂР°С‚СЏС‚" РЅРёР¶РЅРёРµ СѓРіР»С‹.
+-- FIX: UICorner rounds ALL 4 corners of borderBase, so the bottom of the panel
+-- was rounded too and greyPanel/bluePanel showed through, making a bad joint
+-- with the menu body. These patches "square" the bottom corners.
 local function squareBottomCorner(pos)
 	local patch = Instance.new("Frame")
 	patch.Size = UDim2.new(0, 20, 0, 20)
@@ -177,7 +170,7 @@ bottomBorder.BorderSizePixel = 0
 bottomBorder.ZIndex = 8
 bottomBorder.Parent = borderBase
 
--- РљРѕРЅС‚РµР№РЅРµСЂ РґР»СЏ 12 РєРЅРѕРїРѕРє
+-- Container for the 12 buttons
 local buttonsContainer = Instance.new("Frame")
 buttonsContainer.Name = "ButtonsContainer"
 buttonsContainer.Size = UDim2.new(1, -10, 0, 48)
@@ -193,14 +186,14 @@ listLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 listLayout.Padding = UDim.new(0, DIVIDER_WIDTH)
 listLayout.Parent = buttonsContainer
 
--- Divider РґРѕР±Р°РІР»СЏРµС‚СЃСЏ С‚РѕР»СЊРєРѕ РµСЃР»Рё addDivider = true (РЅРµ РїРѕСЃР»Рµ РїРѕСЃР»РµРґРЅРµР№ РєРЅРѕРїРєРё),
--- С‚РѕР»С‰РёРЅР° = DIVIDER_WIDTH, РєР°Рє Рё Сѓ greyBlueDivider, Рё РїРѕР»РЅРѕСЃС‚СЊСЋ Р·Р°РїРѕР»РЅСЏРµС‚
--- РїСЂРѕРјРµР¶СѓС‚РѕРє РјРµР¶РґСѓ РєРЅРѕРїРєР°РјРё (Padding С‚РѕР¶Рµ = DIVIDER_WIDTH)
+-- Divider is added only if addDivider = true (not after the last button),
+-- its thickness = DIVIDER_WIDTH, same as greyBlueDivider, and it fully fills
+-- the gap between buttons (Padding is also DIVIDER_WIDTH)
 local function createRedPanel(text, addDivider, extraWidth)
 	local panel = Instance.new("TextButton")
 	panel.Size = UDim2.new(1/12, -4 + (extraWidth or 0), 1, 0)
 	panel.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-	panel.BackgroundTransparency = 1 -- РєСЂР°СЃРЅР°СЏ Р·Р°Р»РёРІРєР° Р±РµСЂС‘С‚СЃСЏ РёР· РІРµСЂС…РЅРµР№ РїР°РЅРµР»Рё (greenTop)
+	panel.BackgroundTransparency = 1 -- red fill comes from the top panel (greenTop)
 	panel.BorderSizePixel = 0
 	panel.Text = text
 	panel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -217,8 +210,8 @@ local function createRedPanel(text, addDivider, extraWidth)
 	if addDivider then
 		local separator = Instance.new("Frame")
 		separator.Name = "Divider"
-		-- РїР°РЅРµР»СЊ Р·Р°РЅРёРјР°РµС‚ 0..48px; СЂР°Р·РґРµР»РёС‚РµР»СЊ РёРґС‘С‚ РѕС‚ -4 (РѕР±СЂРµР·Р°РµС‚СЃСЏ menuContainer)
-		-- РґРѕ 52px (РЅРёР· РІРµСЂС…РЅРµР№ РїР°РЅРµР»Рё)
+		-- panel spans 0..48px; divider goes from -4 (clipped by menuContainer)
+		-- to 52px (bottom of the top panel)
 		separator.Size = UDim2.new(0, DIVIDER_WIDTH, 1, 8)
 		separator.Position = UDim2.new(1, 0, 0, -4)
 		separator.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
@@ -226,22 +219,20 @@ local function createRedPanel(text, addDivider, extraWidth)
 		separator.ZIndex = 11
 		separator.Parent = panel
 	end
+
+	return panel
 end
 
--- Р СѓСЃСЃРєРёРµ СЃС‚СЂРѕРєРё. Р•СЃР»Рё СЌРєР·РµРєСЊСЋС‚РѕСЂ РІС‹РґР°С‘С‚ РєСЂР°РєРѕР·СЏР±СЂС‹,
--- РјРѕР¶РЅРѕ Р·Р°РјРµРЅРёС‚СЊ РёС… РѕР±СЂР°С‚РЅРѕ РЅР° \u-СЌСЃРєРµР№РїС‹.
-local IKONKA = "\u{0418}\u{043A}\u{043E}\u{043D}\u{043A}\u{0430}"
-local RAZDEL = "\u{0420}\u{0430}\u{0437}\u{0434}\u{0435}\u{043B}"
-
 local panelNames = {
-	IKONKA .. "\n1",
-	RAZDEL .. "\n1", RAZDEL .. "\n2", RAZDEL .. "\n3", RAZDEL .. "\n4", RAZDEL .. "\n5",
-	RAZDEL .. "\n6", RAZDEL .. "\n7", RAZDEL .. "\n8", RAZDEL .. "\n9", RAZDEL .. "\n10",
-	IKONKA .. "\n2"
+	"Icon\n1",
+	"Section\n1", "Section\n2", "Section\n3", "Section\n4", "Section\n5",
+	"Section\n6", "Section\n7", "Section\n8", "Section\n9", "Section\n10",
+	"Icon\n2"
 }
 
+local topButtons = {}
 for i, name in ipairs(panelNames) do
-	createRedPanel(name, i < #panelNames, (i == 1 or i == #panelNames) and EDGE_EXTRA or MID_EXTRA)
+	topButtons[i] = createRedPanel(name, i < #panelNames, (i == 1 or i == #panelNames) and EDGE_EXTRA or MID_EXTRA)
 end
 
 -- Sync grey/blue divider with the real right edge of the first top button
@@ -260,7 +251,184 @@ firstTopDivider:GetPropertyChangedSignal("AbsoluteSize"):Connect(syncDivider)
 greyPanel:GetPropertyChangedSignal("AbsolutePosition"):Connect(syncDivider)
 task.defer(syncDivider)
 
--- 6.5 РџРЈРЎРўРћР™ РљРћРќРўРЈР  (РѕРІРµСЂР»РµР№, С‚РѕРіРѕ Р¶Рµ СЂР°Р·РјРµСЂР°/РїРѕР·РёС†РёРё, С‡С‚Рѕ Рё РјРµРЅСЋ)
+-- ==========================================
+-- 6.2 SECTION PAGES (opened by Section 1..10 buttons)
+-- ==========================================
+
+local pagesFolder = Instance.new("Frame")
+pagesFolder.Name = "Pages"
+pagesFolder.Size = UDim2.new(1, 0, 1, 0)
+pagesFolder.BackgroundTransparency = 1
+pagesFolder.ZIndex = 3
+pagesFolder.Parent = bluePanel
+
+local MAGENTA = Color3.fromRGB(255, 0, 255)
+local HEADER_H = 44
+local CARD_H = 200 -- fixed card height (px)
+local CARD_ROWS = 3 -- cards per column on every page (more than fits = scrolling)
+local CARD_FULL = UDim2.new(1, 0, 0, CARD_H)
+local CARD_COLLAPSED = UDim2.new(1, 0, 0, HEADER_H)
+local TweenService = game:GetService("TweenService")
+
+-- One card = header (icon + title + collapse button) joined with its own body.
+-- ClipsDescendants + UICorner round only the outer corners, header/body junction stays square.
+local function createCard(parent, titleText, iconText, order)
+	local card = Instance.new("Frame")
+	card.Name = "Card"
+	card.Size = CARD_FULL
+	card.LayoutOrder = order
+	card.BackgroundColor3 = MAGENTA
+	card.BorderSizePixel = 0
+	card.ClipsDescendants = true
+	card.ZIndex = 5
+	card.Parent = parent
+	Instance.new("UICorner", card).CornerRadius = UDim.new(0, 18)
+	local cs = Instance.new("UIStroke", card)
+	cs.Color = Color3.fromRGB(0, 0, 0)
+	cs.Thickness = 2
+
+	local iconBox = Instance.new("TextLabel")
+	iconBox.Name = "CardIcon"
+	iconBox.Size = UDim2.new(0, 36, 0, 36)
+	iconBox.Position = UDim2.new(0, 6, 0, 4)
+	iconBox.BackgroundColor3 = Color3.fromRGB(255, 50, 0)
+	iconBox.BorderSizePixel = 0
+	iconBox.Text = iconText
+	iconBox.TextColor3 = Color3.fromRGB(0, 0, 0)
+	iconBox.Font = Enum.Font.GothamBold
+	iconBox.TextScaled = true
+	iconBox.ZIndex = 7
+	iconBox.Parent = card
+	Instance.new("UICorner", iconBox).CornerRadius = UDim.new(0, 10)
+
+	local titleLabel = Instance.new("TextLabel")
+	titleLabel.Name = "CardTitle"
+	titleLabel.Size = UDim2.new(1, -(HEADER_H + 4 + 44), 0, HEADER_H)
+	titleLabel.Position = UDim2.new(0, HEADER_H + 4, 0, 0)
+	titleLabel.BackgroundTransparency = 1
+	titleLabel.Text = titleText
+	titleLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
+	titleLabel.Font = Enum.Font.GothamBold
+	titleLabel.TextSize = 18
+	titleLabel.ZIndex = 7
+	titleLabel.Parent = card
+
+	-- line between header and body
+	local line = Instance.new("Frame")
+	line.Name = "HeaderLine"
+	line.Size = UDim2.new(1, 0, 0, 2)
+	line.Position = UDim2.new(0, 0, 0, HEADER_H)
+	line.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	line.BorderSizePixel = 0
+	line.ZIndex = 6
+	line.Parent = card
+
+	-- collapse / expand button (top right corner of the header)
+	local collapseBtn = Instance.new("TextButton")
+	collapseBtn.Name = "CollapseButton"
+	collapseBtn.Size = UDim2.new(0, 28, 0, 28)
+	collapseBtn.AnchorPoint = Vector2.new(1, 0)
+	collapseBtn.Position = UDim2.new(1, -8, 0, 8)
+	collapseBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	collapseBtn.BorderSizePixel = 0
+	collapseBtn.Text = "-"
+	collapseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	collapseBtn.Font = Enum.Font.GothamBold
+	collapseBtn.TextSize = 22
+	collapseBtn.AutoButtonColor = false
+	collapseBtn.ZIndex = 8
+	collapseBtn.Parent = card
+	Instance.new("UICorner", collapseBtn).CornerRadius = UDim.new(0, 8)
+
+	local collapsed = false
+	collapseBtn.MouseButton1Click:Connect(function()
+		collapsed = not collapsed
+		collapseBtn.Text = collapsed and "+" or "-"
+		line.Visible = not collapsed
+		TweenService:Create(card, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Size = collapsed and CARD_COLLAPSED or CARD_FULL
+		}):Play()
+	end)
+
+	return card
+end
+
+local pages = {}
+for i = 1, 10 do
+	-- page = scrollable area (starts right below the top panel)
+	local page = Instance.new("ScrollingFrame")
+	page.Name = "Page" .. i
+	page.Size = UDim2.new(1, 0, 1, -26)
+	page.Position = UDim2.new(0, 0, 0, 26)
+	page.BackgroundTransparency = 1
+	page.BorderSizePixel = 0
+	page.ScrollingDirection = Enum.ScrollingDirection.Y
+	page.ScrollBarThickness = 4
+	page.ScrollBarImageColor3 = Color3.fromRGB(0, 0, 0)
+	page.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	page.CanvasSize = UDim2.new(0, 0, 0, 0)
+	page.Visible = false
+	page.ZIndex = 4
+	page.Parent = pagesFolder
+
+	-- two columns, cards are stacked vertically inside each column
+	local function createColumn(xScale, iconText)
+		local column = Instance.new("Frame")
+		column.Name = "Column"
+		column.Size = UDim2.new(0.44, 0, 0, 0)
+		column.Position = UDim2.new(xScale, 0, 0, 8)
+		column.AutomaticSize = Enum.AutomaticSize.Y
+		column.BackgroundTransparency = 1
+		column.Parent = page
+
+		local layout = Instance.new("UIListLayout")
+		layout.SortOrder = Enum.SortOrder.LayoutOrder
+		layout.Padding = UDim.new(0, 12)
+		layout.Parent = column
+
+		local pad = Instance.new("UIPadding")
+		pad.PaddingBottom = UDim.new(0, 16)
+		pad.Parent = column
+
+		for row = 1, CARD_ROWS do
+			createCard(column, "Title 1", iconText, row)
+		end
+	end
+
+	createColumn(0.04, "Icon\n4")
+	createColumn(0.52, "Icon\n5")
+
+	pages[i] = page
+end
+
+-- Section 1..10 are topButtons[2]..topButtons[11] (Icon 1 / Icon 2 are not sections)
+local sectionButtons = {}
+for i = 1, 10 do
+	sectionButtons[i] = topButtons[i + 1]
+end
+
+local function openSection(index)
+	for i, page in ipairs(pages) do
+		local active = (i == index)
+		page.Visible = active
+		local b = sectionButtons[i]
+		b.BackgroundColor3 = Color3.fromRGB(140, 25, 25)
+		b.BackgroundTransparency = active and 0 or 1
+		-- selected section: sharp corners, others: rounded
+		local c = b:FindFirstChildOfClass("UICorner")
+		if c then
+			c.CornerRadius = active and UDim.new(0, 0) or UDim.new(0, 6)
+		end
+	end
+end
+
+for i, btn in ipairs(sectionButtons) do
+	btn.MouseButton1Click:Connect(function()
+		openSection(i)
+	end)
+end
+
+-- 6.5 EMPTY OUTLINE (overlay, same size/position as the menu)
 local outline = Instance.new("Frame")
 outline.Name = "MenuOutline"
 outline.Size = menuContainer.Size
@@ -281,7 +449,7 @@ outlineStroke.Thickness = DIVIDER_WIDTH - 1
 outlineStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 outlineStroke.Parent = outline
 
--- 7. Р›РћР“РРљРђ РћРўРљР Р«РўРРЇ / Р—РђРљР Р«РўРРЇ РњР•РќР®
+-- 7. MENU OPEN / CLOSE LOGIC
 local isMenuOpen = true
 
 toggleButton.MouseButton1Click:Connect(function()
