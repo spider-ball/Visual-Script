@@ -16,7 +16,7 @@ toggleButton.Size = UDim2.new(0, 70, 0, 70)
 toggleButton.Position = UDim2.new(1, -30, 0, 30)
 toggleButton.AnchorPoint = Vector2.new(1, 0)
 toggleButton.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-toggleButton.Text = "\u{0418}\u{043A}\u{043E}\u{043D}\u{043A}\u{0430}\n3" -- Иконка 3
+toggleButton.Text = "Иконка\n3"
 toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 toggleButton.Font = Enum.Font.GothamBold
 toggleButton.TextSize = 14
@@ -30,18 +30,23 @@ trCorner.Parent = toggleButton
 -- 2. КОНТЕЙНЕР МЕНЮ
 local menuContainer = Instance.new("Frame")
 menuContainer.Name = "MenuContainer"
-menuContainer.Size = UDim2.new(0.8, 0, 0.65, 0)
-menuContainer.Position = UDim2.new(0.5, 0, 0.5, 0)
-menuContainer.AnchorPoint = Vector2.new(0.5, 0.5)
-menuContainer.BackgroundTransparency = 1 
+menuContainer.Size = UDim2.new(0.8, 0, 0.75, 0)
+menuContainer.Position = UDim2.new(0.5, 0, 0.175, 0)
+menuContainer.AnchorPoint = Vector2.new(0.5, 0)
+menuContainer.BackgroundTransparency = 1
 menuContainer.BorderSizePixel = 0
-menuContainer.ClipsDescendants = true 
+menuContainer.ClipsDescendants = true
 menuContainer.Parent = screenGui
 
 -- buttonsContainer (создан ниже) имеет отступы Position(0,5,0,6) и Size(1,-10,0,40).
 -- Чтобы граница серой/синей панели совпадала с границей "Иконка1"/"Раздел1",
 -- нужен тот же отступ: 5 - 10/12
-local COLUMN_OFFSET = 5 - 10/12
+-- Ширины ячеек верхнего ряда: крайние ячейки ("Иконка 1" / "Иконка 2") получают EDGE_EXTRA px
+-- сверх базовой ширины, средние получают MID_EXTRA px, чтобы весь ряд всё ещё равнялся ширине меню
+-- (2*EDGE + 10*MID = 14).
+local EDGE_EXTRA = 0
+local MID_EXTRA = (14 - 2 * EDGE_EXTRA) / 10
+local COLUMN_OFFSET = EDGE_EXTRA - 2 - 10/12
 
 -- ==========================================
 -- 3. СЕРАЯ ПАНЕЛЬ (Поднята вверх на половину верхней панели)
@@ -50,16 +55,16 @@ local COLUMN_OFFSET = 5 - 10/12
 local greyPanel = Instance.new("Frame")
 greyPanel.Name = "GreyPanel"
 -- Высота = 100% минус 26 пикселей (половина верхней панели)
-greyPanel.Size = UDim2.new(1, 0, 1, -26) 
+greyPanel.Size = UDim2.new(1, 0, 1, -26)
 -- Позиция: поднята вверх на 26 пикселей (половина от 52)
 greyPanel.Position = UDim2.new(0, 0, 0, 26)
-greyPanel.BackgroundColor3 = Color3.fromRGB(100, 100, 100) 
+greyPanel.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
 greyPanel.BorderSizePixel = 0
 greyPanel.ZIndex = 1
 greyPanel.Parent = menuContainer
 
 local greyCorner = Instance.new("UICorner")
-greyCorner.CornerRadius = UDim.new(0, 12) 
+greyCorner.CornerRadius = UDim.new(0, 20)
 greyCorner.Parent = greyPanel
 
 -- ==========================================
@@ -70,13 +75,13 @@ local bluePanel = Instance.new("Frame")
 bluePanel.Name = "BluePanel"
 bluePanel.Size = UDim2.new(11/12, -COLUMN_OFFSET, 1, 0)
 bluePanel.Position = UDim2.new(1/12, COLUMN_OFFSET, 0, 0)
-bluePanel.BackgroundColor3 = Color3.fromRGB(0, 100, 150) 
+bluePanel.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
 bluePanel.BorderSizePixel = 0
 bluePanel.ZIndex = 2
 bluePanel.Parent = greyPanel
 
 local blueCorner = Instance.new("UICorner")
-blueCorner.CornerRadius = UDim.new(0, 12) 
+blueCorner.CornerRadius = UDim.new(0, 20)
 blueCorner.Parent = bluePanel
 
 -- Толщина всех разделительных линий в интерфейсе (общая переменная)
@@ -98,11 +103,11 @@ greyBlueDivider.Parent = greyPanel
 
 local pinkBox = Instance.new("Frame")
 pinkBox.Name = "PinkBox"
-pinkBox.Size = UDim2.new(0, 80, 0, 60) 
+pinkBox.Size = UDim2.new(0, 80, 0, 60)
 -- СДВИГ НА 2 ПИКСЕЛЯ ВПРАВО (немного меньше ширины перегородки), чтобы коснуться её правого края без наложения
-pinkBox.Position = UDim2.new(0, 2, 1, 0) 
-pinkBox.AnchorPoint = Vector2.new(0, 1) 
-pinkBox.BackgroundColor3 = Color3.fromRGB(255, 105, 180) 
+pinkBox.Position = UDim2.new(0, 2, 1, 0)
+pinkBox.AnchorPoint = Vector2.new(0, 1)
+pinkBox.BackgroundColor3 = Color3.fromRGB(255, 105, 180)
 pinkBox.BorderSizePixel = 0
 pinkBox.ZIndex = 4
 pinkBox.Parent = bluePanel
@@ -116,9 +121,9 @@ pinkBox.Parent = bluePanel
 local borderBase = Instance.new("Frame")
 borderBase.Name = "BorderBase"
 borderBase.Size = UDim2.new(1, 0, 0, 52)
-borderBase.BackgroundColor3 = Color3.fromRGB(30, 30, 30) 
+borderBase.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 borderBase.BorderSizePixel = 0
-borderBase.ZIndex = 5 
+borderBase.ZIndex = 5
 borderBase.Parent = menuContainer
 
 local borderCorner = Instance.new("UICorner")
@@ -143,31 +148,31 @@ squareBottomCorner(UDim2.new(1, -20, 1, -20))
 
 local greenTop = Instance.new("Frame")
 greenTop.Name = "GreenTop"
-greenTop.Size = UDim2.new(1, -4, 1, -4) 
-greenTop.Position = UDim2.new(0, 2, 0, 2) 
-greenTop.BackgroundColor3 = Color3.fromRGB(80, 160, 80) 
+greenTop.Size = UDim2.new(1, 0, 1, 0)
+greenTop.Position = UDim2.new(0, 0, 0, 0)
+greenTop.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 greenTop.BorderSizePixel = 0
 greenTop.ZIndex = 6
 greenTop.Parent = borderBase
 
 local greenCorner = Instance.new("UICorner")
-greenCorner.CornerRadius = UDim.new(0, 18) 
+greenCorner.CornerRadius = UDim.new(0, 20)
 greenCorner.Parent = greenTop
 
 local blueMask = Instance.new("Frame")
 blueMask.Name = "BlueMask"
 blueMask.Size = UDim2.new(1, 0, 0.5, 0)
 blueMask.Position = UDim2.new(0, 0, 0.5, 0)
-blueMask.BackgroundColor3 = Color3.fromRGB(60, 60, 180) 
+blueMask.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 blueMask.BorderSizePixel = 0
 blueMask.ZIndex = 7
 blueMask.Parent = greenTop
 
 local bottomBorder = Instance.new("Frame")
 bottomBorder.Name = "BottomBorder"
-bottomBorder.Size = UDim2.new(1, 0, 0, 2) 
-bottomBorder.Position = UDim2.new(0, 0, 1, -2) 
-bottomBorder.BackgroundColor3 = Color3.fromRGB(30, 30, 30) 
+bottomBorder.Size = UDim2.new(1, 0, 0, DIVIDER_WIDTH)
+bottomBorder.Position = UDim2.new(0, 0, 1, -DIVIDER_WIDTH)
+bottomBorder.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 bottomBorder.BorderSizePixel = 0
 bottomBorder.ZIndex = 8
 bottomBorder.Parent = borderBase
@@ -175,8 +180,8 @@ bottomBorder.Parent = borderBase
 -- Контейнер для 12 кнопок
 local buttonsContainer = Instance.new("Frame")
 buttonsContainer.Name = "ButtonsContainer"
-buttonsContainer.Size = UDim2.new(1, -10, 0, 40)
-buttonsContainer.Position = UDim2.new(0, 5, 0, 6) 
+buttonsContainer.Size = UDim2.new(1, -10, 0, 48)
+buttonsContainer.Position = UDim2.new(0, 5, 0, 0)
 buttonsContainer.BackgroundTransparency = 1
 buttonsContainer.ZIndex = 9
 buttonsContainer.Parent = menuContainer
@@ -191,39 +196,42 @@ listLayout.Parent = buttonsContainer
 -- Divider добавляется только если addDivider = true (не после последней кнопки),
 -- толщина = DIVIDER_WIDTH, как и у greyBlueDivider, и полностью заполняет
 -- промежуток между кнопками (Padding тоже = DIVIDER_WIDTH)
-local function createRedPanel(text, addDivider)
+local function createRedPanel(text, addDivider, extraWidth)
 	local panel = Instance.new("TextButton")
-	panel.Size = UDim2.new(1/12, -4, 0, 34) 
-	panel.BackgroundColor3 = Color3.fromRGB(200, 50, 50) 
+	panel.Size = UDim2.new(1/12, -4 + (extraWidth or 0), 1, 0)
+	panel.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+	panel.BackgroundTransparency = 1 -- красная заливка берётся из верхней панели (greenTop)
 	panel.BorderSizePixel = 0
 	panel.Text = text
 	panel.TextColor3 = Color3.fromRGB(255, 255, 255)
 	panel.Font = Enum.Font.GothamBold
 	panel.TextScaled = true
 	panel.ZIndex = 10
-	panel.ClipsDescendants = false 
+	panel.ClipsDescendants = false
 	panel.Parent = buttonsContainer
-	
+
 	local panelCorner = Instance.new("UICorner")
-	panelCorner.CornerRadius = UDim.new(0, 6) 
+	panelCorner.CornerRadius = UDim.new(0, 6)
 	panelCorner.Parent = panel
 
 	if addDivider then
 		local separator = Instance.new("Frame")
 		separator.Name = "Divider"
-		separator.Size = UDim2.new(0, DIVIDER_WIDTH, 1.5, 0) 
-		separator.Position = UDim2.new(1, 0, -0.25, 0) 
-		separator.BackgroundColor3 = Color3.fromRGB(0, 0, 0) 
+		-- панель занимает 0..48px; разделитель идёт от -4 (обрезается menuContainer)
+		-- до 52px (низ верхней панели)
+		separator.Size = UDim2.new(0, DIVIDER_WIDTH, 1, 8)
+		separator.Position = UDim2.new(1, 0, 0, -4)
+		separator.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 		separator.BorderSizePixel = 0
-		separator.ZIndex = 11 
+		separator.ZIndex = 11
 		separator.Parent = panel
 	end
 end
 
--- Юникод-эскейпы вместо литеральной кириллицы — защита от "кракозябр"
--- при загрузке скрипта через некоторые экзекьюторы (проблема кодировки UTF-8).
-local IKONKA = "\u{0418}\u{043A}\u{043E}\u{043D}\u{043A}\u{0430}"
-local RAZDEL = "\u{0420}\u{0430}\u{0437}\u{0434}\u{0435}\u{043B}"
+-- Русские строки. Если экзекьютор выдаёт кракозябры,
+-- можно заменить их обратно на \u-эскейпы.
+local IKONKA = "Иконка"
+local RAZDEL = "Раздел"
 
 local panelNames = {
 	IKONKA .. "\n1",
@@ -233,8 +241,29 @@ local panelNames = {
 }
 
 for i, name in ipairs(panelNames) do
-	createRedPanel(name, i < #panelNames)
+	createRedPanel(name, i < #panelNames, (i == 1 or i == #panelNames) and EDGE_EXTRA or MID_EXTRA)
 end
+
+-- 6.5 ПУСТОЙ КОНТУР (оверлей, того же размера/позиции, что и меню)
+local outline = Instance.new("Frame")
+outline.Name = "MenuOutline"
+outline.Size = menuContainer.Size
+outline.Position = menuContainer.Position
+outline.AnchorPoint = menuContainer.AnchorPoint
+outline.BackgroundTransparency = 1
+outline.BorderSizePixel = 0
+outline.ZIndex = 5
+outline.Parent = screenGui
+
+local outlineCorner = Instance.new("UICorner")
+outlineCorner.CornerRadius = UDim.new(0, 20)
+outlineCorner.Parent = outline
+
+local outlineStroke = Instance.new("UIStroke")
+outlineStroke.Color = Color3.fromRGB(0, 0, 0)
+outlineStroke.Thickness = DIVIDER_WIDTH - 1
+outlineStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+outlineStroke.Parent = outline
 
 -- 7. ЛОГИКА ОТКРЫТИЯ / ЗАКРЫТИЯ МЕНЮ
 local isMenuOpen = true
@@ -242,4 +271,5 @@ local isMenuOpen = true
 toggleButton.MouseButton1Click:Connect(function()
 	isMenuOpen = not isMenuOpen
 	menuContainer.Visible = isMenuOpen
+	outline.Visible = isMenuOpen
 end)
