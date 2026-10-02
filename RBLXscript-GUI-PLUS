@@ -26,14 +26,14 @@ screenGui.Parent = playerGui
 -- 1. "Icon 3" toggle button (always visible)
 local toggleButton = Instance.new("TextButton")
 toggleButton.Name = "ToggleButton"
-toggleButton.Size = UDim2.new(0, 70, 0, 70)
+toggleButton.Size = UDim2.new(0, 34, 0, 34)
 toggleButton.Position = UDim2.new(1, -30, 0, 30)
 toggleButton.AnchorPoint = Vector2.new(1, 0)
 toggleButton.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 toggleButton.Text = "Icon\n3"
 toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 toggleButton.Font = Enum.Font.GothamBold
-toggleButton.TextSize = 14
+toggleButton.TextSize = 10
 toggleButton.ZIndex = 10
 toggleButton.Parent = screenGui
 do
@@ -64,7 +64,7 @@ local greyPanel = Instance.new("Frame")
 greyPanel.Name = "GreyPanel"
 greyPanel.Size = UDim2.new(1, 0, 1, -26)
 greyPanel.Position = UDim2.new(0, 0, 0, 26)
-greyPanel.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+greyPanel.BackgroundColor3 = Color3.fromRGB(51, 51, 51)
 greyPanel.BorderSizePixel = 0
 greyPanel.ZIndex = 1
 greyPanel.Parent = menuContainer
@@ -81,7 +81,7 @@ local bluePanel = Instance.new("Frame")
 bluePanel.Name = "BluePanel"
 bluePanel.Size = UDim2.new(11/12, -COLUMN_OFFSET, 1, 0)
 bluePanel.Position = UDim2.new(1/12, COLUMN_OFFSET, 0, 0)
-bluePanel.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
+bluePanel.BackgroundColor3 = Color3.fromRGB(77, 77, 77)
 bluePanel.BorderSizePixel = 0
 bluePanel.ZIndex = 2
 bluePanel.Parent = greyPanel
@@ -110,9 +110,9 @@ pinkBox.Name = "PinkBox"
 pinkBox.Size = UDim2.new(0, 80, 0, 60)
 pinkBox.Position = UDim2.new(0, 2, 1, 0)
 pinkBox.AnchorPoint = Vector2.new(0, 1)
-pinkBox.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
+pinkBox.BackgroundColor3 = Color3.fromRGB(77, 77, 77)
 pinkBox.BorderSizePixel = 0
-pinkBox.ZIndex = 1 -- ИЗМЕНЕНО: теперь ниже вкладок (было 4)
+pinkBox.ZIndex = 1 -- РР—РњР•РќР•РќРћ: С‚РµРїРµСЂСЊ РЅРёР¶Рµ РІРєР»Р°РґРѕРє (Р±С‹Р»Рѕ 4)
 pinkBox.Parent = bluePanel
 
 -- ==========================================
@@ -147,7 +147,7 @@ local greenTop = Instance.new("Frame")
 greenTop.Name = "GreenTop"
 greenTop.Size = UDim2.new(1, 0, 1, 0)
 greenTop.Position = UDim2.new(0, 0, 0, 0)
-greenTop.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+greenTop.BackgroundColor3 = Color3.fromRGB(77, 77, 77)
 greenTop.BorderSizePixel = 0
 greenTop.ZIndex = 6
 greenTop.Parent = borderBase
@@ -161,7 +161,7 @@ local blueMask = Instance.new("Frame")
 blueMask.Name = "BlueMask"
 blueMask.Size = UDim2.new(1, 0, 0.5, 0)
 blueMask.Position = UDim2.new(0, 0, 0.5, 0)
-blueMask.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+blueMask.BackgroundColor3 = Color3.fromRGB(77, 77, 77)
 blueMask.BorderSizePixel = 0
 blueMask.ZIndex = 7
 blueMask.Parent = greenTop
@@ -193,7 +193,7 @@ listLayout.Parent = buttonsContainer
 local function createRedPanel(text, addDivider, extraWidth)
 	local panel = Instance.new("TextButton")
 	panel.Size = UDim2.new(1/12, -4 + (extraWidth or 0), 1, 0)
-	panel.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+	panel.BackgroundColor3 = Color3.fromRGB(77, 77, 77)
 	panel.BackgroundTransparency = 1
 	panel.BorderSizePixel = 0
 	panel.Text = text
@@ -260,7 +260,9 @@ pagesFolder.BackgroundTransparency = 1
 pagesFolder.ZIndex = 3
 pagesFolder.Parent = bluePanel
 
-local MAGENTA = Color3.fromRGB(255, 0, 255)
+local CARD_BODY_COLOR = Color3.fromRGB(51, 51, 51)
+local CARD_HEADER_COLOR = Color3.fromRGB(64, 64, 64)
+local BTN_COLOR = Color3.fromRGB(77, 77, 77)
 local HEADER_H = 44
 local TweenService_ = TweenService
 
@@ -406,7 +408,7 @@ local skyButtonByKey = {}
 local function setActiveSkyButton(activeButton)
 	for _, button in ipairs(skyButtons) do
 		local isActive = (button == activeButton)
-		button.BackgroundColor3 = isActive and Color3.fromRGB(252, 207, 242) or Color3.fromRGB(20, 20, 20)
+		button.BackgroundColor3 = isActive and Color3.fromRGB(252, 207, 242) or BTN_COLOR
 		button.TextColor3 = isActive and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
 	end
 end
@@ -496,7 +498,7 @@ local function applyVisualPreset(preset)
 	clearVisualPreset()
 	resetLightingToOriginal()
 	if preset == "None" then
-		-- уже сброшено
+		-- СѓР¶Рµ СЃР±СЂРѕС€РµРЅРѕ
 	elseif preset == "Blue" then
 		Lighting.ClockTime = 9; Lighting.Brightness = 2; Lighting.Ambient = Color3.fromRGB(16, 16, 16); Lighting.ColorShift_Top = Color3.fromRGB(196, 222, 255); Lighting.OutdoorAmbient = Color3.fromRGB(134, 158, 190); Lighting.ShadowSoftness = 0; Lighting.GeographicLatitude = 78
 		local A = newVisual("Atmosphere", "FTAP_Visual_Atmosphere")
@@ -644,7 +646,7 @@ local function createCard(parent, titleText, iconText, order, bodyHeight)
 	card.Name = "Card"
 	card.Size = expandedSize
 	card.LayoutOrder = order
-	card.BackgroundColor3 = MAGENTA
+	card.BackgroundColor3 = CARD_BODY_COLOR
 	card.BorderSizePixel = 0
 	card.ClipsDescendants = true
 	card.ZIndex = 5
@@ -653,6 +655,25 @@ local function createCard(parent, titleText, iconText, order, bodyHeight)
 	local cs = Instance.new("UIStroke", card)
 	cs.Color = Color3.fromRGB(0, 0, 0)
 	cs.Thickness = 2
+
+	local headerBg = Instance.new("Frame")
+	headerBg.Name = "HeaderBg"
+	headerBg.Size = UDim2.new(1, 0, 0, HEADER_H)
+	headerBg.BackgroundColor3 = CARD_HEADER_COLOR
+	headerBg.BorderSizePixel = 0
+	headerBg.ZIndex = 5
+	headerBg.Parent = card
+	Instance.new("UICorner", headerBg).CornerRadius = UDim.new(0, 18)
+
+	-- squares the bottom corners of the rounded header
+	local headerBgSquare = Instance.new("Frame")
+	headerBgSquare.Name = "HeaderBgSquare"
+	headerBgSquare.Size = UDim2.new(1, 0, 0, 18)
+	headerBgSquare.Position = UDim2.new(0, 0, 1, -18)
+	headerBgSquare.BackgroundColor3 = CARD_HEADER_COLOR
+	headerBgSquare.BorderSizePixel = 0
+	headerBgSquare.ZIndex = 5
+	headerBgSquare.Parent = headerBg
 
 	local iconBox = Instance.new("TextLabel")
 	iconBox.Name = "CardIcon"
@@ -674,7 +695,7 @@ local function createCard(parent, titleText, iconText, order, bodyHeight)
 	titleLabel.Position = UDim2.new(0, HEADER_H + 4, 0, 0)
 	titleLabel.BackgroundTransparency = 1
 	titleLabel.Text = titleText
-	titleLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
+	titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 	titleLabel.Font = Enum.Font.GothamBold
 	titleLabel.TextSize = 18
 	titleLabel.ZIndex = 7
@@ -718,13 +739,13 @@ local function createCard(parent, titleText, iconText, order, bodyHeight)
 	-- Body scroll container
 	local body = Instance.new("ScrollingFrame")
 	body.Name = "CardBody"
-	body.Size = UDim2.new(1, 0, 1, -HEADER_H)
+	body.Size = UDim2.new(1, 0, 1, -(HEADER_H + 8))
 	body.Position = UDim2.new(0, 0, 0, HEADER_H)
 	body.BackgroundTransparency = 1
 	body.BorderSizePixel = 0
 	body.ScrollingDirection = Enum.ScrollingDirection.Y
 	body.ScrollBarThickness = 4
-	body.ScrollBarImageColor3 = Color3.fromRGB(0, 0, 0)
+	body.ScrollBarImageColor3 = Color3.fromRGB(150, 150, 150)
 	body.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	body.CanvasSize = UDim2.new(0, 0, 0, 0)
 	body.ZIndex = 7
@@ -749,7 +770,7 @@ end
 local function createListButton(parent, text, order)
 	local btn = Instance.new("TextButton")
 	btn.Size = UDim2.new(1, 0, 0, 30)
-	btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+	btn.BackgroundColor3 = BTN_COLOR
 	btn.BorderSizePixel = 0
 	btn.Text = text
 	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -764,8 +785,9 @@ local function createListButton(parent, text, order)
 	c.CornerRadius = UDim.new(0, 6)
 	c.Parent = btn
 	local s = Instance.new("UIStroke")
-	s.Color = Color3.fromRGB(252, 207, 242)
-	s.Thickness = 1
+	s.Color = Color3.fromRGB(0, 0, 0)
+	s.Thickness = 2
+	s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	s.Parent = btn
 	return btn
 end
@@ -819,7 +841,7 @@ local function populateEffectsCard(body)
 			applyVisualPreset(data[1])
 			for name, button in pairs(visualButtons) do
 				local isActive = (name == data[1])
-				button.BackgroundColor3 = isActive and Color3.fromRGB(252, 207, 242) or Color3.fromRGB(20, 20, 20)
+				button.BackgroundColor3 = isActive and Color3.fromRGB(252, 207, 242) or BTN_COLOR
 				button.TextColor3 = isActive and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
 			end
 			saveSettingsDelayed()
@@ -831,7 +853,7 @@ local function populateEffectsCard(body)
 		resetLightingToOriginal()
 		for name, button in pairs(visualButtons) do
 			local isActive = (name == "None")
-			button.BackgroundColor3 = isActive and Color3.fromRGB(252, 207, 242) or Color3.fromRGB(20, 20, 20)
+			button.BackgroundColor3 = isActive and Color3.fromRGB(252, 207, 242) or BTN_COLOR
 			button.TextColor3 = isActive and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
 		end
 		removeBtn.Text = "Effects Removed"
@@ -845,7 +867,7 @@ local function populateEffectsCard(body)
 	-- mark None active
 	for name, button in pairs(visualButtons) do
 		local isActive = (name == "None")
-		button.BackgroundColor3 = isActive and Color3.fromRGB(252, 207, 242) or Color3.fromRGB(20, 20, 20)
+		button.BackgroundColor3 = isActive and Color3.fromRGB(252, 207, 242) or BTN_COLOR
 		button.TextColor3 = isActive and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
 	end
 end
@@ -856,7 +878,7 @@ local function populatePlayerCard(body)
 	fovLabel.Size = UDim2.new(1, -64, 0, 20)
 	fovLabel.BackgroundTransparency = 1
 	fovLabel.Text = "Field of View"
-	fovLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
+	fovLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 	fovLabel.Font = Enum.Font.GothamBold
 	fovLabel.TextSize = 14
 	fovLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -881,6 +903,7 @@ local function populatePlayerCard(body)
 	local vbs = Instance.new("UIStroke", fovValueBox)
 	vbs.Color = Color3.fromRGB(252, 207, 242)
 	vbs.Thickness = 1
+	vbs.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
 	local sliderArea = Instance.new("Frame")
 	sliderArea.Size = UDim2.new(1, 0, 0, 30)
@@ -893,7 +916,7 @@ local function populatePlayerCard(body)
 	track.Size = UDim2.new(1, 0, 0, 6)
 	track.Position = UDim2.new(0, 0, 0.5, 0)
 	track.AnchorPoint = Vector2.new(0, 0.5)
-	track.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+	track.BackgroundColor3 = Color3.fromRGB(90, 90, 90)
 	track.BorderSizePixel = 0
 	track.ZIndex = 8
 	track.Parent = sliderArea
@@ -982,7 +1005,7 @@ local function populateGuiCard(body)
 		if _G.__GUI_setFov then _G.__GUI_setFov(DEFAULTS.fov) end
 		for name, button in pairs(visualButtons) do
 			local isActive = (name == "None")
-			button.BackgroundColor3 = isActive and Color3.fromRGB(252, 207, 242) or Color3.fromRGB(20, 20, 20)
+			button.BackgroundColor3 = isActive and Color3.fromRGB(252, 207, 242) or BTN_COLOR
 			button.TextColor3 = isActive and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
 		end
 		resetButton.Text = "Reset Done"
@@ -1011,7 +1034,7 @@ local function populateGuiCard(body)
 				if confirmDestroy and destroyButton.Parent then
 					confirmDestroy = false
 					destroyButton.Text = "Delete Script"
-					destroyButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+					destroyButton.BackgroundColor3 = BTN_COLOR
 				end
 			end)
 		else
@@ -1067,15 +1090,15 @@ for i = 1, 10 do
 		local rightCol = createColumn(page, 0.52)
 
 		-- Skies card (left, order 1)
-		local _, skiesBody = createCard(leftCol, "Skies", "SKY", 1, 420)
+		local _, skiesBody = createCard(leftCol, "Skies", "SKY", 1, 156)
 		populateSkiesCard(skiesBody)
 
-		-- Player card (left, order 2) -- ИЗМЕНЕНО: перенесено с правой колонки
+		-- Player card (left, order 2) -- РР—РњР•РќР•РќРћ: РїРµСЂРµРЅРµСЃРµРЅРѕ СЃ РїСЂР°РІРѕР№ РєРѕР»РѕРЅРєРё
 		local _, playerBody = createCard(leftCol, "Player", "FOV", 2, 160)
 		populatePlayerCard(playerBody)
 
-		-- Effects card (right, order 1) -- ИЗМЕНЕНО: перенесено с левой колонки
-		local _, effectsBody = createCard(rightCol, "Effects", "FX", 1, 420)
+		-- Effects card (right, order 1) -- РР—РњР•РќР•РќРћ: РїРµСЂРµРЅРµСЃРµРЅРѕ СЃ Р»РµРІРѕР№ РєРѕР»РѕРЅРєРё
+		local _, effectsBody = createCard(rightCol, "Effects", "FX", 1, 156)
 		populateEffectsCard(effectsBody)
 
 	elseif i == 10 then
@@ -1107,7 +1130,7 @@ local function openSection(index)
 		local active = (i == index)
 		page.Visible = active
 		local b = sectionButtons[i]
-		b.BackgroundColor3 = Color3.fromRGB(140, 25, 25)
+		b.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 		b.BackgroundTransparency = active and 0 or 1
 		local c = b:FindFirstChildOfClass("UICorner")
 		if c then
@@ -1151,7 +1174,76 @@ outlineStroke.Parent = outline
 -- 7. MENU OPEN / CLOSE
 -- ==========================================
 local isMenuOpen = true
+
+-- ==========================================
+-- 7.1 DRAGGING (Icon 2 moves the menu, Icon 3 is movable)
+-- ==========================================
+local DRAG_THRESHOLD = 3
+
+local function makeDraggable(handle, target, onMove)
+	local dragging, dragInput, dragStart, startPos, startAbs = false, nil, nil, nil, nil
+	local moved = false
+
+	handle.InputBegan:Connect(function(input)
+		if input.UserInputType ~= Enum.UserInputType.MouseButton1
+			and input.UserInputType ~= Enum.UserInputType.Touch then
+			return
+		end
+		dragging = true
+		moved = false
+		dragInput = input
+		dragStart = input.Position
+		startPos = target.Position
+		startAbs = target.AbsolutePosition
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if not dragging then return end
+		local isMove = input.UserInputType == Enum.UserInputType.MouseMovement
+			or (input.UserInputType == Enum.UserInputType.Touch and input == dragInput)
+		if not isMove then return end
+
+		local delta = input.Position - dragStart
+		if math.abs(delta.X) > DRAG_THRESHOLD or math.abs(delta.Y) > DRAG_THRESHOLD then
+			moved = true
+		end
+		if not moved then return end
+
+		local origin = screenGui.AbsolutePosition
+		local vp = screenGui.AbsoluteSize
+		local size = target.AbsoluteSize
+		local dx = math.clamp(delta.X, origin.X - startAbs.X, origin.X + vp.X - size.X - startAbs.X)
+		local dy = math.clamp(delta.Y, origin.Y - startAbs.Y, origin.Y + vp.Y - size.Y - startAbs.Y)
+
+		target.Position = UDim2.new(
+			startPos.X.Scale, startPos.X.Offset + dx,
+			startPos.Y.Scale, startPos.Y.Offset + dy
+		)
+		if onMove then onMove() end
+	end)
+
+	return function() return moved end
+end
+
+-- keep the outline on top of the menu while it moves
+menuContainer:GetPropertyChangedSignal("Position"):Connect(function()
+	outline.Position = menuContainer.Position
+end)
+
+-- Icon 2 = drag area for the menu
+local icon2Button = topButtons[#topButtons]
+makeDraggable(icon2Button, menuContainer)
+
+-- Icon 3 = movable toggle button (click only toggles if it was not dragged)
+local toggleWasMoved = makeDraggable(toggleButton, toggleButton)
+
 toggleButton.MouseButton1Click:Connect(function()
+	if toggleWasMoved() then return end
 	isMenuOpen = not isMenuOpen
 	menuContainer.Visible = isMenuOpen
 	outline.Visible = isMenuOpen
@@ -1204,7 +1296,7 @@ local function applyLoadedSettings(data)
 		applyVisualPreset(data.visual)
 		for name, button in pairs(visualButtons) do
 			local isActive = (name == data.visual)
-			button.BackgroundColor3 = isActive and Color3.fromRGB(252, 207, 242) or Color3.fromRGB(20, 20, 20)
+			button.BackgroundColor3 = isActive and Color3.fromRGB(252, 207, 242) or BTN_COLOR
 			button.TextColor3 = isActive and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
 		end
 	end
