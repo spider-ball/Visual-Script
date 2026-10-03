@@ -1,4 +1,5 @@
 local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
@@ -12,14 +13,14 @@ screenGui.Parent = playerGui
 -- 1. "Icon 3" button (always visible)
 local toggleButton = Instance.new("TextButton")
 toggleButton.Name = "ToggleButton"
-toggleButton.Size = UDim2.new(0, 70, 0, 70)
+toggleButton.Size = UDim2.new(0, 34, 0, 34)
 toggleButton.Position = UDim2.new(1, -30, 0, 30)
 toggleButton.AnchorPoint = Vector2.new(1, 0)
 toggleButton.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 toggleButton.Text = "Icon\n3"
 toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 toggleButton.Font = Enum.Font.GothamBold
-toggleButton.TextSize = 14
+toggleButton.TextSize = 10
 toggleButton.ZIndex = 10
 toggleButton.Parent = screenGui
 
@@ -239,6 +240,8 @@ end
 local firstTopButton = buttonsContainer:FindFirstChildWhichIsA("TextButton")
 local firstTopDivider = firstTopButton:WaitForChild("Divider")
 
+-- FIX: Use fixed DIVIDER_WIDTH for layout positions so elements don't shift
+-- when the visual thickness (outlineThickness) changes.
 local function syncDivider()
 	local x = firstTopDivider.AbsolutePosition.X - greyPanel.AbsolutePosition.X
 	greyBlueDivider.Position = UDim2.new(0, x, 0, 0)
@@ -265,23 +268,26 @@ pagesFolder.Parent = bluePanel
 local MAGENTA = Color3.fromRGB(255, 0, 255)
 local HEADER_H = 44
 local CARD_H = 200 -- fixed card height (px)
-local CARD_ROWS = 3 -- cards per column on every page (more than fits = scrolling)
+local CARD_ROWS = 1 -- tabs (cards) per column: 2 tabs per section
 local CARD_FULL = UDim2.new(1, 0, 0, CARD_H)
 local CARD_COLLAPSED = UDim2.new(1, 0, 0, HEADER_H)
 local TweenService = game:GetService("TweenService")
 
 -- One card = header (icon + title + collapse button) joined with its own body.
 -- ClipsDescendants + UICorner round only the outer corners, header/body junction stays square.
-local function createCard(parent, titleText, iconText, order)
+local cardFrames = {} -- all cards (they follow the Main color)
+local function createCard(parent, titleText, iconText, order, totalHeight)
 	local card = Instance.new("Frame")
 	card.Name = "Card"
-	card.Size = CARD_FULL
+	local fullSize = totalHeight and UDim2.new(1, 0, 0, totalHeight) or CARD_FULL
+	card.Size = fullSize
 	card.LayoutOrder = order
 	card.BackgroundColor3 = MAGENTA
 	card.BorderSizePixel = 0
 	card.ClipsDescendants = true
 	card.ZIndex = 5
 	card.Parent = parent
+	table.insert(cardFrames, card)
 	Instance.new("UICorner", card).CornerRadius = UDim.new(0, 18)
 	local cs = Instance.new("UIStroke", card)
 	cs.Color = Color3.fromRGB(0, 0, 0)
@@ -346,13 +352,14 @@ local function createCard(parent, titleText, iconText, order)
 		collapseBtn.Text = collapsed and "+" or "-"
 		line.Visible = not collapsed
 		TweenService:Create(card, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-			Size = collapsed and CARD_COLLAPSED or CARD_FULL
+			Size = collapsed and CARD_COLLAPSED or fullSize
 		}):Play()
 	end)
 
 	return card
 end
 
+local guiCard, colorsCard -- cards of Section 10 (filled at the end of the script)
 local pages = {}
 for i = 1, 10 do
 	-- page = scrollable area (starts right below the top panel)
@@ -372,7 +379,7 @@ for i = 1, 10 do
 	page.Parent = pagesFolder
 
 	-- two columns, cards are stacked vertically inside each column
-	local function createColumn(xScale, iconText)
+	local function createColumn(xScale, iconText, rowCount, titleText, cardHeight)
 		local column = Instance.new("Frame")
 		column.Name = "Column"
 		column.Size = UDim2.new(0.44, 0, 0, 0)
@@ -390,13 +397,23 @@ for i = 1, 10 do
 		pad.PaddingBottom = UDim.new(0, 16)
 		pad.Parent = column
 
-		for row = 1, CARD_ROWS do
-			createCard(column, "Title 1", iconText, row)
+		for row = 1, (rowCount or CARD_ROWS) do
+			createCard(column, titleText or "Title 1", iconText, row, cardHeight)
 		end
 	end
-
-	createColumn(0.04, "Icon\n4")
-	createColumn(0.52, "Icon\n5")
+	if i == 10 then
+		createColumn(0.04, "GUI", 1, "GUI")
+		createColumn(0.52, "THM", 1, "Themes", 350)
+		local cols = {}
+		for _, ch in ipairs(page:GetChildren()) do
+			if ch.Name == "Column" then table.insert(cols, ch) end
+		end
+		guiCard = cols[1]:FindFirstChild("Card")
+		colorsCard = cols[2]:FindFirstChild("Card")
+	else
+		createColumn(0.04, "Icon\n4")
+		createColumn(0.52, "Icon\n5")
+	end
 
 	pages[i] = page
 end
@@ -407,19 +424,41 @@ for i = 1, 10 do
 	sectionButtons[i] = topButtons[i + 1]
 end
 
+local activeSectionColor = Color3.fromRGB(140, 25, 25)
+local activeSectionIndex = nil
+
+-- Selected section highlight = ONE frame that fills the whole cell (from partition center to
+-- partition center, full bar height). It lies under the partition lines, so it is always flush
+-- with the outline, whatever the thickness is.
+local sectionSelector = Instance.new("Frame")
+sectionSelector.Name = "SectionSelector"
+sectionSelector.BackgroundColor3 = activeSectionColor
+sectionSelector.BorderSizePixel = 0
+sectionSelector.ZIndex = 7
+sectionSelector.Visible = false
+sectionSelector.Parent = borderBase
+
+-- FIX: Use fixed DIVIDER_WIDTH for layout and math.floor/ceil for pixel-perfect alignment
+local function updateSelector()
+	local btn = activeSectionIndex and sectionButtons[activeSectionIndex]
+	if not btn then
+		sectionSelector.Visible = false
+		return
+	end
+	local x = math.floor(btn.AbsolutePosition.X - borderBase.AbsolutePosition.X) - DIVIDER_WIDTH / 2
+	local w = math.ceil(btn.AbsoluteSize.X) + DIVIDER_WIDTH
+	sectionSelector.Position = UDim2.new(0, x, 0, 0)
+	sectionSelector.Size = UDim2.new(0, w, 1, 0)
+	sectionSelector.Visible = true
+end
+buttonsContainer:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateSelector)
+
 local function openSection(index)
 	for i, page in ipairs(pages) do
-		local active = (i == index)
-		page.Visible = active
-		local b = sectionButtons[i]
-		b.BackgroundColor3 = Color3.fromRGB(140, 25, 25)
-		b.BackgroundTransparency = active and 0 or 1
-		-- selected section: sharp corners, others: rounded
-		local c = b:FindFirstChildOfClass("UICorner")
-		if c then
-			c.CornerRadius = active and UDim.new(0, 0) or UDim.new(0, 6)
-		end
+		page.Visible = (i == index)
 	end
+	activeSectionIndex = index
+	task.defer(updateSelector) -- ensure layout updates first
 end
 
 for i, btn in ipairs(sectionButtons) do
@@ -449,11 +488,1036 @@ outlineStroke.Thickness = DIVIDER_WIDTH - 1
 outlineStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 outlineStroke.Parent = outline
 
--- 7. MENU OPEN / CLOSE LOGIC
+-- 7. MENU OPEN / CLOSE + DRAGGING
 local isMenuOpen = true
+local DRAG_THRESHOLD = 3
+local connections = {}
+local DEFAULT_MENU_POS = menuContainer.Position
+local DEFAULT_TOGGLE_POS = toggleButton.Position
+
+local function makeDraggable(handle, target)
+	local dragging, dragInput, dragStart, startPos, startAbs = false, nil, nil, nil, nil
+	local moved = false
+
+	handle.InputBegan:Connect(function(input)
+		if input.UserInputType ~= Enum.UserInputType.MouseButton1
+			and input.UserInputType ~= Enum.UserInputType.Touch then
+			return
+		end
+		dragging = true
+		moved = false
+		dragInput = input
+		dragStart = input.Position
+		startPos = target.Position
+		startAbs = target.AbsolutePosition
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end)
+
+	table.insert(connections, UserInputService.InputChanged:Connect(function(input)
+		if not dragging then return end
+		local isMove = input.UserInputType == Enum.UserInputType.MouseMovement
+			or (input.UserInputType == Enum.UserInputType.Touch and input == dragInput)
+		if not isMove then return end
+
+		local delta = input.Position - dragStart
+		if math.abs(delta.X) > DRAG_THRESHOLD or math.abs(delta.Y) > DRAG_THRESHOLD then
+			moved = true
+		end
+		if not moved then return end
+
+		local origin = screenGui.AbsolutePosition
+		local vp = screenGui.AbsoluteSize
+		local size = target.AbsoluteSize
+		local dx = math.clamp(delta.X, origin.X - startAbs.X, origin.X + vp.X - size.X - startAbs.X)
+		local dy = math.clamp(delta.Y, origin.Y - startAbs.Y, origin.Y + vp.Y - size.Y - startAbs.Y)
+
+		target.Position = UDim2.new(
+			startPos.X.Scale, startPos.X.Offset + dx,
+			startPos.Y.Scale, startPos.Y.Offset + dy
+		)
+	end))
+
+	return function() return moved end
+end
+
+-- the outline follows the menu
+menuContainer:GetPropertyChangedSignal("Position"):Connect(function()
+	outline.Position = menuContainer.Position
+end)
+
+-- Icon 2 = drag area for the menu
+makeDraggable(topButtons[#topButtons], menuContainer)
+
+-- Icon 3 = small movable toggle button
+local toggleWasMoved = makeDraggable(toggleButton, toggleButton)
 
 toggleButton.MouseButton1Click:Connect(function()
+	if toggleWasMoved() then return end
 	isMenuOpen = not isMenuOpen
 	menuContainer.Visible = isMenuOpen
 	outline.Visible = isMenuOpen
 end)
+
+-- ==========================================
+-- 8. SECTION 10: THEMES (Colors + Font)
+-- Main color      = red parts  (top bar, left strip, all cards)
+-- Secondary color = blue parts (main content panel, bottom-left box)
+-- Tap a color swatch -> palette popup. Tap the font box -> font list popup.
+-- ==========================================
+local GuiService = game:GetService("GuiService")
+
+local DEFAULT_COLORS = {
+	main = Color3.fromRGB(200, 50, 50),
+	secondary = Color3.fromRGB(0, 100, 150),
+	button = Color3.fromRGB(20, 20, 20),
+	text = Color3.fromRGB(255, 255, 255),
+	outline = Color3.fromRGB(0, 0, 0),
+}
+local colors = {
+	main = DEFAULT_COLORS.main,
+	secondary = DEFAULT_COLORS.secondary,
+	button = DEFAULT_COLORS.button,
+	text = DEFAULT_COLORS.text,
+	outline = DEFAULT_COLORS.outline,
+}
+local hsv = {}
+for name, c in pairs(colors) do
+	hsv[name] = { c:ToHSV() }
+end
+
+local colorTargets = {
+	main = { greyPanel, greenTop, blueMask },
+	secondary = { bluePanel, pinkBox },
+	button = { toggleButton }, -- Icon 3 + buttons (more are added when created)
+	text = {}, -- text color is applied to all text objects (see applyTextColor)
+	outline = {}, -- outline color: see outlineFrames / outlineStrokes
+}
+for _, card in ipairs(cardFrames) do
+	table.insert(colorTargets.main, card)
+end
+
+local activeTarget = "main"
+local swatchButtons = {}
+local svFrame, svCursor, hueMarker, hexBox, rgbBox, paletteTitle
+local paletteFrame, fontListFrame, fontButton, modalBlocker
+
+local function to255(c)
+	return math.floor(c.R * 255 + 0.5), math.floor(c.G * 255 + 0.5), math.floor(c.B * 255 + 0.5)
+end
+
+local function updatePickerUI()
+	local c = colors[activeTarget]
+	local h, sat, val = table.unpack(hsv[activeTarget])
+	svFrame.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
+	svCursor.Position = UDim2.new(sat, 0, 1 - val, 0)
+	hueMarker.Position = UDim2.new(0.5, 0, h, 0)
+	local r, g, b = to255(c)
+	hexBox.Text = string.format("#%02x%02x%02x", r, g, b)
+	rgbBox.Text = string.format("%d, %d, %d", r, g, b)
+end
+
+local HttpService = game:GetService("HttpService")
+local SETTINGS_FILE = "RBLXscript-GUI.json"
+local DEFAULT_OUTLINE_THICKNESS = 2
+local outlineThickness = DEFAULT_OUTLINE_THICKNESS
+local currentFont = "Default"
+local saveDebounce = false
+local selectedSwatch = nil
+local thicknessBox
+
+-- outline parts: frames (lines/dividers) follow the color, strokes follow color + thickness
+local outlineFrames = {}
+local outlineStrokes = { { outlineStroke, 1 } } -- { stroke, thickness offset }
+local outlineLines = {} -- card header lines
+local partitionLines = {} -- { line, vertical }
+
+-- UDim offsets are whole pixels, so a fractional thickness is drawn as ceil(w) pixels with
+-- matching transparency (0.5 -> 1 px at 50%, 2.5 -> 3 px at 83%)
+local function sizeLine(line, w, vertical)
+	local px = math.ceil(w - 1e-6)
+	local alpha = (px > 0) and (w / px) or 0
+	line.BackgroundTransparency = 1 - alpha
+	line.Size = vertical and UDim2.new(0, px, 1, 0) or UDim2.new(1, 0, 0, px)
+end
+
+-- A partition keeps its layout slot (4 px) but is drawn by a separate centered line,
+-- so changing the thickness never moves any element.
+local function makePartition(parentFrame, vertical)
+	parentFrame.BackgroundTransparency = 1
+	local line = Instance.new("Frame")
+	line.Name = "OutlineLine"
+	line.BorderSizePixel = 0
+	line.BackgroundColor3 = colors.outline
+	line.ZIndex = parentFrame.ZIndex
+	if vertical then
+		line.AnchorPoint = Vector2.new(0.5, 0)
+		line.Position = UDim2.new(0.5, 0, 0, 0)
+		line.Size = UDim2.new(0, 4, 1, 0)
+	else
+		line.AnchorPoint = Vector2.new(0, 1) -- flush with the bottom edge of the bar
+		line.Position = UDim2.new(0, 0, 1, 0)
+		line.Size = UDim2.new(1, 0, 0, 4)
+	end
+	line.Parent = parentFrame
+	table.insert(partitionLines, { line, vertical })
+	table.insert(outlineFrames, line)
+end
+
+for _, d in ipairs(buttonsContainer:GetDescendants()) do
+	if d.Name == "Divider" and d:IsA("Frame") then
+		makePartition(d, true)
+	end
+end
+makePartition(greyBlueDivider, true)
+makePartition(bottomBorder, false)
+for _, card in ipairs(cardFrames) do
+	local st = card:FindFirstChildOfClass("UIStroke")
+	if st then table.insert(outlineStrokes, { st, 0 }) end
+	local line = card:FindFirstChild("HeaderLine")
+	if line then
+		table.insert(outlineFrames, line)
+		table.insert(outlineLines, line)
+	end
+end
+
+-- ---------- save ----------
+local function saveSettings()
+	if type(writefile) ~= "function" then return end
+	local data = { colors = {}, outlineThickness = outlineThickness, font = currentFont }
+	for name, c in pairs(colors) do
+		local r, g, b = to255(c)
+		data.colors[name] = { r, g, b }
+	end
+	local ok, err = pcall(function()
+		writefile(SETTINGS_FILE, HttpService:JSONEncode(data))
+	end)
+	if not ok then warn("[GUI] Save error:", err) end
+end
+
+local function saveSettingsDelayed()
+	if saveDebounce then return end
+	saveDebounce = true
+	task.delay(0.5, function()
+		saveDebounce = false
+		saveSettings()
+	end)
+end
+
+-- ---------- text color (all text except popups) ----------
+local function applyTextColor(c)
+	for _, inst in ipairs(screenGui:GetDescendants()) do
+		if (inst:IsA("TextLabel") or inst:IsA("TextButton") or inst:IsA("TextBox"))
+			and not inst:IsDescendantOf(paletteFrame)
+			and not inst:IsDescendantOf(fontListFrame) then
+			inst.TextColor3 = c
+		end
+	end
+end
+
+-- ---------- partitions ----------
+local function setPartitionThickness(w)
+	for _, e in ipairs(partitionLines) do
+		sizeLine(e[1], w, e[2])
+	end
+end
+
+-- ---------- outline thickness ----------
+local function setOutlineThickness(t)
+	t = tonumber(string.format("%.1f", math.clamp(t, 0, 8))) -- 0.1 precision
+	outlineThickness = t
+	setPartitionThickness(t * 2) -- partitions follow the thickness (t = 2 -> width 4, as before)
+	for _, e in ipairs(outlineStrokes) do
+		e[1].Thickness = t + e[2]
+	end
+	for _, line in ipairs(outlineLines) do
+		sizeLine(line, t, false)
+	end
+	for n, sw in pairs(swatchButtons) do
+		sw:FindFirstChildOfClass("UIStroke").Thickness = (n == selectedSwatch) and (t + 1) or t
+	end
+	if thicknessBox then thicknessBox.Text = tostring(t) end
+	
+	-- FIX: Sync layout elements to prevent shifting when thickness changes
+	syncDivider()
+	updateSelector()
+end
+
+-- user = true when the color was changed by the player
+local function applyColor(name, c, user)
+	colors[name] = c
+	for _, inst in ipairs(colorTargets[name]) do
+		inst.BackgroundColor3 = c
+	end
+	local sw = swatchButtons[name]
+	if sw then sw.BackgroundColor3 = c end
+	if name == "main" then
+		activeSectionColor = c:Lerp(Color3.new(0, 0, 0), 0.35)
+		sectionSelector.BackgroundColor3 = activeSectionColor
+	elseif name == "text" then
+		applyTextColor(c)
+	elseif name == "outline" then
+		for _, f in ipairs(outlineFrames) do
+			f.BackgroundColor3 = c
+		end
+		for _, e in ipairs(outlineStrokes) do
+			e[1].Color = c
+		end
+		for n, swb in pairs(swatchButtons) do
+			if n ~= selectedSwatch then
+				swb:FindFirstChildOfClass("UIStroke").Color = c
+			end
+		end
+	end
+end
+
+local function setActiveColor(c)
+	hsv[activeTarget] = { c:ToHSV() }
+	applyColor(activeTarget, c, true)
+	updatePickerUI()
+	saveSettingsDelayed()
+end
+
+local function highlightSwatch(activeName)
+	selectedSwatch = activeName
+	for n, sw in pairs(swatchButtons) do
+		local st = sw:FindFirstChildOfClass("UIStroke")
+		local selected = (n == activeName)
+		st.Color = selected and Color3.fromRGB(255, 255, 255) or colors.outline
+		st.Thickness = selected and (outlineThickness + 1) or outlineThickness
+	end
+end
+
+-- the blocker covers the whole menu while a popup is open (no clicks on tabs/sections behind it)
+local function updateBlocker()
+	if modalBlocker then
+		modalBlocker.Visible = paletteFrame.Visible or fontListFrame.Visible
+	end
+end
+
+local function closePalette()
+	paletteFrame.Visible = false
+	highlightSwatch(nil)
+	updateBlocker()
+end
+
+local function closeFontList()
+	fontListFrame.Visible = false
+	updateBlocker()
+end
+
+local function closePopups()
+	closePalette()
+	closeFontList()
+end
+
+local function openPalette(name)
+	if paletteFrame.Visible and activeTarget == name then
+		closePalette()
+		return
+	end
+	closeFontList()
+	activeTarget = name
+	paletteTitle.Text = ({ main = "Main Color", secondary = "Secondary Color", button = "Button Color", text = "Text Color", outline = "Outline Color" })[name]
+	highlightSwatch(name)
+	paletteFrame.Visible = true
+	updateBlocker()
+	updatePickerUI()
+end
+
+local function resetColors()
+	for name, c in pairs(DEFAULT_COLORS) do
+		hsv[name] = { c:ToHSV() }
+		applyColor(name, c)
+	end
+	setOutlineThickness(DEFAULT_OUTLINE_THICKNESS)
+	updatePickerUI()
+end
+
+-- ---------- color rows (column) ----------
+local function makeColorRow(name, text, y)
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, -80, 0, 30)
+	label.Position = UDim2.new(0, 10, 0, y)
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.TextColor3 = Color3.fromRGB(0, 0, 0)
+	label.Font = Enum.Font.GothamBold
+	label.TextSize = 14
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.ZIndex = 8
+	label.Parent = colorsCard
+
+	local sw = Instance.new("TextButton")
+	sw.Size = UDim2.new(0, 52, 0, 30)
+	sw.AnchorPoint = Vector2.new(1, 0)
+	sw.Position = UDim2.new(1, -10, 0, y)
+	sw.BackgroundColor3 = colors[name]
+	sw.BorderSizePixel = 0
+	sw.Text = ""
+	sw.AutoButtonColor = false
+	sw.ZIndex = 8
+	sw.Parent = colorsCard
+	Instance.new("UICorner", sw).CornerRadius = UDim.new(0, 8)
+	local st = Instance.new("UIStroke", sw)
+	st.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	st.Color = Color3.fromRGB(0, 0, 0)
+	st.Thickness = 2
+	swatchButtons[name] = sw
+	sw.MouseButton1Click:Connect(function()
+		openPalette(name)
+	end)
+end
+makeColorRow("main", "Main Color", HEADER_H + 10)
+makeColorRow("secondary", "Secondary Color", HEADER_H + 46)
+makeColorRow("button", "Button Color", HEADER_H + 82)
+makeColorRow("text", "Text Color", HEADER_H + 118)
+makeColorRow("outline", "Outline Color", HEADER_H + 154)
+
+-- outline thickness stepper: [-] [value] [+]
+local THICK_Y = HEADER_H + 190
+local thickLabel = Instance.new("TextLabel")
+thickLabel.Size = UDim2.new(1, -150, 0, 30)
+thickLabel.Position = UDim2.new(0, 10, 0, THICK_Y)
+thickLabel.BackgroundTransparency = 1
+thickLabel.Text = "Outline Thickness"
+thickLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+thickLabel.Font = Enum.Font.GothamBold
+thickLabel.TextSize = 14
+thickLabel.TextXAlignment = Enum.TextXAlignment.Left
+thickLabel.ZIndex = 8
+thickLabel.Parent = colorsCard
+
+local function makeStepButton(text, xOffset)
+	local b = Instance.new("TextButton")
+	b.Size = UDim2.new(0, 30, 0, 30)
+	b.AnchorPoint = Vector2.new(1, 0)
+	b.Position = UDim2.new(1, xOffset, 0, THICK_Y)
+	b.BackgroundColor3 = colors.button
+	b.BorderSizePixel = 0
+	b.Text = text
+	b.TextColor3 = Color3.fromRGB(255, 255, 255)
+	b.Font = Enum.Font.GothamBold
+	b.TextSize = 16
+	b.AutoButtonColor = false
+	b.ZIndex = 8
+	b.Parent = colorsCard
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+	table.insert(colorTargets.button, b)
+	return b
+end
+
+local thickMinus = makeStepButton("-", -104)
+local thickPlus = makeStepButton("+", -10)
+
+thicknessBox = Instance.new("TextBox")
+thicknessBox.Size = UDim2.new(0, 52, 0, 30)
+thicknessBox.AnchorPoint = Vector2.new(1, 0)
+thicknessBox.Position = UDim2.new(1, -46, 0, THICK_Y)
+thicknessBox.BackgroundColor3 = colors.button
+thicknessBox.BorderSizePixel = 0
+thicknessBox.Text = tostring(outlineThickness)
+thicknessBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+thicknessBox.Font = Enum.Font.GothamBold
+thicknessBox.TextSize = 13
+thicknessBox.ClearTextOnFocus = false
+thicknessBox.ZIndex = 8
+thicknessBox.Parent = colorsCard
+Instance.new("UICorner", thicknessBox).CornerRadius = UDim.new(0, 8)
+table.insert(colorTargets.button, thicknessBox)
+
+local holdId = 0
+local function bindStepButton(btn, delta)
+	btn.MouseButton1Down:Connect(function()
+		holdId += 1
+		local myId = holdId
+		setOutlineThickness(outlineThickness + delta)
+		saveSettingsDelayed()
+		task.spawn(function()
+			task.wait(0.4)
+			while holdId == myId and btn.Parent do
+				setOutlineThickness(outlineThickness + delta)
+				saveSettingsDelayed()
+				task.wait(0.05)
+			end
+		end)
+	end)
+end
+bindStepButton(thickMinus, -0.1)
+bindStepButton(thickPlus, 0.1)
+table.insert(connections, UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+		holdId += 1 -- stops the repeat
+	end
+end))
+thicknessBox.FocusLost:Connect(function()
+	local n = tonumber(thicknessBox.Text)
+	if n then
+		setOutlineThickness(n)
+		saveSettingsDelayed()
+	else
+		thicknessBox.Text = tostring(outlineThickness)
+	end
+end)
+
+-- ---------- palette popup ----------
+local PICKER_Y = 36
+local PICKER_H = 130
+
+modalBlocker = Instance.new("TextButton")
+modalBlocker.Size = UDim2.new(1, 0, 1, 0)
+modalBlocker.BackgroundTransparency = 1
+modalBlocker.Text = ""
+modalBlocker.AutoButtonColor = false
+modalBlocker.ZIndex = 25
+modalBlocker.Visible = false
+modalBlocker.Parent = menuContainer
+modalBlocker.MouseButton1Click:Connect(function()
+	closePopups() -- tap outside the popup closes it
+end)
+
+paletteFrame = Instance.new("Frame")
+paletteFrame.Size = UDim2.new(0, 260, 0, 214)
+paletteFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+paletteFrame.Position = UDim2.new(0.34, 0, 0.5, 13)
+paletteFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+paletteFrame.BorderSizePixel = 0
+paletteFrame.ZIndex = 30
+paletteFrame.Visible = false
+paletteFrame.Active = true
+paletteFrame.Parent = menuContainer
+Instance.new("UICorner", paletteFrame).CornerRadius = UDim.new(0, 12)
+local pfs = Instance.new("UIStroke", paletteFrame)
+pfs.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+pfs.Color = Color3.fromRGB(0, 0, 0)
+pfs.Thickness = 2
+
+paletteTitle = Instance.new("TextLabel")
+paletteTitle.Size = UDim2.new(1, -44, 0, 24)
+paletteTitle.Position = UDim2.new(0, 10, 0, 6)
+paletteTitle.BackgroundTransparency = 1
+paletteTitle.Text = "Main Color"
+paletteTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+paletteTitle.Font = Enum.Font.GothamBold
+paletteTitle.TextSize = 13
+paletteTitle.TextXAlignment = Enum.TextXAlignment.Left
+paletteTitle.ZIndex = 31
+paletteTitle.Parent = paletteFrame
+
+local paletteClose = Instance.new("TextButton")
+paletteClose.Size = UDim2.new(0, 24, 0, 24)
+paletteClose.AnchorPoint = Vector2.new(1, 0)
+paletteClose.Position = UDim2.new(1, -8, 0, 6)
+paletteClose.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+paletteClose.BorderSizePixel = 0
+paletteClose.Text = "X"
+paletteClose.TextColor3 = Color3.fromRGB(255, 255, 255)
+paletteClose.Font = Enum.Font.GothamBold
+paletteClose.TextSize = 12
+paletteClose.AutoButtonColor = false
+paletteClose.ZIndex = 31
+paletteClose.Parent = paletteFrame
+Instance.new("UICorner", paletteClose).CornerRadius = UDim.new(0, 6)
+paletteClose.MouseButton1Click:Connect(closePalette)
+
+-- saturation / value square
+svFrame = Instance.new("Frame")
+svFrame.Size = UDim2.new(1, -46, 0, PICKER_H)
+svFrame.Position = UDim2.new(0, 10, 0, PICKER_Y)
+svFrame.BackgroundColor3 = Color3.fromHSV(0, 1, 1)
+svFrame.BorderSizePixel = 0
+svFrame.ZIndex = 31
+svFrame.Parent = paletteFrame
+Instance.new("UICorner", svFrame).CornerRadius = UDim.new(0, 6)
+
+local whiteOverlay = Instance.new("Frame")
+whiteOverlay.Size = UDim2.new(1, 0, 1, 0)
+whiteOverlay.BackgroundColor3 = Color3.new(1, 1, 1)
+whiteOverlay.BorderSizePixel = 0
+whiteOverlay.ZIndex = 32
+whiteOverlay.Parent = svFrame
+Instance.new("UICorner", whiteOverlay).CornerRadius = UDim.new(0, 6)
+local wg = Instance.new("UIGradient", whiteOverlay)
+wg.Transparency = NumberSequence.new(0, 1)
+
+local blackOverlay = Instance.new("Frame")
+blackOverlay.Size = UDim2.new(1, 0, 1, 0)
+blackOverlay.BackgroundColor3 = Color3.new(0, 0, 0)
+blackOverlay.BorderSizePixel = 0
+blackOverlay.ZIndex = 33
+blackOverlay.Parent = svFrame
+Instance.new("UICorner", blackOverlay).CornerRadius = UDim.new(0, 6)
+local bg = Instance.new("UIGradient", blackOverlay)
+bg.Rotation = 90
+bg.Transparency = NumberSequence.new(1, 0)
+
+svCursor = Instance.new("Frame")
+svCursor.Size = UDim2.new(0, 14, 0, 14)
+svCursor.AnchorPoint = Vector2.new(0.5, 0.5)
+svCursor.BackgroundColor3 = Color3.new(1, 1, 1)
+svCursor.BorderSizePixel = 0
+svCursor.ZIndex = 34
+svCursor.Parent = svFrame
+Instance.new("UICorner", svCursor).CornerRadius = UDim.new(1, 0)
+local cs = Instance.new("UIStroke", svCursor)
+cs.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+cs.Color = Color3.new(0, 0, 0)
+cs.Thickness = 1.5
+
+local svHit = Instance.new("TextButton")
+svHit.Size = UDim2.new(1, 0, 1, 0)
+svHit.BackgroundTransparency = 1
+svHit.Text = ""
+svHit.AutoButtonColor = false
+svHit.ZIndex = 35
+svHit.Parent = svFrame
+
+-- hue slider
+local hueFrame = Instance.new("Frame")
+hueFrame.Size = UDim2.new(0, 20, 0, PICKER_H)
+hueFrame.Position = UDim2.new(1, -30, 0, PICKER_Y)
+hueFrame.BackgroundColor3 = Color3.new(1, 1, 1)
+hueFrame.BorderSizePixel = 0
+hueFrame.ZIndex = 31
+hueFrame.Parent = paletteFrame
+Instance.new("UICorner", hueFrame).CornerRadius = UDim.new(0, 10)
+local hg = Instance.new("UIGradient", hueFrame)
+hg.Rotation = 90
+hg.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromHSV(0, 1, 1)),
+	ColorSequenceKeypoint.new(1/6, Color3.fromHSV(1/6, 1, 1)),
+	ColorSequenceKeypoint.new(2/6, Color3.fromHSV(2/6, 1, 1)),
+	ColorSequenceKeypoint.new(3/6, Color3.fromHSV(3/6, 1, 1)),
+	ColorSequenceKeypoint.new(4/6, Color3.fromHSV(4/6, 1, 1)),
+	ColorSequenceKeypoint.new(5/6, Color3.fromHSV(5/6, 1, 1)),
+	ColorSequenceKeypoint.new(1, Color3.fromHSV(0, 1, 1)),
+})
+
+hueMarker = Instance.new("Frame")
+hueMarker.Size = UDim2.new(1, 6, 0, 4)
+hueMarker.AnchorPoint = Vector2.new(0.5, 0.5)
+hueMarker.BackgroundColor3 = Color3.new(1, 1, 1)
+hueMarker.BorderSizePixel = 0
+hueMarker.ZIndex = 32
+hueMarker.Parent = hueFrame
+Instance.new("UICorner", hueMarker).CornerRadius = UDim.new(1, 0)
+local hs = Instance.new("UIStroke", hueMarker)
+hs.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+hs.Color = Color3.new(0, 0, 0)
+hs.Thickness = 1
+
+local hueHit = Instance.new("TextButton")
+hueHit.Size = UDim2.new(1, 0, 1, 0)
+hueHit.BackgroundTransparency = 1
+hueHit.Text = ""
+hueHit.AutoButtonColor = false
+hueHit.ZIndex = 33
+hueHit.Parent = hueFrame
+
+-- HEX / RGB boxes
+local function makeInputBox(size, pos)
+	local box = Instance.new("TextBox")
+	box.Size = size
+	box.Position = pos
+	box.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+	box.BorderSizePixel = 0
+	box.Text = ""
+	box.TextColor3 = Color3.fromRGB(255, 255, 255)
+	box.Font = Enum.Font.GothamBold
+	box.TextSize = 13
+	box.ClearTextOnFocus = false
+	box.ZIndex = 31
+	box.Parent = paletteFrame
+	Instance.new("UICorner", box).CornerRadius = UDim.new(0, 6)
+	local st = Instance.new("UIStroke", box)
+	st.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	st.Color = Color3.fromRGB(0, 0, 0)
+	st.Thickness = 2
+	return box
+end
+
+local INPUT_Y = PICKER_Y + PICKER_H + 8
+hexBox = makeInputBox(UDim2.new(0.4, -10, 0, 28), UDim2.new(0, 10, 0, INPUT_Y))
+rgbBox = makeInputBox(UDim2.new(0.6, -15, 0, 28), UDim2.new(0.4, 5, 0, INPUT_Y))
+
+hexBox.FocusLost:Connect(function()
+	local r, g, b = hexBox.Text:match("^%s*#?(%x%x)(%x%x)(%x%x)%s*$")
+	if r then
+		setActiveColor(Color3.fromRGB(tonumber(r, 16), tonumber(g, 16), tonumber(b, 16)))
+	else
+		updatePickerUI()
+	end
+end)
+
+rgbBox.FocusLost:Connect(function()
+	local r, g, b = rgbBox.Text:match("^%s*(%d+)%D+(%d+)%D+(%d+)%s*$")
+	if r then
+		setActiveColor(Color3.fromRGB(
+			math.clamp(tonumber(r), 0, 255),
+			math.clamp(tonumber(g), 0, 255),
+			math.clamp(tonumber(b), 0, 255)
+		))
+	else
+		updatePickerUI()
+	end
+end)
+
+-- dragging on the square / hue slider
+-- input.Position can differ from GUI coordinates by the GUI inset (vertical offset). The offset is
+-- learned from a press that can only match one variant; until it is known the marker moves
+-- relatively (by finger movement) so it never jumps away.
+local inputOffsetY = nil
+
+local function bindPickerDrag(hit, frame, getFrac, onFrac)
+	local dragging, dragInput = false, nil
+	local startRaw, startFrac, absMode = nil, nil, false
+
+	local function update(pos)
+		local size = frame.AbsoluteSize
+		if size.X <= 0 or size.Y <= 0 then return end
+		local fx, fy
+		if absMode then
+			fx = (pos.X - frame.AbsolutePosition.X) / size.X
+			fy = (pos.Y + inputOffsetY - frame.AbsolutePosition.Y) / size.Y
+		else
+			fx = startFrac.X + (pos.X - startRaw.X) / size.X
+			fy = startFrac.Y + (pos.Y - startRaw.Y) / size.Y
+		end
+		onFrac(math.clamp(fx, 0, 1), math.clamp(fy, 0, 1))
+	end
+
+	hit.InputBegan:Connect(function(input)
+		if input.UserInputType ~= Enum.UserInputType.MouseButton1
+			and input.UserInputType ~= Enum.UserInputType.Touch then
+			return
+		end
+		dragging = true
+		dragInput = input
+		startRaw = Vector2.new(input.Position.X, input.Position.Y)
+
+		if inputOffsetY == nil then
+			local inset = GuiService:GetGuiInset().Y
+			if inset == 0 then
+				inputOffsetY = 0
+			else
+				local top = frame.AbsolutePosition.Y
+				local bottom = top + frame.AbsoluteSize.Y
+				local in0 = startRaw.Y >= top and startRaw.Y <= bottom
+				local in1 = startRaw.Y + inset >= top and startRaw.Y + inset <= bottom
+				if in0 and not in1 then
+					inputOffsetY = 0
+				elseif in1 and not in0 then
+					inputOffsetY = inset
+				end
+			end
+		end
+
+		absMode = (inputOffsetY ~= nil)
+		startFrac = Vector2.new(getFrac())
+		if absMode then
+			update(input.Position)
+		end
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end)
+
+	table.insert(connections, UserInputService.InputChanged:Connect(function(input)
+		if not dragging then return end
+		local isMove = input.UserInputType == Enum.UserInputType.MouseMovement
+			or (input.UserInputType == Enum.UserInputType.Touch and input == dragInput)
+		if not isMove then return end
+		update(input.Position)
+	end))
+end
+
+bindPickerDrag(svHit, svFrame,
+	function()
+		local _, sat, val = table.unpack(hsv[activeTarget])
+		return sat, 1 - val
+	end,
+	function(fx, fy)
+		local h = hsv[activeTarget][1]
+		hsv[activeTarget] = { h, fx, 1 - fy }
+		applyColor(activeTarget, Color3.fromHSV(h, fx, 1 - fy), true)
+		updatePickerUI()
+		saveSettingsDelayed()
+	end)
+
+bindPickerDrag(hueHit, hueFrame,
+	function()
+		return 0.5, hsv[activeTarget][1]
+	end,
+	function(_, fy)
+		local _, sat, val = table.unpack(hsv[activeTarget])
+		hsv[activeTarget] = { fy, sat, val }
+		applyColor(activeTarget, Color3.fromHSV(fy, sat, val), true)
+		updatePickerUI()
+		saveSettingsDelayed()
+	end)
+
+-- ---------- font face ----------
+local FONT_OPTIONS = { "Default", "BuilderSans", "Code", "Fantasy", "Gotham", "Jura", "Roboto", "RobotoMono" }
+local originalFonts = {}
+local fontItems = {}
+
+local function applyFont(name)
+	for _, inst in ipairs(screenGui:GetDescendants()) do
+		if inst:IsA("TextLabel") or inst:IsA("TextButton") or inst:IsA("TextBox") then
+			if originalFonts[inst] == nil then
+				originalFonts[inst] = inst.Font
+			end
+			inst.Font = (name == "Default") and originalFonts[inst] or Enum.Font[name]
+		end
+	end
+end
+
+local function setFont(name)
+	currentFont = name
+	applyFont(name)
+	fontButton.Text = name
+	saveSettingsDelayed()
+	for n, item in pairs(fontItems) do
+		item.BackgroundColor3 = (n == name) and Color3.fromRGB(95, 95, 95) or Color3.fromRGB(45, 45, 45)
+	end
+	closeFontList()
+end
+
+local function resetFont()
+	setFont("Default")
+end
+
+local fontLabel = Instance.new("TextLabel")
+fontLabel.Size = UDim2.new(1, -20, 0, 20)
+fontLabel.Position = UDim2.new(0, 10, 0, HEADER_H + 230)
+fontLabel.BackgroundTransparency = 1
+fontLabel.Text = "Font Face"
+fontLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
+fontLabel.Font = Enum.Font.GothamBold
+fontLabel.TextSize = 14
+fontLabel.TextXAlignment = Enum.TextXAlignment.Left
+fontLabel.ZIndex = 8
+fontLabel.Parent = colorsCard
+
+fontButton = Instance.new("TextButton")
+fontButton.Size = UDim2.new(1, -20, 0, 30)
+fontButton.Position = UDim2.new(0, 10, 0, HEADER_H + 252)
+fontButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+fontButton.BorderSizePixel = 0
+fontButton.Text = "Default"
+fontButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+fontButton.Font = Enum.Font.GothamBold
+fontButton.TextSize = 13
+fontButton.AutoButtonColor = false
+fontButton.ZIndex = 8
+fontButton.Parent = colorsCard
+table.insert(colorTargets.button, fontButton)
+Instance.new("UICorner", fontButton).CornerRadius = UDim.new(0, 8)
+local fbs = Instance.new("UIStroke", fontButton)
+fbs.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+fbs.Color = Color3.fromRGB(0, 0, 0)
+fbs.Thickness = 2
+table.insert(outlineStrokes, { fbs, 0 })
+
+local fontArrow = Instance.new("TextLabel")
+fontArrow.Size = UDim2.new(0, 20, 1, 0)
+fontArrow.AnchorPoint = Vector2.new(1, 0)
+fontArrow.Position = UDim2.new(1, -6, 0, 0)
+fontArrow.BackgroundTransparency = 1
+fontArrow.Text = "v"
+fontArrow.TextColor3 = Color3.fromRGB(255, 255, 255)
+fontArrow.Font = Enum.Font.GothamBold
+fontArrow.TextSize = 13
+fontArrow.ZIndex = 9
+fontArrow.Parent = fontButton
+
+local FONT_LIST_H = 150
+fontListFrame = Instance.new("ScrollingFrame")
+fontListFrame.Size = UDim2.new(0, 200, 0, FONT_LIST_H)
+fontListFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+fontListFrame.BorderSizePixel = 0
+fontListFrame.ScrollBarThickness = 4
+fontListFrame.ScrollBarImageColor3 = Color3.fromRGB(150, 150, 150)
+fontListFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+fontListFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+fontListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+fontListFrame.ZIndex = 30
+fontListFrame.Visible = false
+fontListFrame.Parent = menuContainer
+Instance.new("UICorner", fontListFrame).CornerRadius = UDim.new(0, 8)
+local fls = Instance.new("UIStroke", fontListFrame)
+fls.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+fls.Color = Color3.fromRGB(0, 0, 0)
+fls.Thickness = 2
+local flLayout = Instance.new("UIListLayout", fontListFrame)
+flLayout.SortOrder = Enum.SortOrder.LayoutOrder
+flLayout.Padding = UDim.new(0, 3)
+local flPad = Instance.new("UIPadding", fontListFrame)
+flPad.PaddingTop = UDim.new(0, 4)
+flPad.PaddingBottom = UDim.new(0, 4)
+flPad.PaddingLeft = UDim.new(0, 4)
+flPad.PaddingRight = UDim.new(0, 8)
+
+for i, name in ipairs(FONT_OPTIONS) do
+	local item = Instance.new("TextButton")
+	item.Size = UDim2.new(1, 0, 0, 28)
+	item.LayoutOrder = i
+	item.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+	item.BorderSizePixel = 0
+	item.Text = name
+	item.TextColor3 = Color3.fromRGB(255, 255, 255)
+	item.Font = Enum.Font.GothamBold
+	item.TextSize = 13
+	item.AutoButtonColor = false
+	item.ZIndex = 31
+	item.Parent = fontListFrame
+	Instance.new("UICorner", item).CornerRadius = UDim.new(0, 6)
+	fontItems[name] = item
+	item.MouseButton1Click:Connect(function()
+		setFont(name)
+	end)
+end
+fontItems["Default"].BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+
+fontButton.MouseButton1Click:Connect(function()
+	if fontListFrame.Visible then
+		closeFontList()
+		return
+	end
+	closePalette()
+	local m = menuContainer.AbsolutePosition
+	local b = fontButton.AbsolutePosition
+	local w, h = fontButton.AbsoluteSize.X, fontButton.AbsoluteSize.Y
+	local x = b.X - m.X
+	local y = b.Y - m.Y + h + 4
+	if y + FONT_LIST_H > menuContainer.AbsoluteSize.Y then
+		y = b.Y - m.Y - FONT_LIST_H - 4
+	end
+	fontListFrame.Size = UDim2.new(0, w, 0, FONT_LIST_H)
+	fontListFrame.Position = UDim2.new(0, x, 0, math.max(y, 0))
+	fontListFrame.Visible = true
+	updateBlocker()
+end)
+
+-- close popups when switching sections / toggling the menu
+for _, sb in ipairs(sectionButtons) do
+	sb.MouseButton1Click:Connect(closePopups)
+end
+toggleButton.MouseButton1Click:Connect(closePopups)
+
+-- apply defaults on start
+resetColors()
+
+-- ==========================================
+-- 9. SECTION 10: GUI (Reset / Delete)
+-- ==========================================
+local function resetSettings()
+	resetColors()
+	resetFont()
+	closePopups()
+	saveSettingsDelayed()
+	menuContainer.Position = DEFAULT_MENU_POS
+	toggleButton.Position = DEFAULT_TOGGLE_POS
+	isMenuOpen = true
+	menuContainer.Visible = true
+	outline.Visible = true
+end
+
+local function destroyScript()
+	resetSettings()
+	for _, c in ipairs(connections) do
+		c:Disconnect()
+	end
+	table.clear(connections)
+	screenGui:Destroy()
+end
+
+local function createGuiButton(parent, text, yOffset)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, -20, 0, 40)
+	btn.Position = UDim2.new(0, 10, 0, yOffset)
+	btn.BackgroundColor3 = colors.button
+	btn.BorderSizePixel = 0
+	btn.Text = text
+	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 14
+	btn.AutoButtonColor = false
+	btn.ZIndex = 8
+	btn.Parent = parent
+	table.insert(colorTargets.button, btn)
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+	return btn
+end
+
+local resetButton = createGuiButton(guiCard, "Reset Settings", HEADER_H + 12)
+resetButton.MouseButton1Click:Connect(function()
+	resetSettings()
+	resetButton.Text = "Reset Done"
+	task.delay(1.5, function()
+		if resetButton.Parent then resetButton.Text = "Reset Settings" end
+	end)
+end)
+
+local deleteButton = createGuiButton(guiCard, "Delete Script", HEADER_H + 62)
+local confirmDestroy = false
+deleteButton.MouseButton1Click:Connect(function()
+	if not confirmDestroy then
+		confirmDestroy = true
+		deleteButton.Text = "Click Again"
+		deleteButton.BackgroundColor3 = Color3.fromRGB(80, 0, 0)
+		task.delay(3, function()
+			if confirmDestroy and deleteButton.Parent then
+				confirmDestroy = false
+				deleteButton.Text = "Delete Script"
+				deleteButton.BackgroundColor3 = colors.button
+			end
+		end)
+	else
+		destroyScript()
+	end
+end)
+
+-- ==========================================
+-- 10. LOAD SAVED SETTINGS
+-- ==========================================
+local function loadSettings()
+	if type(isfile) ~= "function" or type(readfile) ~= "function" then return end
+	if not isfile(SETTINGS_FILE) then return end
+	local ok, raw = pcall(readfile, SETTINGS_FILE)
+	if not ok or not raw then return end
+	local ok2, data = pcall(function()
+		return HttpService:JSONDecode(raw)
+	end)
+	if not ok2 or type(data) ~= "table" then return end
+
+	if type(data.colors) == "table" then
+		for name, v in pairs(data.colors) do
+			if DEFAULT_COLORS[name] and type(v) == "table" and tonumber(v[1]) and tonumber(v[2]) and tonumber(v[3]) then
+				local c = Color3.fromRGB(
+					math.clamp(v[1], 0, 255),
+					math.clamp(v[2], 0, 255),
+					math.clamp(v[3], 0, 255)
+				)
+				hsv[name] = { c:ToHSV() }
+				applyColor(name, c, true)
+			end
+		end
+	end
+	if tonumber(data.outlineThickness) then
+		setOutlineThickness(data.outlineThickness)
+	end
+	if type(data.font) == "string" and table.find(FONT_OPTIONS, data.font) then
+		setFont(data.font)
+	end
+	updatePickerUI()
+end
+
+loadSettings()
