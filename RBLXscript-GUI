@@ -1,46 +1,31 @@
--- RBLXscript-GUI-PLUS
--- Layout/GUI from RBLXscript-GUI, functions from RBLXscript-PLUS
--- Section 1: Skies / Player (FOV) / Effects / Ocean (Delete+Colors)
--- Section 10: GUI (Reset / Delete)
--- Sections 2..9: 2 placeholder tabs each
-
 local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local Lighting = game:GetService("Lighting")
-local HttpService = game:GetService("HttpService")
-
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- ==========================================
--- SCREEN GUI
--- ==========================================
+-- Main ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "CustomGameUI"
 screenGui.ResetOnSpawn = false
 screenGui.IgnoreGuiInset = true
-screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = playerGui
 
--- 1. "Icon 3" toggle button (always visible)
+-- 1. "Icon 3" button (always visible)
 local toggleButton = Instance.new("TextButton")
 toggleButton.Name = "ToggleButton"
-toggleButton.Size = UDim2.new(0, 34, 0, 34)
+toggleButton.Size = UDim2.new(0, 70, 0, 70)
 toggleButton.Position = UDim2.new(1, -30, 0, 30)
 toggleButton.AnchorPoint = Vector2.new(1, 0)
 toggleButton.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 toggleButton.Text = "Icon\n3"
 toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 toggleButton.Font = Enum.Font.GothamBold
-toggleButton.TextSize = 10
+toggleButton.TextSize = 14
 toggleButton.ZIndex = 10
 toggleButton.Parent = screenGui
-do
-	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0.5, 0)
-	c.Parent = toggleButton
-end
+
+local trCorner = Instance.new("UICorner")
+trCorner.CornerRadius = UDim.new(0.5, 0)
+trCorner.Parent = toggleButton
 
 -- 2. Menu container
 local menuContainer = Instance.new("Frame")
@@ -53,46 +38,52 @@ menuContainer.BorderSizePixel = 0
 menuContainer.ClipsDescendants = true
 menuContainer.Parent = screenGui
 
+-- buttonsContainer (created below) has offsets Position(0,5,0,6) and Size(1,-10,0,40).
+-- Top row cell widths: edge cells ("Icon 1" / "Icon 2") get EDGE_EXTRA px
+-- over the base width, middle cells get MID_EXTRA px, so the row still
+-- matches the menu width (2*EDGE + 10*MID = 14).
 local EDGE_EXTRA = 0
 local MID_EXTRA = (14 - 2 * EDGE_EXTRA) / 10
 local COLUMN_OFFSET = EDGE_EXTRA - 2 - 10/12
 
 -- ==========================================
--- 3. GREY PANEL
+-- 3. GREY PANEL (raised by half of the top panel)
 -- ==========================================
+
 local greyPanel = Instance.new("Frame")
 greyPanel.Name = "GreyPanel"
 greyPanel.Size = UDim2.new(1, 0, 1, -26)
 greyPanel.Position = UDim2.new(0, 0, 0, 26)
-greyPanel.BackgroundColor3 = Color3.fromRGB(51, 51, 51)
+greyPanel.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
 greyPanel.BorderSizePixel = 0
 greyPanel.ZIndex = 1
 greyPanel.Parent = menuContainer
-do
-	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0, 20)
-	c.Parent = greyPanel
-end
+
+local greyCorner = Instance.new("UICorner")
+greyCorner.CornerRadius = UDim.new(0, 20)
+greyCorner.Parent = greyPanel
 
 -- ==========================================
--- 4. BLUE PANEL
+-- 4. BLUE PANEL (starts right below "Section 1")
 -- ==========================================
+
 local bluePanel = Instance.new("Frame")
 bluePanel.Name = "BluePanel"
 bluePanel.Size = UDim2.new(11/12, -COLUMN_OFFSET, 1, 0)
 bluePanel.Position = UDim2.new(1/12, COLUMN_OFFSET, 0, 0)
-bluePanel.BackgroundColor3 = Color3.fromRGB(77, 77, 77)
+bluePanel.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
 bluePanel.BorderSizePixel = 0
 bluePanel.ZIndex = 2
 bluePanel.Parent = greyPanel
-do
-	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0, 20)
-	c.Parent = bluePanel
-end
 
+local blueCorner = Instance.new("UICorner")
+blueCorner.CornerRadius = UDim.new(0, 20)
+blueCorner.Parent = bluePanel
+
+-- Thickness of all divider lines in the interface
 local DIVIDER_WIDTH = 4
 
+-- Divider between grey and blue panels
 local greyBlueDivider = Instance.new("Frame")
 greyBlueDivider.Name = "GreyBlueDivider"
 greyBlueDivider.Size = UDim2.new(0, DIVIDER_WIDTH, 1, 0)
@@ -103,21 +94,23 @@ greyBlueDivider.ZIndex = 3
 greyBlueDivider.Parent = greyPanel
 
 -- ==========================================
--- 5. PINK BOX (Small blue square)
+-- 5. PINK BOX (against the right edge of the divider)
 -- ==========================================
+
 local pinkBox = Instance.new("Frame")
 pinkBox.Name = "PinkBox"
 pinkBox.Size = UDim2.new(0, 80, 0, 60)
 pinkBox.Position = UDim2.new(0, 2, 1, 0)
 pinkBox.AnchorPoint = Vector2.new(0, 1)
-pinkBox.BackgroundColor3 = Color3.fromRGB(77, 77, 77)
+pinkBox.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
 pinkBox.BorderSizePixel = 0
-pinkBox.ZIndex = 1
+pinkBox.ZIndex = 4
 pinkBox.Parent = bluePanel
 
 -- ==========================================
 -- 6. TOP PANEL (12 BUTTONS)
 -- ==========================================
+
 local borderBase = Instance.new("Frame")
 borderBase.Name = "BorderBase"
 borderBase.Size = UDim2.new(1, 0, 0, 52)
@@ -125,12 +118,14 @@ borderBase.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 borderBase.BorderSizePixel = 0
 borderBase.ZIndex = 5
 borderBase.Parent = menuContainer
-do
-	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0, 20)
-	c.Parent = borderBase
-end
 
+local borderCorner = Instance.new("UICorner")
+borderCorner.CornerRadius = UDim.new(0, 20)
+borderCorner.Parent = borderBase
+
+-- FIX: UICorner rounds ALL 4 corners of borderBase, so the bottom of the panel
+-- was rounded too and greyPanel/bluePanel showed through, making a bad joint
+-- with the menu body. These patches "square" the bottom corners.
 local function squareBottomCorner(pos)
 	local patch = Instance.new("Frame")
 	patch.Size = UDim2.new(0, 20, 0, 20)
@@ -140,6 +135,7 @@ local function squareBottomCorner(pos)
 	patch.ZIndex = 3
 	patch.Parent = borderBase
 end
+
 squareBottomCorner(UDim2.new(0, 0, 1, -20))
 squareBottomCorner(UDim2.new(1, -20, 1, -20))
 
@@ -147,21 +143,20 @@ local greenTop = Instance.new("Frame")
 greenTop.Name = "GreenTop"
 greenTop.Size = UDim2.new(1, 0, 1, 0)
 greenTop.Position = UDim2.new(0, 0, 0, 0)
-greenTop.BackgroundColor3 = Color3.fromRGB(77, 77, 77)
+greenTop.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 greenTop.BorderSizePixel = 0
 greenTop.ZIndex = 6
 greenTop.Parent = borderBase
-do
-	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0, 20)
-	c.Parent = greenTop
-end
+
+local greenCorner = Instance.new("UICorner")
+greenCorner.CornerRadius = UDim.new(0, 20)
+greenCorner.Parent = greenTop
 
 local blueMask = Instance.new("Frame")
 blueMask.Name = "BlueMask"
 blueMask.Size = UDim2.new(1, 0, 0.5, 0)
 blueMask.Position = UDim2.new(0, 0, 0.5, 0)
-blueMask.BackgroundColor3 = Color3.fromRGB(77, 77, 77)
+blueMask.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 blueMask.BorderSizePixel = 0
 blueMask.ZIndex = 7
 blueMask.Parent = greenTop
@@ -175,6 +170,7 @@ bottomBorder.BorderSizePixel = 0
 bottomBorder.ZIndex = 8
 bottomBorder.Parent = borderBase
 
+-- Container for the 12 buttons
 local buttonsContainer = Instance.new("Frame")
 buttonsContainer.Name = "ButtonsContainer"
 buttonsContainer.Size = UDim2.new(1, -10, 0, 48)
@@ -190,11 +186,14 @@ listLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 listLayout.Padding = UDim.new(0, DIVIDER_WIDTH)
 listLayout.Parent = buttonsContainer
 
+-- Divider is added only if addDivider = true (not after the last button),
+-- its thickness = DIVIDER_WIDTH, same as greyBlueDivider, and it fully fills
+-- the gap between buttons (Padding is also DIVIDER_WIDTH)
 local function createRedPanel(text, addDivider, extraWidth)
 	local panel = Instance.new("TextButton")
 	panel.Size = UDim2.new(1/12, -4 + (extraWidth or 0), 1, 0)
-	panel.BackgroundColor3 = Color3.fromRGB(77, 77, 77)
-	panel.BackgroundTransparency = 1
+	panel.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+	panel.BackgroundTransparency = 1 -- red fill comes from the top panel (greenTop)
 	panel.BorderSizePixel = 0
 	panel.Text = text
 	panel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -204,13 +203,15 @@ local function createRedPanel(text, addDivider, extraWidth)
 	panel.ClipsDescendants = false
 	panel.Parent = buttonsContainer
 
-	local pc = Instance.new("UICorner")
-	pc.CornerRadius = UDim.new(0, 6)
-	pc.Parent = panel
+	local panelCorner = Instance.new("UICorner")
+	panelCorner.CornerRadius = UDim.new(0, 6)
+	panelCorner.Parent = panel
 
 	if addDivider then
 		local separator = Instance.new("Frame")
 		separator.Name = "Divider"
+		-- panel spans 0..48px; divider goes from -4 (clipped by menuContainer)
+		-- to 52px (bottom of the top panel)
 		separator.Size = UDim2.new(0, DIVIDER_WIDTH, 1, 8)
 		separator.Position = UDim2.new(1, 0, 0, -4)
 		separator.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
@@ -234,7 +235,7 @@ for i, name in ipairs(panelNames) do
 	topButtons[i] = createRedPanel(name, i < #panelNames, (i == 1 or i == #panelNames) and EDGE_EXTRA or MID_EXTRA)
 end
 
--- Sync grey/blue divider with first top divider
+-- Sync grey/blue divider with the real right edge of the first top button
 local firstTopButton = buttonsContainer:FindFirstChildWhichIsA("TextButton")
 local firstTopDivider = firstTopButton:WaitForChild("Divider")
 
@@ -251,8 +252,9 @@ greyPanel:GetPropertyChangedSignal("AbsolutePosition"):Connect(syncDivider)
 task.defer(syncDivider)
 
 -- ==========================================
--- 6.2 PAGES FOLDER
+-- 6.2 SECTION PAGES (opened by Section 1..10 buttons)
 -- ==========================================
+
 local pagesFolder = Instance.new("Frame")
 pagesFolder.Name = "Pages"
 pagesFolder.Size = UDim2.new(1, 0, 1, 0)
@@ -260,393 +262,22 @@ pagesFolder.BackgroundTransparency = 1
 pagesFolder.ZIndex = 3
 pagesFolder.Parent = bluePanel
 
-local CARD_BODY_COLOR = Color3.fromRGB(51, 51, 51)
-local CARD_HEADER_COLOR = Color3.fromRGB(64, 64, 64)
-local BTN_COLOR = Color3.fromRGB(77, 77, 77)
+local MAGENTA = Color3.fromRGB(255, 0, 255)
 local HEADER_H = 44
-local TweenService_ = TweenService
+local CARD_H = 200 -- fixed card height (px)
+local CARD_ROWS = 3 -- cards per column on every page (more than fits = scrolling)
+local CARD_FULL = UDim2.new(1, 0, 0, CARD_H)
+local CARD_COLLAPSED = UDim2.new(1, 0, 0, HEADER_H)
+local TweenService = game:GetService("TweenService")
 
--- ==========================================
--- 6.3 PLUS STATE (from RBLXscript-PLUS)
--- ==========================================
-
-local SCRIPT_TAG = "MobileToggleMenuScript"
-_G[SCRIPT_TAG] = true
-local isMobileDevice = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
-
-local SETTINGS_FILE = "RBLXscript.json"
-local saveDebounce = false
-
-local DEFAULTS = {
-	sky = "DefaultSky",
-	visual = "None",
-	fov = 70,
-	iconX = nil,
-	iconY = 20,
-	menuW = 380,
-	menuH = 240,
-}
-
--- Sky cleanup list
-local CUSTOM_SKY_NAMES = {
-	"PinkSky", "Pink1Sky", "SunsetSky", "Sunset1Sky", "DarkSunsetSky",
-	"OvercastSky", "Overcast1Sky", "Overcast2Sky", "Overcast3Sky", "PurpleSky", "Purple2Sky", "Purple3Sky",
-	"CloudySky", "Cloudy1Sky", "RedSky", "Red1Sky", "RedGoldSky",
-	"BlueGreenSky", "BlueGreen1Sky", "PurpleBlueSky", "FTAP_CustomSky",
-	"StarSky", "RedSky2", "PurpleSky2", "RealisticSky", "PinkSky2"
-}
-local function isCustomSkyName(name)
-	for _, n in ipairs(CUSTOM_SKY_NAMES) do
-		if name == n then return true end
-	end
-	return false
-end
-local function cleanupCustomSky()
-	for _, child in ipairs(Lighting:GetChildren()) do
-		if child:IsA("Sky") and isCustomSkyName(child.Name) then
-			child:Destroy()
-		end
-	end
-end
-cleanupCustomSky()
-
-local function getSafeCamera()
-	local camera = workspace.CurrentCamera
-	if not camera then
-		workspace:GetPropertyChangedSignal("CurrentCamera"):Wait()
-		camera = workspace.CurrentCamera
-	end
-	return camera
-end
-
--- Sky textures
-local PINK_SKY = { Right="rbxassetid://99178632470974", Left="rbxassetid://105698490046689", Up="rbxassetid://118938836131305", Down="rbxassetid://120618995645758", Front="rbxassetid://72769531974029", Back="rbxassetid://70646713355454" }
-local PINK1_SKY = { Right="rbxassetid://121821717023864", Left="rbxassetid://122912820996210", Up="rbxassetid://136954498936115", Down="rbxassetid://120521166612928", Back="rbxassetid://75859338419870", Front="rbxassetid://87978450174413" }
-local SUNSET_SKY = { Right="rbxassetid://81917192544565", Left="rbxassetid://123504218900071", Up="rbxassetid://102754091719425", Down="rbxassetid://120203815632456", Back="rbxassetid://80626011057173", Front="rbxassetid://71391772386689" }
-local SUNSET1_SKY = { Right="rbxassetid://600833862", Left="rbxassetid://600886090", Up="rbxassetid://600835177", Down="rbxassetid://600831635", Back="rbxassetid://600830446", Front="rbxassetid://600832720" }
-local DARKSUNSET_SKY = { Right="rbxassetid://169210143", Left="rbxassetid://169210133", Up="rbxassetid://169210149", Down="rbxassetid://169210108", Back="rbxassetid://169210090", Front="rbxassetid://169210121" }
-local OVERCAST_SKY = { Right="rbxassetid://113656297117229", Left="rbxassetid://117387352674614", Up="rbxassetid://96118083498785", Down="rbxassetid://136079591970856", Back="rbxassetid://71196675713878", Front="rbxassetid://81417222464090" }
-local OVERCAST1_SKY = { Right="rbxassetid://109693044711016", Left="rbxassetid://100996126500320", Up="rbxassetid://97846107870268", Down="rbxassetid://130441754428343", Back="rbxassetid://123436356714901", Front="rbxassetid://111439831859778" }
-local OVERCAST2_SKY = { Right="rbxassetid://155657619", Left="rbxassetid://155657671", Up="rbxassetid://155674931", Down="rbxassetid://155674246", Back="rbxassetid://155657655", Front="rbxassetid://155657609" }
-local OVERCAST3_SKY = { Right="rbxassetid://218448178", Left="rbxassetid://218448234", Up="rbxassetid://218448296", Down="rbxassetid://218448317", Back="rbxassetid://218448217", Front="rbxassetid://218448269" }
-local PURPLE_SKY = { Right="rbxassetid://107582465298500", Left="rbxassetid://116713499702383", Up="rbxassetid://104937569917275", Down="rbxassetid://119424695859184", Back="rbxassetid://94075096527595", Front="rbxassetid://107660858272322" }
-local PURPLE2_SKY = { Right="rbxassetid://87508746807373", Left="rbxassetid://72214429519631", Up="rbxassetid://93909905537579", Down="rbxassetid://114305065346484", Back="rbxassetid://124039476809343", Front="rbxassetid://85546626451946" }
-local PURPLE3_SKY = { Right="rbxassetid://16553665766", Left="rbxassetid://16553664042", Up="rbxassetid://16553667750", Down="rbxassetid://16553660713", Back="rbxassetid://16553658937", Front="rbxassetid://16553662144" }
-local CLOUDY_SKY = { Right="rbxassetid://73202475548459", Left="rbxassetid://110550431724515", Up="rbxassetid://99634001170418", Down="rbxassetid://116358698169847", Back="rbxassetid://105511758648998", Front="rbxassetid://109231634620741" }
-local CLOUDY1_SKY = { Right="rbxassetid://108446505567246", Left="rbxassetid://75881260386073", Up="rbxassetid://82241980967600", Down="rbxassetid://97076965994511", Back="rbxassetid://106685350225588", Front="rbxassetid://104055357726979" }
-local RED_SKY = { Right="rbxassetid://83665628990242", Left="rbxassetid://86812333109787", Up="rbxassetid://109944460974973", Down="rbxassetid://105372026083974", Back="rbxassetid://74210136209255", Front="rbxassetid://107353670375427" }
-local RED1_SKY = { Right="rbxassetid://84415437719739", Left="rbxassetid://76789441314394", Up="rbxassetid://104270272146420", Down="rbxassetid://79387501967596", Back="rbxassetid://121089206402947", Front="rbxassetid://84022325891982" }
-local REDGOLD_SKY = { Right="rbxassetid://108598432654836", Left="rbxassetid://119399958723600", Up="rbxassetid://113183443469309", Down="rbxassetid://96206083396471", Back="rbxassetid://96206083396471", Front="rbxassetid://118413184179068" }
-local BLUEGREEN_SKY = { Right="rbxassetid://89051484543303", Left="rbxassetid://76250732091424", Up="rbxassetid://102824883976098", Down="rbxassetid://129089294700595", Back="rbxassetid://104922795812590", Front="rbxassetid://117576797257071" }
-local BLUEGREEN1_SKY = { Right="rbxassetid://100525795679790", Left="rbxassetid://126168304325701", Up="rbxassetid://131390851179591", Down="rbxassetid://117310255409107", Back="rbxassetid://134735625405353", Front="rbxassetid://74081048495142" }
-local PURPLEBLUE_SKY = { Right="rbxassetid://75513499724049", Left="rbxassetid://130322025682877", Up="rbxassetid://87756010698046", Down="rbxassetid://72544216742837", Back="rbxassetid://83511161961595", Front="rbxassetid://102806492018777" }
-local STAR_SKY = { Back="rbxassetid://11336725935", Down="rbxassetid://11336722286", Front="rbxassetid://11336720418", Left="rbxassetid://11336725016", Right="rbxassetid://11336726887", Up="rbxassetid://11336723758" }
-local RED_SKY2 = { Back="rbxassetid://401664839", Down="rbxassetid://401664862", Front="rbxassetid://401664960", Left="rbxassetid://401664881", Right="rbxassetid://401664901", Up="rbxassetid://401664936" }
-local PURPLE_SKY2 = { Back="rbxassetid://570557514", Down="rbxassetid://570557775", Front="rbxassetid://570557559", Left="rbxassetid://570557620", Right="rbxassetid://570557672", Up="rbxassetid://570557727" }
-local REALISTIC_SKY = { Back="rbxassetid://144933338", Down="rbxassetid://144931530", Front="rbxassetid://144933262", Left="rbxassetid://144933244", Right="rbxassetid://144933299", Up="rbxassetid://144931564" }
-local PINK_SKY2 = { Back="rbxassetid://271042516", Down="rbxassetid://271077243", Front="rbxassetid://271042556", Left="rbxassetid://271042310", Right="rbxassetid://271042467", Up="rbxassetid://271077958" }
-
-local SKY_LIST = {
-	{"DefaultSky",   "Default Sky"},
-	{"PinkSky",      "Pink Sky"},
-	{"Pink1Sky",     "Pink Sky 1"},
-	{"PinkSky2",     "Pink Sky 2"},
-	{"RedSky",       "Red Sky"},
-	{"Red1Sky",      "Red Sky 1"},
-	{"RedSky2",      "Red Sky 2"},
-	{"RedGoldSky",   "Red-Gold Sky"},
-	{"PurpleSky",    "Purple Sky"},
-	{"Purple2Sky",   "Purple Sky 1"},
-	{"Purple3Sky",   "Purple Sky 2"},
-	{"PurpleSky2",   "Purple Sky 3"},
-	{"SunsetSky",    "Sunset Sky"},
-	{"Sunset1Sky",   "Sunset Sky 1"},
-	{"DarkSunsetSky","Dark-Sunset Sky"},
-	{"OvercastSky",  "Overcast Sky"},
-	{"Overcast1Sky", "Overcast Sky 1"},
-	{"Overcast2Sky", "Overcast Sky 2"},
-	{"Overcast3Sky", "Overcast Sky 3"},
-	{"CloudySky",    "Cloudy Sky"},
-	{"Cloudy1Sky",   "Cloudy Sky 1"},
-	{"BlueGreenSky", "Blue-Green Sky"},
-	{"BlueGreen1Sky","Blue-Green Sky 1"},
-	{"PurpleBlueSky","Purple-Blue Sky"},
-	{"StarSky",      "Star Sky"},
-	{"RealisticSky", "Realistic Sky"},
-}
-
-local SKY_TEXTURES = {
-	PinkSky = PINK_SKY, Pink1Sky = PINK1_SKY, PinkSky2 = PINK_SKY2,
-	RedSky = RED_SKY, Red1Sky = RED1_SKY, RedSky2 = RED_SKY2, RedGoldSky = REDGOLD_SKY,
-	PurpleSky = PURPLE_SKY, Purple2Sky = PURPLE2_SKY, Purple3Sky = PURPLE3_SKY, PurpleSky2 = PURPLE_SKY2,
-	SunsetSky = SUNSET_SKY, Sunset1Sky = SUNSET1_SKY, DarkSunsetSky = DARKSUNSET_SKY,
-	OvercastSky = OVERCAST_SKY, Overcast1Sky = OVERCAST1_SKY, Overcast2Sky = OVERCAST2_SKY, Overcast3Sky = OVERCAST3_SKY,
-	CloudySky = CLOUDY_SKY, Cloudy1Sky = CLOUDY1_SKY,
-	BlueGreenSky = BLUEGREEN_SKY, BlueGreen1Sky = BLUEGREEN1_SKY,
-	PurpleBlueSky = PURPLEBLUE_SKY,
-	StarSky = STAR_SKY, RealisticSky = REALISTIC_SKY,
-}
-
-local originalSky, customSky
-local function findOriginalSky()
-	for _, child in ipairs(Lighting:GetChildren()) do
-		if child:IsA("Sky") and not isCustomSkyName(child.Name) then return child end
-	end
-end
-originalSky = findOriginalSky()
-if not originalSky then
-	originalSky = Instance.new("Sky")
-	originalSky.Name = "DefaultSky"
-	originalSky.Parent = Lighting
-end
-
-local currentSkyName = "DefaultSky"
-
-local skyButtons = {}
-local skyButtonByKey = {}
-
-local function setActiveSkyButton(activeButton)
-	for _, button in ipairs(skyButtons) do
-		local isActive = (button == activeButton)
-		button.BackgroundColor3 = isActive and Color3.fromRGB(252, 207, 242) or BTN_COLOR
-		button.TextColor3 = isActive and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
-	end
-end
-
-local function clearCustomSky()
-	if customSky then
-		customSky:Destroy()
-		customSky = nil
-	end
-	cleanupCustomSky()
-end
-
-local function applyDefaultSky()
-	clearCustomSky()
-	if originalSky and not originalSky.Parent then originalSky.Parent = Lighting end
-	setActiveSkyButton(skyButtonByKey["DefaultSky"])
-	currentSkyName = "DefaultSky"
-end
-
-local function applyCustomSky(name, textures, button)
-	clearCustomSky()
-	if originalSky then originalSky.Parent = nil end
-	customSky = Instance.new("Sky")
-	customSky.Name = "FTAP_CustomSky"
-	customSky.SkyboxFt = textures.Front
-	customSky.SkyboxRt = textures.Right
-	customSky.SkyboxBk = textures.Back
-	customSky.SkyboxUp = textures.Up
-	customSky.SkyboxLf = textures.Left
-	customSky.SkyboxDn = textures.Down
-	customSky.Parent = Lighting
-	setActiveSkyButton(button)
-	currentSkyName = name
-end
-
--- Visual state
-local VISUAL_PRESET_TAG = "FTAP_VisualPreset"
-local ORIGINAL_LIGHTING = {
-	ClockTime = Lighting.ClockTime,
-	Brightness = Lighting.Brightness,
-	Ambient = Lighting.Ambient,
-	OutdoorAmbient = Lighting.OutdoorAmbient,
-	ColorShift_Top = Lighting.ColorShift_Top,
-	ColorShift_Bottom = Lighting.ColorShift_Bottom,
-	ShadowSoftness = Lighting.ShadowSoftness,
-	GeographicLatitude = Lighting.GeographicLatitude,
-	EnvironmentDiffuseScale = Lighting.EnvironmentDiffuseScale,
-	EnvironmentSpecularScale = Lighting.EnvironmentSpecularScale,
-}
-local function clearVisualPreset()
-	for _, obj in ipairs(Lighting:GetChildren()) do
-		if obj:GetAttribute(VISUAL_PRESET_TAG) == true then
-			obj:Destroy()
-		end
-	end
-	for _, obj in ipairs(Lighting:GetChildren()) do
-		if obj:IsA("Atmosphere")
-			or obj:IsA("BloomEffect")
-			or obj:IsA("ColorCorrectionEffect")
-			or obj:IsA("SunRaysEffect")
-			or obj:IsA("BlurEffect")
-			or obj:IsA("DepthOfFieldEffect") then
-			obj:Destroy()
-		end
-	end
-end
-local function resetLightingToOriginal()
-	Lighting.ClockTime = ORIGINAL_LIGHTING.ClockTime
-	Lighting.Brightness = ORIGINAL_LIGHTING.Brightness
-	Lighting.Ambient = ORIGINAL_LIGHTING.Ambient
-	Lighting.OutdoorAmbient = ORIGINAL_LIGHTING.OutdoorAmbient
-	Lighting.ColorShift_Top = ORIGINAL_LIGHTING.ColorShift_Top
-	Lighting.ColorShift_Bottom = ORIGINAL_LIGHTING.ColorShift_Bottom
-	Lighting.ShadowSoftness = ORIGINAL_LIGHTING.ShadowSoftness
-	Lighting.GeographicLatitude = ORIGINAL_LIGHTING.GeographicLatitude
-	Lighting.EnvironmentDiffuseScale = ORIGINAL_LIGHTING.EnvironmentDiffuseScale
-	Lighting.EnvironmentSpecularScale = ORIGINAL_LIGHTING.EnvironmentSpecularScale
-end
-local function newVisual(className, name)
-	local obj = Instance.new(className)
-	obj.Name = name
-	obj:SetAttribute(VISUAL_PRESET_TAG, true)
-	obj.Parent = Lighting
-	return obj
-end
-local function applyVisualPreset(preset)
-	clearVisualPreset()
-	resetLightingToOriginal()
-	if preset == "None" then
-		-- already reset
-	elseif preset == "Blue" then
-		Lighting.ClockTime = 9; Lighting.Brightness = 2; Lighting.Ambient = Color3.fromRGB(16, 16, 16); Lighting.ColorShift_Top = Color3.fromRGB(196, 222, 255); Lighting.OutdoorAmbient = Color3.fromRGB(134, 158, 190); Lighting.ShadowSoftness = 0; Lighting.GeographicLatitude = 78
-		local A = newVisual("Atmosphere", "FTAP_Visual_Atmosphere")
-		A.Density = 0.375; A.Offset = 0.17
-	elseif preset == "Realistic" then
-		Lighting.ClockTime = 17; Lighting.Brightness = 1.6; Lighting.GeographicLatitude = 45; Lighting.EnvironmentDiffuseScale = 0.3; Lighting.EnvironmentSpecularScale = 0.1
-		local A = newVisual("Atmosphere", "FTAP_Visual_Atmosphere")
-		A.Density = 0.10; A.Offset = 0.3; A.Color = Color3.fromRGB(200, 215, 230); A.Decay = Color3.fromRGB(130, 120, 110); A.Glare = 0; A.Haze = 2
-		local C = newVisual("ColorCorrectionEffect", "FTAP_Visual_ColorCorrection")
-		C.Saturation = -0.12; C.Contrast = 0.01; C.Brightness = -0.02
-		local B = newVisual("BloomEffect", "FTAP_Visual_Bloom")
-		B.Intensity = 0.1; B.Size = 28; B.Threshold = 1.1
-		local R = newVisual("SunRaysEffect", "FTAP_Visual_SunRays")
-		R.Intensity = 0.05; R.Spread = 0.6
-	elseif preset == "Realistic1" then
-		local R = newVisual("SunRaysEffect", "FTAP_Visual_SunRays")
-		R.Intensity = 0.3; R.Spread = 1
-		local C = newVisual("ColorCorrectionEffect", "FTAP_Visual_ColorCorrection")
-		C.Brightness = 0; C.Contrast = 0; C.Saturation = 0; C.TintColor = Color3.fromRGB(222, 240, 255)
-		local B = newVisual("BloomEffect", "FTAP_Visual_Bloom")
-		B.Intensity = 1; B.Size = 24; B.Threshold = 0.949
-	elseif preset == "Pink" then
-		local R = newVisual("SunRaysEffect", "FTAP_Visual_SunRays")
-		R.Intensity = 1; R.Spread = 1
-		local C = newVisual("ColorCorrectionEffect", "FTAP_Visual_ColorCorrection")
-		C.Brightness = 0.1; C.Contrast = 0.5; C.Saturation = 0; C.TintColor = Color3.fromRGB(255, 254, 239)
-		local Blur = newVisual("BlurEffect", "FTAP_Visual_Blur")
-		Blur.Size = 4
-		local B = newVisual("BloomEffect", "FTAP_Visual_Bloom")
-		B.Intensity = 12; B.Size = 24; B.Threshold = 4
-	elseif preset == "Sunset" then
-		local C = newVisual("ColorCorrectionEffect", "FTAP_Visual_ColorCorrection")
-		C.Brightness = 0.08; C.Contrast = -0.15; C.Saturation = -0.08; C.TintColor = Color3.fromRGB(255, 242, 235)
-		local B = newVisual("BloomEffect", "FTAP_Visual_Bloom")
-		B.Intensity = 1.8; B.Size = 32; B.Threshold = 0.75
-		local DOF = newVisual("DepthOfFieldEffect", "FTAP_Visual_DOF")
-		DOF.FarIntensity = 0.38; DOF.FocusDistance = 45; DOF.InFocusRadius = 18; DOF.NearIntensity = 0.08
-		local A = newVisual("Atmosphere", "FTAP_Visual_Atmosphere")
-		A.Density = 0.32; A.Offset = 0.05; A.Color = Color3.fromRGB(255, 238, 230); A.Decay = Color3.fromRGB(210, 205, 195); A.Glare = 0.45; A.Haze = 2.2
-		local Blur = newVisual("BlurEffect", "FTAP_Visual_Blur")
-		Blur.Size = 2
-	elseif preset == "GoldenHour" then
-		Lighting.ClockTime = 17.2; Lighting.Brightness = 2.1; Lighting.Ambient = Color3.fromRGB(105, 90, 75); Lighting.OutdoorAmbient = Color3.fromRGB(170, 145, 115); Lighting.ColorShift_Top = Color3.fromRGB(255, 205, 145); Lighting.ColorShift_Bottom = Color3.fromRGB(120, 90, 65)
-		local A = newVisual("Atmosphere", "FTAP_Visual_Atmosphere")
-		A.Density = 0.15; A.Haze = 0.7; A.Glare = 0.25; A.Color = Color3.fromRGB(255, 220, 185); A.Decay = Color3.fromRGB(175, 130, 95)
-		local C = newVisual("ColorCorrectionEffect", "FTAP_Visual_ColorCorrection")
-		C.Brightness = 0.04; C.Contrast = 0.12; C.Saturation = 0.12; C.TintColor = Color3.fromRGB(255, 235, 210)
-		local B = newVisual("BloomEffect", "FTAP_Visual_Bloom")
-		B.Intensity = 0.7; B.Size = 30; B.Threshold = 0.9
-	elseif preset == "Night" then
-		Lighting.ClockTime = 0; Lighting.Brightness = 1; Lighting.Ambient = Color3.fromRGB(20, 25, 45); Lighting.OutdoorAmbient = Color3.fromRGB(35, 45, 80); Lighting.ColorShift_Top = Color3.fromRGB(45, 55, 110); Lighting.ColorShift_Bottom = Color3.fromRGB(15, 20, 45)
-		local A = newVisual("Atmosphere", "FTAP_Visual_Atmosphere")
-		A.Density = 0.25; A.Haze = 1.2; A.Glare = 0; A.Color = Color3.fromRGB(100, 120, 180); A.Decay = Color3.fromRGB(35, 45, 90)
-		local C = newVisual("ColorCorrectionEffect", "FTAP_Visual_ColorCorrection")
-		C.Brightness = -0.04; C.Contrast = 0.3; C.Saturation = -0.05; C.TintColor = Color3.fromRGB(180, 195, 240)
-		local B = newVisual("BloomEffect", "FTAP_Visual_Bloom")
-		B.Intensity = 0.35; B.Size = 24; B.Threshold = 1.1
-	elseif preset == "Twilight" then
-		Lighting.ClockTime = 19.1; Lighting.Brightness = 1.5; Lighting.Ambient = Color3.fromRGB(55, 45, 85); Lighting.OutdoorAmbient = Color3.fromRGB(85, 70, 125); Lighting.ColorShift_Top = Color3.fromRGB(110, 80, 180); Lighting.ColorShift_Bottom = Color3.fromRGB(45, 35, 85)
-		local A = newVisual("Atmosphere", "FTAP_Visual_Atmosphere")
-		A.Density = 0.23; A.Haze = 1.1; A.Glare = 0.1; A.Color = Color3.fromRGB(170, 155, 230); A.Decay = Color3.fromRGB(70, 55, 125)
-		local C = newVisual("ColorCorrectionEffect", "FTAP_Visual_ColorCorrection")
-		C.Contrast = 0.25; C.Saturation = 0.2; C.TintColor = Color3.fromRGB(210, 200, 245)
-		local B = newVisual("BloomEffect", "FTAP_Visual_Bloom")
-		B.Intensity = 0.8; B.Size = 32; B.Threshold = 0.8
-	elseif preset == "Cyberpunk" then
-		Lighting.ClockTime = 21; Lighting.Brightness = 1.5; Lighting.Ambient = Color3.fromRGB(25, 10, 50); Lighting.OutdoorAmbient = Color3.fromRGB(55, 20, 90); Lighting.ColorShift_Top = Color3.fromRGB(255, 20, 180); Lighting.ColorShift_Bottom = Color3.fromRGB(45, 0, 140)
-		local A = newVisual("Atmosphere", "FTAP_Visual_Atmosphere")
-		A.Density = 0.28; A.Haze = 1.4; A.Glare = 0.4; A.Color = Color3.fromRGB(255, 100, 220); A.Decay = Color3.fromRGB(60, 15, 140)
-		local C = newVisual("ColorCorrectionEffect", "FTAP_Visual_ColorCorrection")
-		C.Contrast = 0.35; C.Saturation = 0.6; C.TintColor = Color3.fromRGB(255, 190, 245)
-		local B = newVisual("BloomEffect", "FTAP_Visual_Bloom")
-		B.Intensity = 1.8; B.Size = 45; B.Threshold = 0.55
-	elseif preset == "Cloudy" then
-		Lighting.ClockTime = 13; Lighting.Brightness = 1.8; Lighting.Ambient = Color3.fromRGB(95, 100, 110); Lighting.OutdoorAmbient = Color3.fromRGB(130, 135, 145); Lighting.ColorShift_Top = Color3.fromRGB(210, 215, 225); Lighting.ColorShift_Bottom = Color3.fromRGB(100, 105, 115)
-		local A = newVisual("Atmosphere", "FTAP_Visual_Atmosphere")
-		A.Density = 0.32; A.Haze = 1.8; A.Glare = 0; A.Color = Color3.fromRGB(205, 210, 220); A.Decay = Color3.fromRGB(115, 120, 130)
-		local C = newVisual("ColorCorrectionEffect", "FTAP_Visual_ColorCorrection")
-		C.Brightness = -0.02; C.Contrast = 0.08; C.Saturation = -0.15; C.TintColor = Color3.fromRGB(220, 225, 235)
-	elseif preset == "Vibrant" then
-		Lighting.ClockTime = 14; Lighting.Brightness = 2.4; Lighting.Ambient = Color3.fromRGB(75, 75, 85); Lighting.OutdoorAmbient = Color3.fromRGB(155, 165, 185); Lighting.ColorShift_Top = Color3.fromRGB(180, 210, 255); Lighting.ColorShift_Bottom = Color3.fromRGB(90, 110, 170)
-		local A = newVisual("Atmosphere", "FTAP_Visual_Atmosphere")
-		A.Density = 0.08; A.Haze = 0.35; A.Glare = 0.1; A.Color = Color3.fromRGB(210, 225, 255); A.Decay = Color3.fromRGB(130, 150, 205)
-		local C = newVisual("ColorCorrectionEffect", "FTAP_Visual_ColorCorrection")
-		C.Brightness = 0.04; C.Contrast = 0.28; C.Saturation = 0.55; C.TintColor = Color3.fromRGB(235, 240, 255)
-		local B = newVisual("BloomEffect", "FTAP_Visual_Bloom")
-		B.Intensity = 0.7; B.Size = 25; B.Threshold = 0.85
-	elseif preset == "Dark" then
-		Lighting.ClockTime = 22; Lighting.Brightness = 0.9; Lighting.Ambient = Color3.fromRGB(18, 18, 30); Lighting.OutdoorAmbient = Color3.fromRGB(40, 40, 65); Lighting.ColorShift_Top = Color3.fromRGB(45, 35, 90); Lighting.ColorShift_Bottom = Color3.fromRGB(12, 12, 30)
-		local A = newVisual("Atmosphere", "FTAP_Visual_Atmosphere")
-		A.Density = 0.3; A.Haze = 1.6; A.Glare = 0; A.Color = Color3.fromRGB(90, 95, 140); A.Decay = Color3.fromRGB(35, 35, 70)
-		local C = newVisual("ColorCorrectionEffect", "FTAP_Visual_ColorCorrection")
-		C.Brightness = -0.05; C.Contrast = 0.42; C.Saturation = -0.05; C.TintColor = Color3.fromRGB(175, 180, 220)
-	end
-end
-
-local visualPresets = {
-	{"None",         "None"},
-	{"Blue",         "Blue"},
-	{"Realistic",    "Realistic"},
-	{"Realistic1",   "Realistic 1"},
-	{"Pink",         "Pink"},
-	{"Sunset",       "Sunset"},
-	{"GoldenHour",   "Golden Hour"},
-	{"Night",        "Night"},
-	{"Twilight",     "Twilight"},
-	{"Cyberpunk",    "Cyberpunk"},
-	{"Cloudy",       "Cloudy"},
-	{"Vibrant",      "Vibrant"},
-	{"Dark",         "Dark"},
-}
-local visualButtons = {}
-
--- FOV
-local FOV_MIN, FOV_MAX = 50, 120
-local currentFov = 70
-
--- Save system (with forward declared saveSettingsDelayed)
-local saveSettingsDelayed = function() end
-local function fileExists(name)
-	return type(isfile) == "function" and isfile(name)
-end
-local function readFile(name)
-	if type(readfile) ~= "function" then return nil end
-	local ok, data = pcall(readfile, name)
-	if ok then return data end
-	return nil
-end
-local function writeFile(name, data)
-	if type(writefile) ~= "function" then return false end
-	local ok, err = pcall(writefile, name, data)
-	if not ok then warn("[GUI] Save error:", err) return false end
-	return true
-end
-
--- ==========================================
--- 6.4 CARD CREATOR
--- ==========================================
-local function createCard(parent, titleText, iconText, order, bodyHeight)
-	bodyHeight = bodyHeight or 200
-	local expandedSize = UDim2.new(1, 0, 0, HEADER_H + bodyHeight)
-	local collapsedSize = UDim2.new(1, 0, 0, HEADER_H)
-
+-- One card = header (icon + title + collapse button) joined with its own body.
+-- ClipsDescendants + UICorner round only the outer corners, header/body junction stays square.
+local function createCard(parent, titleText, iconText, order)
 	local card = Instance.new("Frame")
 	card.Name = "Card"
-	card.Size = expandedSize
+	card.Size = CARD_FULL
 	card.LayoutOrder = order
-	card.BackgroundColor3 = CARD_BODY_COLOR
+	card.BackgroundColor3 = MAGENTA
 	card.BorderSizePixel = 0
 	card.ClipsDescendants = true
 	card.ZIndex = 5
@@ -655,24 +286,6 @@ local function createCard(parent, titleText, iconText, order, bodyHeight)
 	local cs = Instance.new("UIStroke", card)
 	cs.Color = Color3.fromRGB(0, 0, 0)
 	cs.Thickness = 2
-
-	local headerBg = Instance.new("Frame")
-	headerBg.Name = "HeaderBg"
-	headerBg.Size = UDim2.new(1, 0, 0, HEADER_H)
-	headerBg.BackgroundColor3 = CARD_HEADER_COLOR
-	headerBg.BorderSizePixel = 0
-	headerBg.ZIndex = 5
-	headerBg.Parent = card
-	Instance.new("UICorner", headerBg).CornerRadius = UDim.new(0, 18)
-
-	local headerBgSquare = Instance.new("Frame")
-	headerBgSquare.Name = "HeaderBgSquare"
-	headerBgSquare.Size = UDim2.new(1, 0, 0, 18)
-	headerBgSquare.Position = UDim2.new(0, 0, 1, -18)
-	headerBgSquare.BackgroundColor3 = CARD_HEADER_COLOR
-	headerBgSquare.BorderSizePixel = 0
-	headerBgSquare.ZIndex = 5
-	headerBgSquare.Parent = headerBg
 
 	local iconBox = Instance.new("TextLabel")
 	iconBox.Name = "CardIcon"
@@ -694,12 +307,13 @@ local function createCard(parent, titleText, iconText, order, bodyHeight)
 	titleLabel.Position = UDim2.new(0, HEADER_H + 4, 0, 0)
 	titleLabel.BackgroundTransparency = 1
 	titleLabel.Text = titleText
-	titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	titleLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
 	titleLabel.Font = Enum.Font.GothamBold
 	titleLabel.TextSize = 18
 	titleLabel.ZIndex = 7
 	titleLabel.Parent = card
 
+	-- line between header and body
 	local line = Instance.new("Frame")
 	line.Name = "HeaderLine"
 	line.Size = UDim2.new(1, 0, 0, 2)
@@ -709,6 +323,7 @@ local function createCard(parent, titleText, iconText, order, bodyHeight)
 	line.ZIndex = 6
 	line.Parent = card
 
+	-- collapse / expand button (top right corner of the header)
 	local collapseBtn = Instance.new("TextButton")
 	collapseBtn.Name = "CollapseButton"
 	collapseBtn.Size = UDim2.new(0, 28, 0, 28)
@@ -730,506 +345,17 @@ local function createCard(parent, titleText, iconText, order, bodyHeight)
 		collapsed = not collapsed
 		collapseBtn.Text = collapsed and "+" or "-"
 		line.Visible = not collapsed
-		TweenService_:Create(card, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-			Size = collapsed and collapsedSize or expandedSize
+		TweenService:Create(card, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Size = collapsed and CARD_COLLAPSED or CARD_FULL
 		}):Play()
 	end)
 
-	local body = Instance.new("ScrollingFrame")
-	body.Name = "CardBody"
-	body.Size = UDim2.new(1, 0, 1, -(HEADER_H + 8))
-	body.Position = UDim2.new(0, 0, 0, HEADER_H)
-	body.BackgroundTransparency = 1
-	body.BorderSizePixel = 0
-	body.ScrollingDirection = Enum.ScrollingDirection.Y
-	body.ScrollBarThickness = 4
-	body.ScrollBarImageColor3 = Color3.fromRGB(150, 150, 150)
-	body.AutomaticCanvasSize = Enum.AutomaticSize.Y
-	body.CanvasSize = UDim2.new(0, 0, 0, 0)
-	body.ZIndex = 7
-	body.Parent = card
-
-	local layout = Instance.new("UIListLayout")
-	layout.SortOrder = Enum.SortOrder.LayoutOrder
-	layout.Padding = UDim.new(0, 6)
-	layout.Parent = body
-
-	local pad = Instance.new("UIPadding")
-	pad.PaddingTop = UDim.new(0, 8)
-	pad.PaddingBottom = UDim.new(0, 8)
-	pad.PaddingLeft = UDim.new(0, 10)
-	pad.PaddingRight = UDim.new(0, 10)
-	pad.Parent = body
-
-	return card, body
-end
-
--- Helper: list button inside card body (same style as top buttons)
-local function createListButton(parent, text, order)
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1, 0, 0, 30)
-	btn.BackgroundColor3 = BTN_COLOR
-	btn.BorderSizePixel = 0
-	btn.Text = text
-	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-	btn.Font = Enum.Font.GothamBold
-	btn.TextSize = 14
-	btn.TextScaled = false
-	btn.AutoButtonColor = false
-	btn.LayoutOrder = order
-	btn.ZIndex = 8
-	btn.Parent = parent
-	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0, 6)
-	c.Parent = btn
-	local s = Instance.new("UIStroke")
-	s.Color = Color3.fromRGB(0, 0, 0)
-	s.Thickness = 2
-	s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	s.Parent = btn
-	return btn
-end
-
--- Helper: label inside card body
-local function createBodyLabel(parent, text, order, height)
-	local l = Instance.new("TextLabel")
-	l.Size = UDim2.new(1, 0, 0, height or 20)
-	l.BackgroundTransparency = 1
-	l.Text = text
-	l.TextColor3 = Color3.fromRGB(0, 0, 0)
-	l.Font = Enum.Font.GothamBold
-	l.TextSize = 14
-	l.TextXAlignment = Enum.TextXAlignment.Left
-	l.LayoutOrder = order
-	l.ZIndex = 8
-	l.Parent = parent
-	return l
-end
-
--- ==========================================
--- 6.5 POPULATE CARD CONTENTS
--- ==========================================
-
--- Section 1 - Card 1: Skies
-local function populateSkiesCard(body)
-	for i, d in ipairs(SKY_LIST) do
-		local b = createListButton(body, d[2], i)
-		skyButtons[i] = b
-		skyButtonByKey[d[1]] = b
-		b.MouseButton1Click:Connect(function()
-			local tex = SKY_TEXTURES[d[1]]
-			if tex then
-				applyCustomSky(d[1], tex, b)
-			else
-				applyDefaultSky()
-			end
-			saveSettingsDelayed()
-		end)
-	end
-	setActiveSkyButton(skyButtonByKey["DefaultSky"])
-end
-
--- Section 1 - Card 2: Effects
-local function populateEffectsCard(body)
-	for i, data in ipairs(visualPresets) do
-		local b = createListButton(body, data[2], i)
-		visualButtons[data[1]] = b
-		b.MouseButton1Click:Connect(function()
-			applyVisualPreset(data[1])
-			for name, button in pairs(visualButtons) do
-				local isActive = (name == data[1])
-				button.BackgroundColor3 = isActive and Color3.fromRGB(252, 207, 242) or BTN_COLOR
-				button.TextColor3 = isActive and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
-			end
-			saveSettingsDelayed()
-		end)
-	end
-	local removeBtn = createListButton(body, "Remove All Effects", #visualPresets + 1)
-	removeBtn.MouseButton1Click:Connect(function()
-		clearVisualPreset()
-		resetLightingToOriginal()
-		for name, button in pairs(visualButtons) do
-			local isActive = (name == "None")
-			button.BackgroundColor3 = isActive and Color3.fromRGB(252, 207, 242) or BTN_COLOR
-			button.TextColor3 = isActive and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
-		end
-		removeBtn.Text = "Effects Removed"
-		task.delay(1.5, function()
-			if removeBtn.Parent then
-				removeBtn.Text = "Remove All Effects"
-			end
-		end)
-		saveSettingsDelayed()
-	end)
-	for name, button in pairs(visualButtons) do
-		local isActive = (name == "None")
-		button.BackgroundColor3 = isActive and Color3.fromRGB(252, 207, 242) or BTN_COLOR
-		button.TextColor3 = isActive and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
-	end
-end
-
--- Section 1 - Card 3: Player (FOV)
-local function populatePlayerCard(body)
-	local fovLabel = Instance.new("TextLabel")
-	fovLabel.Size = UDim2.new(1, -64, 0, 20)
-	fovLabel.BackgroundTransparency = 1
-	fovLabel.Text = "Field of View"
-	fovLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-	fovLabel.Font = Enum.Font.GothamBold
-	fovLabel.TextSize = 14
-	fovLabel.TextXAlignment = Enum.TextXAlignment.Left
-	fovLabel.LayoutOrder = 1
-	fovLabel.ZIndex = 8
-	fovLabel.Parent = body
-
-	local fovValueBox = Instance.new("TextBox")
-	fovValueBox.Size = UDim2.new(0, 56, 0, 20)
-	fovValueBox.AnchorPoint = Vector2.new(1, 0)
-	fovValueBox.Position = UDim2.new(1, 0, 0, 0)
-	fovValueBox.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-	fovValueBox.BorderSizePixel = 0
-	fovValueBox.Text = "70"
-	fovValueBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-	fovValueBox.Font = Enum.Font.GothamBold
-	fovValueBox.TextSize = 13
-	fovValueBox.ClearTextOnFocus = false
-	fovValueBox.ZIndex = 9
-	fovValueBox.Parent = fovLabel
-	Instance.new("UICorner", fovValueBox).CornerRadius = UDim.new(0, 5)
-	local vbs = Instance.new("UIStroke", fovValueBox)
-	vbs.Color = Color3.fromRGB(252, 207, 242)
-	vbs.Thickness = 1
-	vbs.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-
-	local sliderArea = Instance.new("Frame")
-	sliderArea.Size = UDim2.new(1, 0, 0, 30)
-	sliderArea.BackgroundTransparency = 1
-	sliderArea.LayoutOrder = 2
-	sliderArea.ZIndex = 8
-	sliderArea.Parent = body
-
-	local track = Instance.new("Frame")
-	track.Size = UDim2.new(1, 0, 0, 6)
-	track.Position = UDim2.new(0, 0, 0.5, 0)
-	track.AnchorPoint = Vector2.new(0, 0.5)
-	track.BackgroundColor3 = Color3.fromRGB(90, 90, 90)
-	track.BorderSizePixel = 0
-	track.ZIndex = 8
-	track.Parent = sliderArea
-	Instance.new("UICorner", track).CornerRadius = UDim.new(1, 0)
-
-	local fill = Instance.new("Frame")
-	fill.Size = UDim2.new(0, 0, 0, 6)
-	fill.Position = UDim2.new(0, 0, 0.5, 0)
-	fill.AnchorPoint = Vector2.new(0, 0.5)
-	fill.BackgroundColor3 = Color3.fromRGB(252, 207, 242)
-	fill.BorderSizePixel = 0
-	fill.ZIndex = 8
-	fill.Parent = sliderArea
-	Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
-
-	local knob = Instance.new("TextButton")
-	knob.Size = UDim2.new(0, 20, 0, 20)
-	knob.AnchorPoint = Vector2.new(0.5, 0.5)
-	knob.Position = UDim2.new(0, 0, 0.5, 0)
-	knob.BackgroundColor3 = Color3.fromRGB(252, 207, 242)
-	knob.BorderSizePixel = 0
-	knob.Text = ""
-	knob.AutoButtonColor = false
-	knob.ZIndex = 9
-	knob.Parent = sliderArea
-	Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
-
-	local function setFov(value)
-		value = math.clamp(value, FOV_MIN, FOV_MAX)
-		currentFov = value
-		local percent = (value - FOV_MIN) / (FOV_MAX - FOV_MIN)
-		fill.Size = UDim2.new(percent, 0, 0, 6)
-		knob.Position = UDim2.new(percent, 0, 0.5, 0)
-		fovValueBox.Text = tostring(math.floor(value + 0.5))
-		local camera = workspace.CurrentCamera
-		if camera then camera.FieldOfView = value end
-	end
-	_G.__GUI_setFov = setFov
-
-	currentFov = math.clamp(getSafeCamera().FieldOfView or 70, FOV_MIN, FOV_MAX)
-	setFov(currentFov)
-
-	workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
-		local camera = workspace.CurrentCamera
-		if camera then camera.FieldOfView = currentFov end
-	end)
-
-	fovValueBox.FocusLost:Connect(function()
-		local num = tonumber(fovValueBox.Text)
-		if num then setFov(num) else fovValueBox.Text = tostring(math.floor(currentFov + 0.5)) end
-		saveSettingsDelayed()
-	end)
-
-	local dragging, dragInput = false, nil
-	local function updateFromPos(inputPosition)
-		local trackSize = track.AbsoluteSize.X
-		if trackSize <= 0 then return end
-		local relative = math.clamp((inputPosition.X - track.AbsolutePosition.X) / trackSize, 0, 1)
-		setFov(FOV_MIN + relative * (FOV_MAX - FOV_MIN))
-	end
-	knob.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			dragging = true; dragInput = input
-			updateFromPos(input.Position)
-			local connection
-			connection = input.Changed:Connect(function()
-				if input.UserInputState == Enum.UserInputState.End then
-					dragging = false; dragInput = nil
-					connection:Disconnect(); saveSettingsDelayed()
-				end
-			end)
-		end
-	end)
-	UserInputService.InputChanged:Connect(function(input)
-		if dragging and input == dragInput then updateFromPos(input.Position) end
-	end)
-end
-
--- ==========================================
--- OCEAN CONTROL (Delete / Restore + Colors)
--- ==========================================
-local OCEAN_PATH = { "Map", "AlwaysHereTweenedObjects", "Ocean", "Object" }
-
-local function getOceanParentContainer()
-	local current = workspace
-	for i = 1, #OCEAN_PATH - 1 do
-		current = current:FindFirstChild(OCEAN_PATH[i])
-		if not current then return nil end
-	end
-	return current
-end
-
-local function findOceanObject()
-	local parent = getOceanParentContainer()
-	if not parent then return nil end
-	return parent:FindFirstChild(OCEAN_PATH[#OCEAN_PATH])
-end
-
-local removedOcean = nil
-local savedOceanParent = nil
-
-local OCEAN_COLORS = {
-	{ name = "Red",        code = "RD", color = Color3.fromRGB(220, 50, 50),    stroke = Color3.fromRGB(255, 90, 90),    text = Color3.fromRGB(255, 255, 255) },
-	{ name = "Orange",     code = "OR", color = Color3.fromRGB(255, 140, 30),   stroke = Color3.fromRGB(255, 180, 80),   text = Color3.fromRGB(0, 0, 0) },
-	{ name = "Yellow",     code = "YL", color = Color3.fromRGB(240, 220, 50),   stroke = Color3.fromRGB(255, 245, 120),  text = Color3.fromRGB(0, 0, 0) },
-	{ name = "Lime",       code = "LM", color = Color3.fromRGB(160, 230, 40),   stroke = Color3.fromRGB(200, 250, 100),  text = Color3.fromRGB(0, 0, 0) },
-	{ name = "Green",      code = "GR", color = Color3.fromRGB(50, 190, 80),    stroke = Color3.fromRGB(90, 230, 120),   text = Color3.fromRGB(255, 255, 255) },
-	{ name = "Teal",       code = "TL", color = Color3.fromRGB(30, 170, 160),   stroke = Color3.fromRGB(80, 220, 210),   text = Color3.fromRGB(255, 255, 255) },
-	{ name = "Cyan",       code = "CY", color = Color3.fromRGB(60, 200, 230),   stroke = Color3.fromRGB(120, 230, 255),  text = Color3.fromRGB(0, 0, 0) },
-	{ name = "Blue",       code = "BL", color = Color3.fromRGB(50, 100, 220),   stroke = Color3.fromRGB(90, 150, 255),   text = Color3.fromRGB(255, 255, 255) },
-	{ name = "Navy",       code = "NV", color = Color3.fromRGB(25, 45, 130),    stroke = Color3.fromRGB(70, 100, 200),   text = Color3.fromRGB(255, 255, 255) },
-	{ name = "Indigo",     code = "IN", color = Color3.fromRGB(90, 60, 200),    stroke = Color3.fromRGB(140, 110, 250),  text = Color3.fromRGB(255, 255, 255) },
-	{ name = "Purple",     code = "PU", color = Color3.fromRGB(150, 70, 220),   stroke = Color3.fromRGB(190, 120, 255),  text = Color3.fromRGB(255, 255, 255) },
-	{ name = "Magenta",    code = "MG", color = Color3.fromRGB(230, 60, 200),   stroke = Color3.fromRGB(255, 120, 235),  text = Color3.fromRGB(255, 255, 255) },
-	{ name = "Pink",       code = "PK", color = Color3.fromRGB(252, 208, 242),  stroke = Color3.fromRGB(255, 230, 250),  text = Color3.fromRGB(0, 0, 0) },
-	{ name = "Brown",      code = "BR", color = Color3.fromRGB(140, 90, 55),    stroke = Color3.fromRGB(180, 130, 90),   text = Color3.fromRGB(255, 255, 255) },
-	{ name = "Gray",       code = "GY", color = Color3.fromRGB(140, 140, 140),  stroke = Color3.fromRGB(190, 190, 190),  text = Color3.fromRGB(0, 0, 0) },
-	{ name = "White",      code = "WH", color = Color3.fromRGB(245, 245, 245),  stroke = Color3.fromRGB(255, 255, 255),  text = Color3.fromRGB(0, 0, 0) },
-	{ name = "Black",      code = "BK", color = Color3.fromRGB(25, 25, 25),     stroke = Color3.fromRGB(80, 80, 80),     text = Color3.fromRGB(255, 255, 255) },
-	{ name = "Gold",       code = "GD", color = Color3.fromRGB(220, 180, 60),   stroke = Color3.fromRGB(255, 220, 120),  text = Color3.fromRGB(0, 0, 0) },
-	{ name = "Coral",      code = "CR", color = Color3.fromRGB(255, 127, 100),  stroke = Color3.fromRGB(255, 170, 150),  text = Color3.fromRGB(0, 0, 0) },
-	{ name = "Mint",       code = "MT", color = Color3.fromRGB(150, 245, 200),  stroke = Color3.fromRGB(200, 255, 230),  text = Color3.fromRGB(0, 0, 0) },
-}
-
-local function paintOceanObject(object, color)
-	local count = 0
-	for _, descendant in ipairs(object:GetDescendants()) do
-		if descendant:IsA("BasePart") then
-			descendant.Color = color
-			count += 1
-		end
-	end
-	return count
-end
-
-local function populateOceanCard(body)
-	local toggleBtn = createListButton(body, "Delete Ocean", 1)
-	local oceanColorButtons = {}
-
-	local function updateToggleText()
-		if removedOcean then
-			toggleBtn.Text = "Restore Ocean"
-			toggleBtn.BackgroundColor3 = Color3.fromRGB(45, 120, 55)
-		else
-			toggleBtn.Text = "Delete Ocean"
-			toggleBtn.BackgroundColor3 = BTN_COLOR
-		end
-	end
-
-	toggleBtn.MouseButton1Click:Connect(function()
-		if removedOcean then
-			if savedOceanParent and savedOceanParent.Parent then
-				removedOcean.Parent = savedOceanParent
-				removedOcean = nil
-				savedOceanParent = nil
-				updateToggleText()
-			else
-				toggleBtn.Text = "Parent lost"
-				task.wait(1.5)
-				updateToggleText()
-			end
-			return
-		end
-		local obj = findOceanObject()
-		if not obj then
-			local old = toggleBtn.Text
-			toggleBtn.Text = "Ocean not found"
-			toggleBtn.BackgroundColor3 = Color3.fromRGB(140, 50, 50)
-			task.wait(1.5)
-			toggleBtn.BackgroundColor3 = BTN_COLOR
-			toggleBtn.Text = old
-			return
-		end
-		savedOceanParent = obj.Parent
-		removedOcean = obj
-		obj.Parent = nil
-		updateToggleText()
-	end)
-
-	createBodyLabel(body, "Ocean Color:", 2, 20)
-
-	local colorGrid = Instance.new("Frame")
-	colorGrid.Size = UDim2.new(1, 0, 0, 0)
-	colorGrid.AutomaticSize = Enum.AutomaticSize.Y
-	colorGrid.BackgroundTransparency = 1
-	colorGrid.LayoutOrder = 3
-	colorGrid.ZIndex = 8
-	colorGrid.Parent = body
-
-	local gridLayout = Instance.new("UIGridLayout")
-	gridLayout.CellSize = UDim2.new(0, 42, 0, 36)
-	gridLayout.CellPadding = UDim2.new(0, 6, 0, 6)
-	gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	gridLayout.FillDirectionMaxCells = 4
-	gridLayout.Parent = colorGrid
-
-	for i, data in ipairs(OCEAN_COLORS) do
-		local btn = Instance.new("TextButton")
-		btn.LayoutOrder = i
-		btn.BackgroundColor3 = data.color
-		btn.Text = data.code
-		btn.TextColor3 = data.text
-		btn.Font = Enum.Font.GothamBlack
-		btn.TextSize = 14
-		btn.AutoButtonColor = false
-		btn.ZIndex = 9
-		btn.Parent = colorGrid
-
-		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-		local s = Instance.new("UIStroke", btn)
-		s.Color = data.stroke
-		s.Thickness = 2
-		s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-		s.Parent = btn
-
-		oceanColorButtons[i] = { button = btn, data = data }
-
-		btn.MouseButton1Click:Connect(function()
-			local obj = removedOcean or findOceanObject()
-			if not obj then
-				local old = toggleBtn.Text
-				toggleBtn.Text = "Ocean not found"
-				task.wait(1.2)
-				toggleBtn.Text = old
-				return
-			end
-			local painted = paintOceanObject(obj, data.color)
-			print(("Painted parts: %d — %s"):format(painted, data.name))
-			for j, entry in ipairs(oceanColorButtons) do
-				if j == i then
-					entry.button.UIStroke.Thickness = 4
-					entry.button.UIStroke.Color = Color3.fromRGB(255, 255, 255)
-				else
-					entry.button.UIStroke.Thickness = 2
-					entry.button.UIStroke.Color = entry.data.stroke
-				end
-			end
-		end)
-	end
-end
-
--- Section 10 - Card 1: GUI (Reset / Delete)
-local function populateGuiCard(body)
-	local resetButton = createListButton(body, "Reset Settings", 1)
-	resetButton.MouseButton1Click:Connect(function()
-		applyDefaultSky()
-		applyVisualPreset("None")
-		if _G.__GUI_setFov then _G.__GUI_setFov(DEFAULTS.fov) end
-		for name, button in pairs(visualButtons) do
-			local isActive = (name == "None")
-			button.BackgroundColor3 = isActive and Color3.fromRGB(252, 207, 242) or BTN_COLOR
-			button.TextColor3 = isActive and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
-		end
-		resetButton.Text = "Reset Done"
-		task.delay(1.5, function()
-			if resetButton.Parent then resetButton.Text = "Reset Settings" end
-		end)
-		saveSettingsDelayed()
-	end)
-
-	local destroyButton = createListButton(body, "Delete Script", 2)
-	local confirmDestroy = false
-	local function destroyScript()
-		clearCustomSky()
-		clearVisualPreset()
-		if originalSky and not originalSky.Parent then originalSky.Parent = Lighting end
-		if workspace.CurrentCamera then workspace.CurrentCamera.FieldOfView = 70 end
-		if removedOcean and savedOceanParent and savedOceanParent.Parent then
-			removedOcean.Parent = savedOceanParent
-		end
-		_G[SCRIPT_TAG] = nil
-		screenGui:Destroy()
-	end
-	destroyButton.MouseButton1Click:Connect(function()
-		if not confirmDestroy then
-			confirmDestroy = true
-			destroyButton.Text = "Click Again"
-			destroyButton.BackgroundColor3 = Color3.fromRGB(80, 0, 0)
-			task.delay(3, function()
-				if confirmDestroy and destroyButton.Parent then
-					confirmDestroy = false
-					destroyButton.Text = "Delete Script"
-					destroyButton.BackgroundColor3 = BTN_COLOR
-				end
-			end)
-		else
-			destroyScript()
-		end
-	end)
-end
-
--- ==========================================
--- 6.6 CREATE PAGES
--- ==========================================
-local function createColumn(parent, xScale)
-	local column = Instance.new("Frame")
-	column.Name = "Column"
-	column.Size = UDim2.new(0.44, 0, 0, 0)
-	column.Position = UDim2.new(xScale, 0, 0, 8)
-	column.AutomaticSize = Enum.AutomaticSize.Y
-	column.BackgroundTransparency = 1
-	column.Parent = parent
-
-	local layout = Instance.new("UIListLayout")
-	layout.SortOrder = Enum.SortOrder.LayoutOrder
-	layout.Padding = UDim.new(0, 12)
-	layout.Parent = column
-
-	local pad = Instance.new("UIPadding")
-	pad.PaddingBottom = UDim.new(0, 16)
-	pad.Parent = column
-
-	return column
+	return card
 end
 
 local pages = {}
 for i = 1, 10 do
+	-- page = scrollable area (starts right below the top panel)
 	local page = Instance.new("ScrollingFrame")
 	page.Name = "Page" .. i
 	page.Size = UDim2.new(1, 0, 1, -26)
@@ -1245,42 +371,37 @@ for i = 1, 10 do
 	page.ZIndex = 4
 	page.Parent = pagesFolder
 
-	if i == 1 then
-		-- Section 1: left (Skies, Player) | right (Effects, Ocean)
-		local leftCol = createColumn(page, 0.04)
-		local rightCol = createColumn(page, 0.52)
+	-- two columns, cards are stacked vertically inside each column
+	local function createColumn(xScale, iconText)
+		local column = Instance.new("Frame")
+		column.Name = "Column"
+		column.Size = UDim2.new(0.44, 0, 0, 0)
+		column.Position = UDim2.new(xScale, 0, 0, 8)
+		column.AutomaticSize = Enum.AutomaticSize.Y
+		column.BackgroundTransparency = 1
+		column.Parent = page
 
-		local _, skiesBody = createCard(leftCol, "Skies", "SKY", 1, 156)
-		populateSkiesCard(skiesBody)
+		local layout = Instance.new("UIListLayout")
+		layout.SortOrder = Enum.SortOrder.LayoutOrder
+		layout.Padding = UDim.new(0, 12)
+		layout.Parent = column
 
-		local _, playerBody = createCard(leftCol, "Player", "FOV", 2, 160)
-		populatePlayerCard(playerBody)
+		local pad = Instance.new("UIPadding")
+		pad.PaddingBottom = UDim.new(0, 16)
+		pad.Parent = column
 
-		local _, effectsBody = createCard(rightCol, "Effects", "FX", 1, 156)
-		populateEffectsCard(effectsBody)
-
-		local _, oceanBody = createCard(rightCol, "Ocean", "OCN", 2, 240)
-		populateOceanCard(oceanBody)
-
-	elseif i == 10 then
-		-- Section 10: GUI only
-		local leftCol = createColumn(page, 0.04)
-		local _, guiBody = createCard(leftCol, "GUI", "GUI", 1, 150)
-		populateGuiCard(guiBody)
-	else
-		-- Sections 2..9: 2 placeholder cards
-		local leftCol = createColumn(page, 0.04)
-		local rightCol = createColumn(page, 0.52)
-		createCard(leftCol, "Title 1", "Tab", 1, 200)
-		createCard(rightCol, "Title 1", "Tab", 1, 200)
+		for row = 1, CARD_ROWS do
+			createCard(column, "Title 1", iconText, row)
+		end
 	end
+
+	createColumn(0.04, "Icon\n4")
+	createColumn(0.52, "Icon\n5")
 
 	pages[i] = page
 end
 
--- ==========================================
--- 6.7 SECTION BUTTONS
--- ==========================================
+-- Section 1..10 are topButtons[2]..topButtons[11] (Icon 1 / Icon 2 are not sections)
 local sectionButtons = {}
 for i = 1, 10 do
 	sectionButtons[i] = topButtons[i + 1]
@@ -1291,8 +412,9 @@ local function openSection(index)
 		local active = (i == index)
 		page.Visible = active
 		local b = sectionButtons[i]
-		b.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+		b.BackgroundColor3 = Color3.fromRGB(140, 25, 25)
 		b.BackgroundTransparency = active and 0 or 1
+		-- selected section: sharp corners, others: rounded
 		local c = b:FindFirstChildOfClass("UICorner")
 		if c then
 			c.CornerRadius = active and UDim.new(0, 0) or UDim.new(0, 6)
@@ -1306,11 +428,7 @@ for i, btn in ipairs(sectionButtons) do
 	end)
 end
 
-openSection(1)
-
--- ==========================================
--- 6.5 EMPTY OUTLINE
--- ==========================================
+-- 6.5 EMPTY OUTLINE (overlay, same size/position as the menu)
 local outline = Instance.new("Frame")
 outline.Name = "MenuOutline"
 outline.Size = menuContainer.Size
@@ -1320,155 +438,22 @@ outline.BackgroundTransparency = 1
 outline.BorderSizePixel = 0
 outline.ZIndex = 5
 outline.Parent = screenGui
-do
-	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0, 20)
-	c.Parent = outline
-end
+
+local outlineCorner = Instance.new("UICorner")
+outlineCorner.CornerRadius = UDim.new(0, 20)
+outlineCorner.Parent = outline
+
 local outlineStroke = Instance.new("UIStroke")
 outlineStroke.Color = Color3.fromRGB(0, 0, 0)
 outlineStroke.Thickness = DIVIDER_WIDTH - 1
 outlineStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 outlineStroke.Parent = outline
 
--- ==========================================
--- 7. MENU OPEN / CLOSE
--- ==========================================
+-- 7. MENU OPEN / CLOSE LOGIC
 local isMenuOpen = true
 
--- ==========================================
--- 7.1 DRAGGING (Icon 2 moves the menu, Icon 3 is movable)
--- ==========================================
-local DRAG_THRESHOLD = 3
-
-local function makeDraggable(handle, target, onMove)
-	local dragging, dragInput, dragStart, startPos, startAbs = false, nil, nil, nil, nil
-	local moved = false
-
-	handle.InputBegan:Connect(function(input)
-		if input.UserInputType ~= Enum.UserInputType.MouseButton1
-			and input.UserInputType ~= Enum.UserInputType.Touch then
-			return
-		end
-		dragging = true
-		moved = false
-		dragInput = input
-		dragStart = input.Position
-		startPos = target.Position
-		startAbs = target.AbsolutePosition
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
-		end)
-	end)
-
-	UserInputService.InputChanged:Connect(function(input)
-		if not dragging then return end
-		local isMove = input.UserInputType == Enum.UserInputType.MouseMovement
-			or (input.UserInputType == Enum.UserInputType.Touch and input == dragInput)
-		if not isMove then return end
-
-		local delta = input.Position - dragStart
-		if math.abs(delta.X) > DRAG_THRESHOLD or math.abs(delta.Y) > DRAG_THRESHOLD then
-			moved = true
-		end
-		if not moved then return end
-
-		local origin = screenGui.AbsolutePosition
-		local vp = screenGui.AbsoluteSize
-		local size = target.AbsoluteSize
-		local dx = math.clamp(delta.X, origin.X - startAbs.X, origin.X + vp.X - size.X - startAbs.X)
-		local dy = math.clamp(delta.Y, origin.Y - startAbs.Y, origin.Y + vp.Y - size.Y - startAbs.Y)
-
-		target.Position = UDim2.new(
-			startPos.X.Scale, startPos.X.Offset + dx,
-			startPos.Y.Scale, startPos.Y.Offset + dy
-		)
-		if onMove then onMove() end
-	end)
-
-	return function() return moved end
-end
-
-menuContainer:GetPropertyChangedSignal("Position"):Connect(function()
-	outline.Position = menuContainer.Position
-end)
-
--- Icon 2 = drag area for the menu
-local icon2Button = topButtons[#topButtons]
-makeDraggable(icon2Button, menuContainer)
-
--- Icon 3 = movable toggle button
-local toggleWasMoved = makeDraggable(toggleButton, toggleButton)
-
 toggleButton.MouseButton1Click:Connect(function()
-	if toggleWasMoved() then return end
 	isMenuOpen = not isMenuOpen
 	menuContainer.Visible = isMenuOpen
 	outline.Visible = isMenuOpen
 end)
-
--- ==========================================
--- 8. SAVE / LOAD (final assignment)
--- ==========================================
-function saveSettings()
-	local activeVisual = "None"
-	for name, button in pairs(visualButtons) do
-		if button.BackgroundColor3 == Color3.fromRGB(252, 207, 242) then
-			activeVisual = name
-			break
-		end
-	end
-	local data = {
-		sky = currentSkyName,
-		visual = activeVisual,
-		fov = math.floor(currentFov),
-	}
-	local ok, encoded = pcall(function() return HttpService:JSONEncode(data) end)
-	if not ok then return end
-	writeFile(SETTINGS_FILE, encoded)
-end
-
-saveSettingsDelayed = function()
-	if saveDebounce then return end
-	saveDebounce = true
-	task.delay(0.5, function()
-		saveDebounce = false
-		saveSettings()
-	end)
-end
-
-local function applyLoadedSettings(data)
-	if type(data) ~= "table" then return end
-	if data.fov and _G.__GUI_setFov then _G.__GUI_setFov(data.fov) end
-	if data.sky and data.sky ~= "DefaultSky" then
-		local tex = SKY_TEXTURES[data.sky]
-		if tex then
-			applyCustomSky(data.sky, tex, skyButtonByKey[data.sky])
-		else
-			applyDefaultSky()
-		end
-	else
-		applyDefaultSky()
-	end
-	if data.visual then
-		applyVisualPreset(data.visual)
-		for name, button in pairs(visualButtons) do
-			local isActive = (name == data.visual)
-			button.BackgroundColor3 = isActive and Color3.fromRGB(252, 207, 242) or BTN_COLOR
-			button.TextColor3 = isActive and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
-		end
-	end
-end
-
-local function loadSettings()
-	if not fileExists(SETTINGS_FILE) then return end
-	local raw = readFile(SETTINGS_FILE)
-	if not raw then return end
-	local ok, data = pcall(function() return HttpService:JSONDecode(raw) end)
-	if not ok or type(data) ~= "table" then return end
-	applyLoadedSettings(data)
-end
-
-loadSettings()
