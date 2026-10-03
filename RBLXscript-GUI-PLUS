@@ -1,6 +1,6 @@
 -- RBLXscript-GUI-PLUS
 -- Layout/GUI from RBLXscript-GUI, functions from RBLXscript-PLUS
--- Section 1: Skies / Player (FOV) / Effects
+-- Section 1: Skies / Player (FOV) / Effects / Ocean (Delete+Colors)
 -- Section 10: GUI (Reset / Delete)
 -- Sections 2..9: 2 placeholder tabs each
 
@@ -112,7 +112,7 @@ pinkBox.Position = UDim2.new(0, 2, 1, 0)
 pinkBox.AnchorPoint = Vector2.new(0, 1)
 pinkBox.BackgroundColor3 = Color3.fromRGB(77, 77, 77)
 pinkBox.BorderSizePixel = 0
-pinkBox.ZIndex = 1 -- РР—РњР•РќР•РќРћ: С‚РµРїРµСЂСЊ РЅРёР¶Рµ РІРєР»Р°РґРѕРє (Р±С‹Р»Рѕ 4)
+pinkBox.ZIndex = 1
 pinkBox.Parent = bluePanel
 
 -- ==========================================
@@ -498,7 +498,7 @@ local function applyVisualPreset(preset)
 	clearVisualPreset()
 	resetLightingToOriginal()
 	if preset == "None" then
-		-- СѓР¶Рµ СЃР±СЂРѕС€РµРЅРѕ
+		-- already reset
 	elseif preset == "Blue" then
 		Lighting.ClockTime = 9; Lighting.Brightness = 2; Lighting.Ambient = Color3.fromRGB(16, 16, 16); Lighting.ColorShift_Top = Color3.fromRGB(196, 222, 255); Lighting.OutdoorAmbient = Color3.fromRGB(134, 158, 190); Lighting.ShadowSoftness = 0; Lighting.GeographicLatitude = 78
 		local A = newVisual("Atmosphere", "FTAP_Visual_Atmosphere")
@@ -665,7 +665,6 @@ local function createCard(parent, titleText, iconText, order, bodyHeight)
 	headerBg.Parent = card
 	Instance.new("UICorner", headerBg).CornerRadius = UDim.new(0, 18)
 
-	-- squares the bottom corners of the rounded header
 	local headerBgSquare = Instance.new("Frame")
 	headerBgSquare.Name = "HeaderBgSquare"
 	headerBgSquare.Size = UDim2.new(1, 0, 0, 18)
@@ -736,7 +735,6 @@ local function createCard(parent, titleText, iconText, order, bodyHeight)
 		}):Play()
 	end)
 
-	-- Body scroll container
 	local body = Instance.new("ScrollingFrame")
 	body.Name = "CardBody"
 	body.Size = UDim2.new(1, 0, 1, -(HEADER_H + 8))
@@ -828,7 +826,6 @@ local function populateSkiesCard(body)
 			saveSettingsDelayed()
 		end)
 	end
-	-- mark default active
 	setActiveSkyButton(skyButtonByKey["DefaultSky"])
 end
 
@@ -864,7 +861,6 @@ local function populateEffectsCard(body)
 		end)
 		saveSettingsDelayed()
 	end)
-	-- mark None active
 	for name, button in pairs(visualButtons) do
 		local isActive = (name == "None")
 		button.BackgroundColor3 = isActive and Color3.fromRGB(252, 207, 242) or BTN_COLOR
@@ -954,7 +950,6 @@ local function populatePlayerCard(body)
 		local camera = workspace.CurrentCamera
 		if camera then camera.FieldOfView = value end
 	end
-	-- expose for reset
 	_G.__GUI_setFov = setFov
 
 	currentFov = math.clamp(getSafeCamera().FieldOfView or 70, FOV_MIN, FOV_MAX)
@@ -996,6 +991,169 @@ local function populatePlayerCard(body)
 	end)
 end
 
+-- ==========================================
+-- OCEAN CONTROL (Delete / Restore + Colors)
+-- ==========================================
+local OCEAN_PATH = { "Map", "AlwaysHereTweenedObjects", "Ocean", "Object" }
+
+local function getOceanParentContainer()
+	local current = workspace
+	for i = 1, #OCEAN_PATH - 1 do
+		current = current:FindFirstChild(OCEAN_PATH[i])
+		if not current then return nil end
+	end
+	return current
+end
+
+local function findOceanObject()
+	local parent = getOceanParentContainer()
+	if not parent then return nil end
+	return parent:FindFirstChild(OCEAN_PATH[#OCEAN_PATH])
+end
+
+local removedOcean = nil
+local savedOceanParent = nil
+
+local OCEAN_COLORS = {
+	{ name = "Red",        code = "RD", color = Color3.fromRGB(220, 50, 50),    stroke = Color3.fromRGB(255, 90, 90),    text = Color3.fromRGB(255, 255, 255) },
+	{ name = "Orange",     code = "OR", color = Color3.fromRGB(255, 140, 30),   stroke = Color3.fromRGB(255, 180, 80),   text = Color3.fromRGB(0, 0, 0) },
+	{ name = "Yellow",     code = "YL", color = Color3.fromRGB(240, 220, 50),   stroke = Color3.fromRGB(255, 245, 120),  text = Color3.fromRGB(0, 0, 0) },
+	{ name = "Lime",       code = "LM", color = Color3.fromRGB(160, 230, 40),   stroke = Color3.fromRGB(200, 250, 100),  text = Color3.fromRGB(0, 0, 0) },
+	{ name = "Green",      code = "GR", color = Color3.fromRGB(50, 190, 80),    stroke = Color3.fromRGB(90, 230, 120),   text = Color3.fromRGB(255, 255, 255) },
+	{ name = "Teal",       code = "TL", color = Color3.fromRGB(30, 170, 160),   stroke = Color3.fromRGB(80, 220, 210),   text = Color3.fromRGB(255, 255, 255) },
+	{ name = "Cyan",       code = "CY", color = Color3.fromRGB(60, 200, 230),   stroke = Color3.fromRGB(120, 230, 255),  text = Color3.fromRGB(0, 0, 0) },
+	{ name = "Blue",       code = "BL", color = Color3.fromRGB(50, 100, 220),   stroke = Color3.fromRGB(90, 150, 255),   text = Color3.fromRGB(255, 255, 255) },
+	{ name = "Navy",       code = "NV", color = Color3.fromRGB(25, 45, 130),    stroke = Color3.fromRGB(70, 100, 200),   text = Color3.fromRGB(255, 255, 255) },
+	{ name = "Indigo",     code = "IN", color = Color3.fromRGB(90, 60, 200),    stroke = Color3.fromRGB(140, 110, 250),  text = Color3.fromRGB(255, 255, 255) },
+	{ name = "Purple",     code = "PU", color = Color3.fromRGB(150, 70, 220),   stroke = Color3.fromRGB(190, 120, 255),  text = Color3.fromRGB(255, 255, 255) },
+	{ name = "Magenta",    code = "MG", color = Color3.fromRGB(230, 60, 200),   stroke = Color3.fromRGB(255, 120, 235),  text = Color3.fromRGB(255, 255, 255) },
+	{ name = "Pink",       code = "PK", color = Color3.fromRGB(252, 208, 242),  stroke = Color3.fromRGB(255, 230, 250),  text = Color3.fromRGB(0, 0, 0) },
+	{ name = "Brown",      code = "BR", color = Color3.fromRGB(140, 90, 55),    stroke = Color3.fromRGB(180, 130, 90),   text = Color3.fromRGB(255, 255, 255) },
+	{ name = "Gray",       code = "GY", color = Color3.fromRGB(140, 140, 140),  stroke = Color3.fromRGB(190, 190, 190),  text = Color3.fromRGB(0, 0, 0) },
+	{ name = "White",      code = "WH", color = Color3.fromRGB(245, 245, 245),  stroke = Color3.fromRGB(255, 255, 255),  text = Color3.fromRGB(0, 0, 0) },
+	{ name = "Black",      code = "BK", color = Color3.fromRGB(25, 25, 25),     stroke = Color3.fromRGB(80, 80, 80),     text = Color3.fromRGB(255, 255, 255) },
+	{ name = "Gold",       code = "GD", color = Color3.fromRGB(220, 180, 60),   stroke = Color3.fromRGB(255, 220, 120),  text = Color3.fromRGB(0, 0, 0) },
+	{ name = "Coral",      code = "CR", color = Color3.fromRGB(255, 127, 100),  stroke = Color3.fromRGB(255, 170, 150),  text = Color3.fromRGB(0, 0, 0) },
+	{ name = "Mint",       code = "MT", color = Color3.fromRGB(150, 245, 200),  stroke = Color3.fromRGB(200, 255, 230),  text = Color3.fromRGB(0, 0, 0) },
+}
+
+local function paintOceanObject(object, color)
+	local count = 0
+	for _, descendant in ipairs(object:GetDescendants()) do
+		if descendant:IsA("BasePart") then
+			descendant.Color = color
+			count += 1
+		end
+	end
+	return count
+end
+
+local function populateOceanCard(body)
+	local toggleBtn = createListButton(body, "Delete Ocean", 1)
+	local oceanColorButtons = {}
+
+	local function updateToggleText()
+		if removedOcean then
+			toggleBtn.Text = "Restore Ocean"
+			toggleBtn.BackgroundColor3 = Color3.fromRGB(45, 120, 55)
+		else
+			toggleBtn.Text = "Delete Ocean"
+			toggleBtn.BackgroundColor3 = BTN_COLOR
+		end
+	end
+
+	toggleBtn.MouseButton1Click:Connect(function()
+		if removedOcean then
+			if savedOceanParent and savedOceanParent.Parent then
+				removedOcean.Parent = savedOceanParent
+				removedOcean = nil
+				savedOceanParent = nil
+				updateToggleText()
+			else
+				toggleBtn.Text = "Parent lost"
+				task.wait(1.5)
+				updateToggleText()
+			end
+			return
+		end
+		local obj = findOceanObject()
+		if not obj then
+			local old = toggleBtn.Text
+			toggleBtn.Text = "Ocean not found"
+			toggleBtn.BackgroundColor3 = Color3.fromRGB(140, 50, 50)
+			task.wait(1.5)
+			toggleBtn.BackgroundColor3 = BTN_COLOR
+			toggleBtn.Text = old
+			return
+		end
+		savedOceanParent = obj.Parent
+		removedOcean = obj
+		obj.Parent = nil
+		updateToggleText()
+	end)
+
+	createBodyLabel(body, "Ocean Color:", 2, 20)
+
+	local colorGrid = Instance.new("Frame")
+	colorGrid.Size = UDim2.new(1, 0, 0, 0)
+	colorGrid.AutomaticSize = Enum.AutomaticSize.Y
+	colorGrid.BackgroundTransparency = 1
+	colorGrid.LayoutOrder = 3
+	colorGrid.ZIndex = 8
+	colorGrid.Parent = body
+
+	local gridLayout = Instance.new("UIGridLayout")
+	gridLayout.CellSize = UDim2.new(0, 42, 0, 36)
+	gridLayout.CellPadding = UDim2.new(0, 6, 0, 6)
+	gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	gridLayout.FillDirectionMaxCells = 4
+	gridLayout.Parent = colorGrid
+
+	for i, data in ipairs(OCEAN_COLORS) do
+		local btn = Instance.new("TextButton")
+		btn.LayoutOrder = i
+		btn.BackgroundColor3 = data.color
+		btn.Text = data.code
+		btn.TextColor3 = data.text
+		btn.Font = Enum.Font.GothamBlack
+		btn.TextSize = 14
+		btn.AutoButtonColor = false
+		btn.ZIndex = 9
+		btn.Parent = colorGrid
+
+		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+		local s = Instance.new("UIStroke", btn)
+		s.Color = data.stroke
+		s.Thickness = 2
+		s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		s.Parent = btn
+
+		oceanColorButtons[i] = { button = btn, data = data }
+
+		btn.MouseButton1Click:Connect(function()
+			local obj = removedOcean or findOceanObject()
+			if not obj then
+				local old = toggleBtn.Text
+				toggleBtn.Text = "Ocean not found"
+				task.wait(1.2)
+				toggleBtn.Text = old
+				return
+			end
+			local painted = paintOceanObject(obj, data.color)
+			print(("Painted parts: %d — %s"):format(painted, data.name))
+			for j, entry in ipairs(oceanColorButtons) do
+				if j == i then
+					entry.button.UIStroke.Thickness = 4
+					entry.button.UIStroke.Color = Color3.fromRGB(255, 255, 255)
+				else
+					entry.button.UIStroke.Thickness = 2
+					entry.button.UIStroke.Color = entry.data.stroke
+				end
+			end
+		end)
+	end
+end
+
 -- Section 10 - Card 1: GUI (Reset / Delete)
 local function populateGuiCard(body)
 	local resetButton = createListButton(body, "Reset Settings", 1)
@@ -1022,6 +1180,9 @@ local function populateGuiCard(body)
 		clearVisualPreset()
 		if originalSky and not originalSky.Parent then originalSky.Parent = Lighting end
 		if workspace.CurrentCamera then workspace.CurrentCamera.FieldOfView = 70 end
+		if removedOcean and savedOceanParent and savedOceanParent.Parent then
+			removedOcean.Parent = savedOceanParent
+		end
 		_G[SCRIPT_TAG] = nil
 		screenGui:Destroy()
 	end
@@ -1085,24 +1246,24 @@ for i = 1, 10 do
 	page.Parent = pagesFolder
 
 	if i == 1 then
-		-- Section 1: Skies (left) | Player (left) | Effects (right)
+		-- Section 1: left (Skies, Player) | right (Effects, Ocean)
 		local leftCol = createColumn(page, 0.04)
 		local rightCol = createColumn(page, 0.52)
 
-		-- Skies card (left, order 1)
 		local _, skiesBody = createCard(leftCol, "Skies", "SKY", 1, 156)
 		populateSkiesCard(skiesBody)
 
-		-- Player card (left, order 2) -- РР—РњР•РќР•РќРћ: РїРµСЂРµРЅРµСЃРµРЅРѕ СЃ РїСЂР°РІРѕР№ РєРѕР»РѕРЅРєРё
 		local _, playerBody = createCard(leftCol, "Player", "FOV", 2, 160)
 		populatePlayerCard(playerBody)
 
-		-- Effects card (right, order 1) -- РР—РњР•РќР•РќРћ: РїРµСЂРµРЅРµСЃРµРЅРѕ СЃ Р»РµРІРѕР№ РєРѕР»РѕРЅРєРё
 		local _, effectsBody = createCard(rightCol, "Effects", "FX", 1, 156)
 		populateEffectsCard(effectsBody)
 
+		local _, oceanBody = createCard(rightCol, "Ocean", "OCN", 2, 240)
+		populateOceanCard(oceanBody)
+
 	elseif i == 10 then
-		-- Section 10: GUI
+		-- Section 10: GUI only
 		local leftCol = createColumn(page, 0.04)
 		local _, guiBody = createCard(leftCol, "GUI", "GUI", 1, 150)
 		populateGuiCard(guiBody)
@@ -1145,7 +1306,7 @@ for i, btn in ipairs(sectionButtons) do
 	end)
 end
 
-openSection(1) -- open Section 1 by default
+openSection(1)
 
 -- ==========================================
 -- 6.5 EMPTY OUTLINE
@@ -1230,7 +1391,6 @@ local function makeDraggable(handle, target, onMove)
 	return function() return moved end
 end
 
--- keep the outline on top of the menu while it moves
 menuContainer:GetPropertyChangedSignal("Position"):Connect(function()
 	outline.Position = menuContainer.Position
 end)
@@ -1239,7 +1399,7 @@ end)
 local icon2Button = topButtons[#topButtons]
 makeDraggable(icon2Button, menuContainer)
 
--- Icon 3 = movable toggle button (click only toggles if it was not dragged)
+-- Icon 3 = movable toggle button
 local toggleWasMoved = makeDraggable(toggleButton, toggleButton)
 
 toggleButton.MouseButton1Click:Connect(function()
