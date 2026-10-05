@@ -6,6 +6,7 @@ local Lighting = game:GetService("Lighting")
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CoreGui = game:GetService("CoreGui")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
@@ -389,6 +390,19 @@ local visualButtons = {}
 
 local FOV_MIN, FOV_MAX = 50, 120
 local currentFov = 70
+local thirdPersonOn = false
+
+local function setThirdPerson(on)
+	thirdPersonOn = on
+	pcall(function()
+		if on then
+			player.CameraMaxZoomDistance = 3000000
+		else
+			player.CameraMaxZoomDistance = 128
+		end
+		player.CameraMode = Enum.CameraMode.Classic
+	end)
+end
 
 local saveSettingsDelayed = function() end
 local function fileExists(n) return type(isfile) == "function" and isfile(n) end
@@ -470,7 +484,7 @@ getgenv().AutoAntiLineLag = {
 }
 
 -- ============================================================
--- NO BARRIER COLLISION MODULE (обновлено: отключает все коллизии)
+-- NO BARRIER COLLISION MODULE
 -- ============================================================
 local NoBarrier = (function()
 	local active = false
@@ -527,10 +541,7 @@ local NoBarrier = (function()
 		end
 	end)
 	return {
-		setActive = function(v)
-			active = v
-			return setBarrierCollision(not v)
-		end,
+		setActive = function(v) active = v return setBarrierCollision(not v) end,
 		isActive = function() return active end,
 	}
 end)()
@@ -546,9 +557,7 @@ getgenv().NoBarrierCollision = {
 -- ============================================================
 local BarrierBreak = (function()
 	local autoRunning = false
-	local function getChar()
-		return player.Character or player.CharacterAdded:Wait()
-	end
+	local function getChar() return player.Character or player.CharacterAdded:Wait() end
 	local function barrierBreak()
 		local character = getChar()
 		local hrp = character:FindFirstChild("HumanoidRootPart")
@@ -565,10 +574,7 @@ local BarrierBreak = (function()
 		task.wait(0.4)
 		local toysFolder = workspace:FindFirstChild(player.Name .. "SpawnedInToys")
 		local ocarina = toysFolder and toysFolder:FindFirstChild("InstrumentWoodwindOcarina")
-		if not ocarina then
-			humanoid.WalkSpeed = savedSpeed
-			return false
-		end
+		if not ocarina then humanoid.WalkSpeed = savedSpeed return false end
 		ocarina.HoldPart.HoldItemRemoteFunction:InvokeServer(ocarina, workspace[player.Name])
 		hrp.CFrame = CFrame.new(304.06, 25.77, 488.54)
 		task.wait(0.2)
@@ -600,11 +606,7 @@ local BarrierBreak = (function()
 			task.wait(0.5)
 			local toysFolder = workspace:FindFirstChild(player.Name .. "SpawnedInToys")
 			local ocarina = toysFolder and toysFolder:FindFirstChild("InstrumentWoodwindOcarina")
-			if not ocarina then
-				humanoid.WalkSpeed = savedSpeed
-				task.wait(0.5)
-				continue
-			end
+			if not ocarina then humanoid.WalkSpeed = savedSpeed task.wait(0.5) continue end
 			ocarina.HoldPart.HoldItemRemoteFunction:InvokeServer(ocarina, workspace[player.Name])
 			local savedCFrame = hrp.CFrame
 			hrp.CFrame = CFrame.new(304.06, 25.77, 488.54)
@@ -620,12 +622,9 @@ local BarrierBreak = (function()
 			task.wait(0.5)
 			toysFolder = workspace:FindFirstChild(player.Name .. "SpawnedInToys")
 			if toysFolder and toysFolder:FindFirstChild("Campfire") then
-				humanoid.WalkSpeed = savedSpeed
-				autoRunning = false
-				break
+				humanoid.WalkSpeed = savedSpeed autoRunning = false break
 			else
-				humanoid.WalkSpeed = savedSpeed
-				task.wait(0.5)
+				humanoid.WalkSpeed = savedSpeed task.wait(0.5)
 			end
 		end
 	end
@@ -645,174 +644,274 @@ getgenv().BarrierBreak = {
 }
 
 -- ============================================================
--- BREAK PCLD MODULE (Local / Network / Both)
+-- PCLD ESP MODULE
 -- ============================================================
-local BreakPCLD = (function()
-	local state = {
-		Active = false,
-		Mode = "Both",           -- Local | Network | Both
-		Interval = 1.0,
-		LastRun = 0,
+local PCLDESP = (function()
+	local CONFIG = {
+		Color = Color3.fromRGB(252, 208, 242),
+		Material = Enum.Material.SmoothPlastic,
+		Transparency = 0.5,
+		LerpSpeed = 25,
+		OutlineColor = Color3.fromRGB(255, 255, 255),
+		OutlineThick = 0.05,
+		OutlineEnabled = true,
+		TargetName = "PlayerCharacterLocationDetector",
 	}
+	local active = false
+	local screenGui, folder
+	local espObjects = {}
+	local parts = {}
+	local renderConn = nil
+	local descAddedConn, descRemovedConn
 
-	local function isPCLDPart(part)
-		if not part or not part:IsA("BasePart") then return false end
-		local n = part.Name:lower()
-		return n == "playercharacterlocationdetector" or n == "partesp"
+	local function createESP(part)
+		local boxPart = Instance.new("Part")
+		boxPart.Name = "PCLD_BoxPart"
+		boxPart.Anchored = true
+		boxPart.CanCollide = false
+		boxPart.CastShadow = false
+		boxPart.CanQuery = false
+		boxPart.CanTouch = false
+		boxPart.Locked = true
+		boxPart.Transparency = CONFIG.Transparency
+		boxPart.Material = CONFIG.Material
+		boxPart.Color = CONFIG.Color
+		boxPart.Size = part.Size
+		boxPart.CFrame = part.CFrame
+		boxPart.Parent = folder
+
+		local sel = Instance.new("SelectionBox")
+		sel.Name = "PCLD_SelectionBox"
+		sel.Adornee = boxPart
+		sel.Visible = CONFIG.OutlineEnabled
+		sel.SurfaceTransparency = 1
+		sel.Color3 = CONFIG.OutlineColor
+		sel.LineThickness = CONFIG.OutlineThick
+		sel.Parent = folder
+
+		espObjects[part] = { boxPart = boxPart, sel = sel, cframe = part.CFrame }
 	end
-
-	local function getSetNetworkOwner()
-		local ge = ReplicatedStorage:FindFirstChild("GrabEvents")
-		return ge and ge:FindFirstChild("SetNetworkOwner")
-	end
-
-	local function waitOwnership(part, timeout)
-		timeout = timeout or 1.0
-		local t0 = tick()
-		while tick() - t0 < timeout do
-			local ok, owner = pcall(function() return part:GetNetworkOwner() end)
-			if ok and owner == player then return true end
-			RunService.Heartbeat:Wait()
+	local function removeESP(part)
+		local o = espObjects[part]
+		if o then
+			if o.boxPart then o.boxPart:Destroy() end
+			if o.sel then o.sel:Destroy() end
+			espObjects[part] = nil
 		end
-		return false
 	end
-
-	local function breakLocal()
-		local count = 0
+	local function addPart(p)
+		if not table.find(parts, p) then
+			table.insert(parts, p)
+			createESP(p)
+		end
+	end
+	local function removePart(p)
+		local i = table.find(parts, p)
+		if i then table.remove(parts, i) removeESP(p) end
+	end
+	local function start()
+		if active then return end
+		active = true
+		local old1 = CoreGui:FindFirstChild("PoophubLocationEsp")
+		local old2 = workspace:FindFirstChild("PoophubLocationParts")
+		if old1 then old1:Destroy() end
+		if old2 then old2:Destroy() end
+		screenGui = Instance.new("ScreenGui")
+		screenGui.Name = "PoophubLocationEsp"
+		screenGui.ResetOnSpawn = false
+		screenGui.IgnoreGuiInset = true
+		screenGui.Parent = CoreGui
+		folder = Instance.new("Folder")
+		folder.Name = "PoophubLocationParts"
+		folder.Parent = workspace
 		for _, d in ipairs(workspace:GetDescendants()) do
-			if isPCLDPart(d) then
-				pcall(function()
-					d.CanCollide = false
-					d.CanTouch = false
-					d.CanQuery = false
-					d.Massless = true
-					d.Transparency = 1
-					d.Anchored = true
-					d.CFrame = CFrame.new(0, -10000, 0)
-					d.AssemblyLinearVelocity = Vector3.zero
-					d.AssemblyAngularVelocity = Vector3.zero
-				end)
-				count += 1
-			end
+			if d.Name == CONFIG.TargetName and d:IsA("BasePart") then addPart(d) end
 		end
-		return count
-	end
-
-	local function breakNetwork()
-		local setNet = getSetNetworkOwner()
-		if not setNet then return 0 end
-		local count = 0
-		for _, d in ipairs(workspace:GetDescendants()) do
-			if isPCLDPart(d) then
-				count += 1
-				task.spawn(function()
-					pcall(function() setNet:FireServer(d, d.CFrame) end)
-					waitOwnership(d, 1.0)
-					pcall(function()
-						local killCF = CFrame.new(0, -9000, 0)
-						for i = 1, 10 do
-							pcall(function() setNet:FireServer(d, killCF) end)
-							pcall(function()
-								if d.Parent then
-									d.CFrame = killCF
-									d.AssemblyLinearVelocity = Vector3.new(0, -3000, 0)
-									d.AssemblyAngularVelocity = Vector3.zero
-								end
-							end)
-							RunService.Heartbeat:Wait()
-						end
-						if d.Parent then
-							d.CanCollide = false
-							d.CanTouch = false
-							d.CanQuery = false
-							d.Transparency = 1
-							d.Anchored = true
-						end
-					end)
-				end)
-				task.wait(0.03)
-			end
-		end
-		return count
-	end
-
-	local function run(mode)
-		mode = mode or state.Mode
-		if mode == "Local" then
-			return breakLocal()
-		elseif mode == "Network" then
-			return breakNetwork()
-		else
-			local a = breakNetwork()
-			task.wait(0.1)
-			local b = breakLocal()
-			return math.max(a, b)
-		end
-	end
-
-	task.spawn(function()
-		while task.wait(0.15) do
-			if state.Active and tick() - state.LastRun >= state.Interval then
-				state.LastRun = tick()
-				pcall(run)
-			end
-		end
-	end)
-
-	workspace.DescendantAdded:Connect(function(desc)
-		if not state.Active then return end
-		if not isPCLDPart(desc) then return end
-		task.defer(function()
-			if state.Mode == "Local" then
-				pcall(function()
-					desc.CanCollide = false
-					desc.CanTouch = false
-					desc.CanQuery = false
-					desc.Massless = true
-					desc.Transparency = 1
-					desc.Anchored = true
-					desc.CFrame = CFrame.new(0, -10000, 0)
-				end)
-			else
-				pcall(run)
+		descAddedConn = workspace.DescendantAdded:Connect(function(d)
+			if d.Name == CONFIG.TargetName and d:IsA("BasePart") then addPart(d) end
+		end)
+		descRemovedConn = workspace.DescendantRemoving:Connect(function(d)
+			if d.Name == CONFIG.TargetName and d:IsA("BasePart") then removePart(d) end
+		end)
+		renderConn = RunService.RenderStepped:Connect(function(dt)
+			for k, o in pairs(espObjects) do
+				if not k or not k.Parent then
+					removePart(k)
+				else
+					o.cframe = o.cframe:Lerp(k.CFrame, 1 - math.exp(-CONFIG.LerpSpeed * dt))
+					o.boxPart.CFrame = o.cframe
+					o.boxPart.Size = k.Size
+					o.boxPart.Color = CONFIG.Color
+					o.boxPart.Material = CONFIG.Material
+					o.boxPart.Transparency = CONFIG.Transparency
+					o.sel.Visible = CONFIG.OutlineEnabled
+				end
 			end
 		end)
-	end)
-
+	end
+	local function stop()
+		if not active then return end
+		active = false
+		if renderConn then renderConn:Disconnect() renderConn = nil end
+		if descAddedConn then descAddedConn:Disconnect() descAddedConn = nil end
+		if descRemovedConn then descRemovedConn:Disconnect() descRemovedConn = nil end
+		for k, _ in pairs(espObjects) do removeESP(k) end
+		espObjects = {}
+		parts = {}
+		if folder then folder:Destroy() folder = nil end
+		if screenGui then screenGui:Destroy() screenGui = nil end
+	end
 	return {
-		state = state,
-		run = run,
-		setActive = function(v) state.Active = v end,
-		setMode = function(m) state.Mode = m end,
-		setInterval = function(i) state.Interval = math.clamp(i, 0.2, 10) end,
-		isActive = function() return state.Active end,
-		getMode = function() return state.Mode end,
+		start = start, stop = stop,
+		toggle = function() if active then stop() else start() end end,
+		isActive = function() return active end,
 	}
 end)()
 
-getgenv().BreakPCLD = {
-	Run = function() return BreakPCLD.run() end,
-	Enable = function() BreakPCLD.setActive(true) end,
-	Disable = function() BreakPCLD.setActive(false) end,
-	IsOn = function() return BreakPCLD.isActive() end,
-	SetMode = BreakPCLD.setMode,
-	SetInterval = BreakPCLD.setInterval,
+getgenv().PCLDESP = {
+	Enable = PCLDESP.start,
+	Disable = PCLDESP.stop,
+	Toggle = PCLDESP.toggle,
+	IsOn = PCLDESP.isActive,
 }
 
 -- ============================================================
--- HIDE PROPS MODULE (MapProps + DeadTree children)
+-- ANTI KICK [BREAK PCLD] MODULE
+-- ============================================================
+local AntiKickPCLD = (function()
+	local enabled = false
+	local running = false
+	local function charp(plr)
+		plr = plr or player
+		local char = plr and plr.Character
+		if not char then return nil, nil, nil end
+		return char,
+			char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"),
+			char:FindFirstChildWhichIsA("Humanoid")
+	end
+	local function recoveredYield(t)
+		t = t or 0
+		local now = tick()
+		repeat RunService.Heartbeat:Wait() until tick() - now >= t
+		return true
+	end
+	local function killLoop(hum, isDone)
+		repeat
+			hum.Health = 0
+			pcall(function() hum:ChangeState(Enum.HumanoidStateType.Dead) end)
+			recoveredYield()
+		until isDone()
+	end
+	local function runSequence(hum)
+		local respawn1 = nil
+		if hum.Health > 0 then
+			task.spawn(killLoop, hum, function() return respawn1 ~= nil end)
+		end
+		respawn1 = player.CharacterAdded:Wait()
+		local hum1 = respawn1:WaitForChild("Humanoid", 5)
+		if not hum1 then return end
+		local respawn2 = nil
+		task.spawn(killLoop, hum1, function() return respawn2 ~= nil end)
+		respawn2 = player.CharacterAdded:Wait()
+		local hum2 = respawn2:WaitForChild("Humanoid", 5)
+		if not hum2 then return end
+		hum2:SetAttribute("BrokenPCLD", true)
+	end
+	task.spawn(function()
+		while task.wait(0.2) do
+			if enabled and not running then
+				running = true
+				local _, _, hum = charp()
+				if hum and (not hum:GetAttribute("BrokenPCLD") or hum.Health <= 0) then
+					pcall(runSequence, hum)
+				end
+				running = false
+			end
+		end
+	end)
+	return {
+		setEnabled = function(v) enabled = v end,
+		isEnabled = function() return enabled end,
+		toggle = function() enabled = not enabled return enabled end,
+	}
+end)()
+
+getgenv().AntiKickPCLD = {
+	Enable = function() AntiKickPCLD.setEnabled(true) end,
+	Disable = function() AntiKickPCLD.setEnabled(false) end,
+	IsOn = AntiKickPCLD.isEnabled,
+}
+
+-- ============================================================
+-- BREAK PCLD [KICK BYEBYE] MODULE
+-- ============================================================
+local KickByebyePCLD = (function()
+	local tbl16 = {}
+	local humanoidRootPart = nil
+	local connection3 = nil
+	local flag2 = false
+	local cframe = CFrame.new(-272.2197265625, -7.3504037857055664, 475.01089477539062)
+	pcall(function() workspace.FallenPartsDestroyHeight = (0/0) end)
+
+	local function breakPCLD()
+		local character = player.Character
+		if not character then return end
+		humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+		for _, descendant in ipairs(character:GetDescendants()) do
+			if descendant:IsA("Motor6D") then
+				tbl16[descendant] = descendant.Part0
+				descendant.Part0 = nil
+			end
+		end
+		humanoidRootPart.CFrame = cframe
+		connection3 = RunService.RenderStepped:Connect(function()
+			if humanoidRootPart and humanoidRootPart.Parent then
+				humanoidRootPart.AssemblyLinearVelocity = Vector3.zero
+				humanoidRootPart.AssemblyAngularVelocity = Vector3.zero
+			end
+		end)
+	end
+	local function restorePCLD()
+		if connection3 then connection3:Disconnect() connection3 = nil end
+		for k, v8 in pairs(tbl16) do
+			if k and k.Parent then k.Part0 = v8 end
+		end
+		tbl16 = {}
+	end
+	local function togglePCLD()
+		flag2 = not flag2
+		if flag2 then breakPCLD() else restorePCLD() end
+	end
+	local function run()
+		task.spawn(function()
+			togglePCLD()
+			task.wait(0.12)
+			togglePCLD()
+			player.CharacterAdded:Once(function()
+				task.wait(0.25)
+				togglePCLD()
+				task.wait(0.12)
+				togglePCLD()
+			end)
+		end)
+	end
+	return { run = run }
+end)()
+
+getgenv().KickByebyePCLD = { Run = KickByebyePCLD.run }
+
+-- ============================================================
+-- HIDE PROPS MODULE
 -- ============================================================
 local HideProps = (function()
 	local hidden = false
-	local propsSaved = nil      -- { obj, parent }
-	local treeSaved = {}        -- child -> parent
-
+	local propsSaved = nil
+	local treeSaved = {}
 	local function findMapProps()
 		local map = workspace:FindFirstChild("Map")
 		if not map then return nil end
 		return map:FindFirstChild("MapProps")
 	end
-
 	local function findDeadTrees()
 		local map = workspace:FindFirstChild("Map")
 		if not map then return {} end
@@ -826,21 +925,14 @@ local HideProps = (function()
 		end
 		return list
 	end
-
 	local function hide()
 		local info = {}
-
-		-- MapProps
 		local props = findMapProps()
 		if props then
 			propsSaved = { obj = props, parent = props.Parent }
 			props.Parent = nil
 			info.props = true
-		else
-			info.props = false
-		end
-
-		-- DeadTree children
+		else info.props = false end
 		treeSaved = {}
 		local trees = findDeadTrees()
 		local childCount = 0
@@ -853,19 +945,15 @@ local HideProps = (function()
 		end
 		info.trees = #trees
 		info.children = childCount
-
 		return info
 	end
-
 	local function restore()
 		local info = { props = false, children = 0 }
-
 		if propsSaved and propsSaved.obj and propsSaved.parent and propsSaved.parent.Parent then
 			propsSaved.obj.Parent = propsSaved.parent
 			propsSaved = nil
 			info.props = true
 		end
-
 		for child, parent in pairs(treeSaved) do
 			if parent and parent.Parent then
 				child.Parent = parent
@@ -873,22 +961,11 @@ local HideProps = (function()
 			end
 		end
 		treeSaved = {}
-
 		return info
 	end
-
 	return {
-		state = { hidden = false },
-		hide = function()
-			local info = hide()
-			hidden = true
-			return info
-		end,
-		restore = function()
-			local info = restore()
-			hidden = false
-			return info
-		end,
+		hide = function() local i = hide() hidden = true return i end,
+		restore = function() local i = restore() hidden = false return i end,
 		isHidden = function() return hidden end,
 	}
 end)()
@@ -1080,7 +1157,6 @@ local function populateEffectsCard(body)
 	refresh()
 end
 
--- ==== ANTI-LAG CARD ====
 local function populateAntiLagCard(body)
 	createBodyLabel(body, "Автоматически отключает скины лучей и\nStickyParts при падении FPS", 1, 36).TextWrapped = true
 	local fpsLbl = createBodyLabel(body, "FPS: ...", 2, 24)
@@ -1103,35 +1179,9 @@ local function populateAntiLagCard(body)
 	toggleBtn.MouseButton1Click:Connect(function() AntiLag.toggleManual() refresh() end)
 	autoBtn.MouseButton1Click:Connect(function() AntiLag.setAuto(not AntiLag.state.AutoEnabled) refresh() end)
 	refresh()
-	task.spawn(function()
-		while body.Parent do
-			task.wait(0.5)
-			refresh()
-		end
-	end)
+	task.spawn(function() while body.Parent do task.wait(0.5) refresh() end end)
 end
 
--- ==== NO BARRIER CARD ====
-local function populateNoBarrierCard(body)
-	createBodyLabel(body, "Отключает все коллизии (CanCollide, CanTouch,\nCanQuery, AudioCanCollide) у PlotArea и Barrier", 1, 36).TextWrapped = true
-	local statusLbl = createBodyLabel(body, "Статус: ВЫКЛ", 2, 20)
-	statusLbl.TextColor3 = Color3.fromRGB(180,220,255)
-	statusLbl.TextSize = 13
-	local toggleBtn = createListButton(body, "No Barrier: ВЫКЛ", 3)
-	local function refresh()
-		local on = NoBarrier.isActive()
-		statusLbl.Text = "Статус: " .. (on and "ВКЛ (noclip)" or "ВЫКЛ")
-		toggleBtn.Text = "No Barrier: " .. (on and "ВКЛ" or "ВЫКЛ")
-		toggleBtn.BackgroundColor3 = on and Color3.fromRGB(45,120,55) or BTN_COLOR
-	end
-	toggleBtn.MouseButton1Click:Connect(function()
-		NoBarrier.setActive(not NoBarrier.isActive())
-		refresh()
-	end)
-	refresh()
-end
-
--- ==== BARRIER BREAK CARD ====
 local function populateBarrierBreakCard(body)
 	createBodyLabel(body, "Спавнит окарину → телепорт в барьер\n→ уничтожает → спавн костра", 1, 36).TextWrapped = true
 	local statusLbl = createBodyLabel(body, "", 2, 24)
@@ -1158,179 +1208,90 @@ local function populateBarrierBreakCard(body)
 		end)
 	end)
 	autoBtn.MouseButton1Click:Connect(function()
-		if BarrierBreak.isAuto() then BarrierBreak.stopAuto()
-		else BarrierBreak.startAuto() end
+		if BarrierBreak.isAuto() then BarrierBreak.stopAuto() else BarrierBreak.startAuto() end
 		refresh()
 	end)
 	refresh()
-	task.spawn(function()
-		while body.Parent do
-			task.wait(0.5)
-			refresh()
-		end
-	end)
+	task.spawn(function() while body.Parent do task.wait(0.5) refresh() end end)
 end
 
--- ==== BREAK PCLD CARD ====
-local function populateBreakPCLDCard(body)
-	createBodyLabel(body, "Ломает PlayerCharacterLocationDetector\nи PartESP. Режимы: Local / Network / Both", 1, 36).TextWrapped = true
-
-	local statusLbl = createBodyLabel(body, "", 2, 24)
+local function populatePCLDESPCard(body)
+	createBodyLabel(body, "3D-боксы вокруг PlayerCharacterLocationDetector.\n252,208,242 | SmoothPlastic | 50% | Lerp 25", 1, 36).TextWrapped = true
+	local statusLbl = createBodyLabel(body, "Статус: ВЫКЛ", 2, 20)
 	statusLbl.TextColor3 = Color3.fromRGB(180,220,255)
-	statusLbl.TextSize = 12
-	statusLbl.TextWrapped = true
-
-	local modeLbl = createBodyLabel(body, "Режим: Both", 3, 20)
-	modeLbl.TextSize = 13
-
-	local modeRow = Instance.new("Frame")
-	modeRow.Size = UDim2.new(1, 0, 0, 30)
-	modeRow.BackgroundTransparency = 1
-	modeRow.LayoutOrder = 4
-	modeRow.ZIndex = 8
-	modeRow.Parent = body
-	local modeLayout = Instance.new("UIListLayout")
-	modeLayout.FillDirection = Enum.FillDirection.Horizontal
-	modeLayout.Padding = UDim.new(0, 4)
-	modeLayout.Parent = modeRow
-
-	local modeBtns = {}
-	local function refreshMode()
-		for m, b in pairs(modeBtns) do
-			local act = (m == BreakPCLD.getMode())
-			b.BackgroundColor3 = act and Color3.fromRGB(252,207,242) or BTN_COLOR
-			b.TextColor3 = act and Color3.fromRGB(0,0,0) or Color3.fromRGB(255,255,255)
-		end
-		modeLbl.Text = "Режим: " .. BreakPCLD.getMode()
-	end
-
-	for _, m in ipairs({"Local","Network","Both"}) do
-		local b = Instance.new("TextButton")
-		b.Size = UDim2.new(0, 90, 1, 0)
-		b.BackgroundColor3 = BTN_COLOR
-		b.BorderSizePixel = 0
-		b.Text = m
-		b.TextColor3 = Color3.fromRGB(255,255,255)
-		b.Font = Enum.Font.GothamBold
-		b.TextSize = 12
-		b.AutoButtonColor = false
-		b.ZIndex = 9
-		b.Parent = modeRow
-		Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
-		makeStroke(b, 2)
-		modeBtns[m] = b
-		b.MouseButton1Click:Connect(function()
-			BreakPCLD.setMode(m)
-			refreshMode()
-		end)
-	end
-	refreshMode()
-
-	-- Интервал
-	local intLbl = createBodyLabel(body, ("Интервал: %.1f сек"):format(BreakPCLD.state.Interval), 5, 20)
-	intLbl.TextSize = 13
-
-	local intRow = Instance.new("Frame")
-	intRow.Size = UDim2.new(1, 0, 0, 30)
-	intRow.BackgroundTransparency = 1
-	intRow.LayoutOrder = 6
-	intRow.ZIndex = 8
-	intRow.Parent = body
-	local intLayout = Instance.new("UIListLayout")
-	intLayout.FillDirection = Enum.FillDirection.Horizontal
-	intLayout.Padding = UDim.new(0, 4)
-	intLayout.Parent = intRow
-
-	local function makeIntBtn(text, delta)
-		local b = Instance.new("TextButton")
-		b.Size = UDim2.new(0, 90, 1, 0)
-		b.BackgroundColor3 = BTN_COLOR
-		b.BorderSizePixel = 0
-		b.Text = text
-		b.TextColor3 = Color3.fromRGB(255,255,255)
-		b.Font = Enum.Font.GothamBold
-		b.TextSize = 12
-		b.AutoButtonColor = false
-		b.ZIndex = 9
-		b.Parent = intRow
-		Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
-		makeStroke(b, 2)
-		b.MouseButton1Click:Connect(function()
-			local newVal = BreakPCLD.state.Interval + delta
-			BreakPCLD.setInterval(newVal)
-			intLbl.Text = ("Интервал: %.1f сек"):format(BreakPCLD.state.Interval)
-		end)
-		return b
-	end
-	makeIntBtn("- 0.5", -0.5)
-	makeIntBtn("+ 0.5", 0.5)
-
-	local runBtn = createListButton(body, "Break PCLD (разово)", 7)
-	local autoBtn = createListButton(body, "Auto Break PCLD: ВЫКЛ", 8)
-
+	statusLbl.TextSize = 13
+	local toggleBtn = createListButton(body, "PCLD ESP: ВЫКЛ", 3)
 	local function refresh()
-		local on = BreakPCLD.isActive()
-		statusLbl.Text = "Авто: " .. (on and "работает..." or "остановлено")
-		autoBtn.Text = "Auto Break PCLD: " .. (on and "ВКЛ" or "ВЫКЛ")
-		autoBtn.BackgroundColor3 = on and Color3.fromRGB(45,120,55) or BTN_COLOR
+		local on = PCLDESP.isActive()
+		statusLbl.Text = "Статус: " .. (on and "ВКЛ" or "ВЫКЛ")
+		toggleBtn.Text = "PCLD ESP: " .. (on and "ВКЛ" or "ВЫКЛ")
+		toggleBtn.BackgroundColor3 = on and Color3.fromRGB(45,120,55) or BTN_COLOR
 	end
+	toggleBtn.MouseButton1Click:Connect(function() PCLDESP.toggle() refresh() end)
+	refresh()
+	task.spawn(function() while body.Parent do task.wait(0.5) refresh() end end)
+end
 
+local function populateAntiKickCard(body)
+	createBodyLabel(body, "Двойная смерть → BrokenPCLD = true.\nОтключает кик при смерти.", 1, 36).TextWrapped = true
+	local statusLbl = createBodyLabel(body, "Статус: ВЫКЛ", 2, 20)
+	statusLbl.TextColor3 = Color3.fromRGB(180,220,255)
+	statusLbl.TextSize = 13
+	local toggleBtn = createListButton(body, "Anti Kick: ВЫКЛ", 3)
+	local function refresh()
+		local on = AntiKickPCLD.isEnabled()
+		statusLbl.Text = "Статус: " .. (on and "ВКЛ" or "ВЫКЛ")
+		toggleBtn.Text = "Anti Kick: " .. (on and "ВКЛ" or "ВЫКЛ")
+		toggleBtn.BackgroundColor3 = on and Color3.fromRGB(45,120,55) or BTN_COLOR
+	end
+	toggleBtn.MouseButton1Click:Connect(function() AntiKickPCLD.toggle() refresh() end)
+	refresh()
+	task.spawn(function() while body.Parent do task.wait(0.5) refresh() end end)
+end
+
+local function populateKickByebyeCard(body)
+	createBodyLabel(body, "Обрывает Motor6D + фиксирует позицию.\nРазовый запуск при смерти.", 1, 36).TextWrapped = true
+	local runBtn = createListButton(body, "Kick Byebye (разово)", 2)
+	local infoLbl = createBodyLabel(body, "", 3, 20)
+	infoLbl.TextColor3 = Color3.fromRGB(180,220,255)
+	infoLbl.TextSize = 11
 	runBtn.MouseButton1Click:Connect(function()
-		runBtn.Text = "Выполняется..."
+		runBtn.Text = "Запущено..."
 		runBtn.BackgroundColor3 = Color3.fromRGB(90,90,140)
-		local n = BreakPCLD.run()
-		runBtn.Text = "Готово: " .. tostring(n)
-		task.delay(1.5, function()
+		KickByebyePCLD.run()
+		infoLbl.Text = "Done!"
+		task.delay(2, function()
 			if runBtn.Parent then
-				runBtn.Text = "Break PCLD (разово)"
+				runBtn.Text = "Kick Byebye (разово)"
 				runBtn.BackgroundColor3 = BTN_COLOR
+				infoLbl.Text = ""
 			end
 		end)
 	end)
-
-	autoBtn.MouseButton1Click:Connect(function()
-		BreakPCLD.setActive(not BreakPCLD.isActive())
-		refresh()
-	end)
-
-	refresh()
-	task.spawn(function()
-		while body.Parent do
-			task.wait(0.5)
-			refresh()
-		end
-	end)
 end
 
--- ==== HIDE PROPS CARD (Раздел 1) ====
 local function populateHidePropsCard(body)
-	createBodyLabel(body, "Скрывает MapProps и всех детей DeadTree", 1, 24).TextWrapped = true
-
+	createBodyLabel(body, "Скрывает MapProps и детей DeadTree.", 1, 24).TextWrapped = true
 	local statusLbl = createBodyLabel(body, "Статус: ВИДНЫ", 2, 24)
 	statusLbl.TextColor3 = Color3.fromRGB(180,220,255)
 	statusLbl.TextSize = 13
-
 	local toggleBtn = createListButton(body, "🗑 Hide Props+DeadTree: ВЫКЛ", 3)
-
 	local function refresh()
 		local on = HideProps.isHidden()
 		statusLbl.Text = "Статус: " .. (on and "СКРЫТЫ" or "ВИДНЫ")
 		toggleBtn.Text = "🗑 Hide Props+DeadTree: " .. (on and "ВКЛ" or "ВЫКЛ")
 		toggleBtn.BackgroundColor3 = on and Color3.fromRGB(45,120,55) or BTN_COLOR
 	end
-
 	toggleBtn.MouseButton1Click:Connect(function()
 		if not HideProps.isHidden() then
 			local info = HideProps.hide()
-			statusLbl.Text = "✅ Скрыто | MapProps: "..(info.props and "да" or "нет")..
-				" | Деревьев: "..info.trees.." | Детей: "..info.children
+			statusLbl.Text = "✅ Скрыто | MapProps: "..(info.props and "да" or "нет").." | Детей: "..info.children
 		else
 			local info = HideProps.restore()
 			statusLbl.Text = "✅ Восстановлено | Детей: "..info.children
 		end
 		refresh()
 	end)
-
 	refresh()
 end
 
@@ -1445,32 +1406,26 @@ local function populatePlayerCard(body)
 	UserInputService.InputChanged:Connect(function(input)
 		if dragging and input == dragInput then updateFromPos(input.Position) end
 	end)
+
+	-- ==== Third person view ====
+	local tpBtn = createListButton(body, "🎥 Третье лицо: ВЫКЛ", 3)
+	local function refreshTp()
+		tpBtn.Text = "🎥 Третье лицо: " .. (thirdPersonOn and "ВКЛ" or "ВЫКЛ")
+		tpBtn.BackgroundColor3 = thirdPersonOn and Color3.fromRGB(45,120,55) or BTN_COLOR
+	end
+	tpBtn.MouseButton1Click:Connect(function()
+		setThirdPerson(not thirdPersonOn)
+		refreshTp()
+	end)
+	refreshTp()
 end
 
--- OCEAN
+-- ============================================================
+-- OCEAN — оставлено: удалить/вернуть океан, текстура, цвет воды
+-- ============================================================
 local OCEAN_PATH = {"Map","AlwaysHereTweenedObjects","Ocean","Object"}
 local OCEAN_TEXTURE_ID = "rbxassetid://100899299413455"
 local OCEAN_TEXTURE_STUDS = 20
-local WATER_PADDING, WATER_DEPTH, WATER_SURFACE_OFFSET = 12, 25, 0
-local ISLAND_CENTER = Vector3.new(0, -7.4, 0)
-local ISLAND_CIRCLE_RADIUS = 1080
-local ISLAND_DEADZONE = 20
-
-local CONTAINER_NAME = "twink_spbaSpawnedInToys"
-local TABLE_NAME = "TableWoodFourLegsBrown"
-local TABLES_TO_STABILIZE = 5
-local SUBMERGE = 2.5
-local Y_HOLD_FORCE = 1e7
-local UPRIGHT_TORQUE = 5e6
-local WATER_ANGULAR_DRAG = 8
-local HORIZONTAL_DRAG = 1.0
-local TOP_DENSITY = 0.25
-local LEG_DENSITY = 6.0
-
-local stabilizedTables = {}
-local physicsConn = nil
-local autoStabConn = nil
-local autoStabEnabled = false
 
 local function getOceanParentContainer()
 	local c = workspace
@@ -1486,55 +1441,7 @@ local function findOceanObject()
 	return p:FindFirstChild(OCEAN_PATH[#OCEAN_PATH])
 end
 
-local removedOcean, savedOceanParent, physicsWaterRegion = nil, nil, nil
-local waveActive, waveConn = false, nil
-local waveStartTime = 0
-local savedWaterState = nil
-
-local WAVE_SPEEDS = {
-	["Медленно"] = 0.5, ["Средне"] = 1.0, ["Быстро"] = 2.0, ["Очень быстро"] = 3.5,
-}
-local speedKey = "Средне"
-local speedMult = 1.0
-
-local WAVE_KINDS = {
-	["Тихое"]  = {strength=40,  freq=0.08, lift=0.0,  kind="sine"},
-	["Легкое"] = {strength=120, freq=0.20, lift=0.05, kind="sine"},
-	["Волна"]  = {strength=350, freq=0.55, lift=0.4,  kind="sine"},
-	["Шторм"]  = {strength=1500, freq=1.1, lift=1.4,  kind="storm"},
-	["Засос"]  = {strength=1000, freq=0.5, lift=1.2,  kind="suckspit"},
-	["Цунами"] = {strength=1200, freq=0.5, lift=1.8,  kind="tsunami"},
-}
-local modeKey = "Тихое"
-
-local WAVE_DIRS = {
-	["Вокруг острова"] = {kind="island_circle", dir=0},
-	["Север"]          = {kind="flow",          dir=270},
-	["Юг"]             = {kind="flow",          dir=90},
-	["Восток"]         = {kind="flow",          dir=0},
-	["Запад"]          = {kind="flow",          dir=180},
-}
-local dirKey = "Вокруг острова"
-
-local function saveWaterState()
-	if savedWaterState then return end
-	local t = workspace.Terrain
-	savedWaterState = {
-		WaterColor = t.WaterColor, WaterTransparency = t.WaterTransparency,
-		WaterReflectance = t.WaterReflectance, WaterWaveSize = t.WaterWaveSize,
-		WaterWaveSpeed = t.WaterWaveSpeed,
-	}
-end
-local function restoreWaterState()
-	if not savedWaterState then return end
-	local t = workspace.Terrain
-	t.WaterColor = savedWaterState.WaterColor
-	t.WaterTransparency = savedWaterState.WaterTransparency
-	t.WaterReflectance = savedWaterState.WaterReflectance
-	t.WaterWaveSize = savedWaterState.WaterWaveSize
-	t.WaterWaveSpeed = savedWaterState.WaterWaveSpeed
-	savedWaterState = nil
-end
+local removedOcean, savedOceanParent = nil, nil
 
 local OCEAN_COLORS = {
 	{"RD","Красный",Color3.fromRGB(220,50,50),Color3.fromRGB(255,90,90),Color3.fromRGB(255,255,255)},
@@ -1598,6 +1505,163 @@ local function removeOceanTexture(obj)
 	return n
 end
 
+local function populateOceanCard(body)
+	local toggleBtn = createListButton(body, "Удалить океан", 1)
+	local textureActive = false
+	local function updateToggleText()
+		if removedOcean then
+			toggleBtn.Text = "Вернуть океан"; toggleBtn.BackgroundColor3 = Color3.fromRGB(45,120,55)
+		else
+			toggleBtn.Text = "Удалить океан"; toggleBtn.BackgroundColor3 = BTN_COLOR
+		end
+	end
+	toggleBtn.MouseButton1Click:Connect(function()
+		if removedOcean then
+			if savedOceanParent and savedOceanParent.Parent then
+				removedOcean.Parent = savedOceanParent
+				removedOcean, savedOceanParent = nil, nil
+				updateToggleText()
+			end
+			return
+		end
+		local obj = findOceanObject()
+		if not obj then toggleBtn.Text = "Океан не найден" task.wait(1.5) updateToggleText() return end
+		savedOceanParent = obj.Parent
+		removedOcean = obj
+		obj.Parent = nil
+		updateToggleText()
+	end)
+
+	local texBtn = createListButton(body, "Наложить текстуру", 2)
+	texBtn.MouseButton1Click:Connect(function()
+		local obj = removedOcean or findOceanObject()
+		if not obj then texBtn.Text = "Океан не найден" task.wait(1.2) texBtn.Text = textureActive and "Убрать текстуру" or "Наложить текстуру" return end
+		if textureActive then
+			removeOceanTexture(obj); textureActive = false
+			texBtn.Text = "Наложить текстуру"; texBtn.BackgroundColor3 = BTN_COLOR
+		else
+			local n = applyOceanTexture(obj, OCEAN_TEXTURE_ID)
+			textureActive = true
+			texBtn.Text = "Убрать текстуру (" .. n .. ")"
+			texBtn.BackgroundColor3 = Color3.fromRGB(45,90,140)
+		end
+	end)
+
+	createBodyLabel(body, "Цвет воды (части + Terrain):", 3, 20)
+	local colorGrid = Instance.new("Frame")
+	colorGrid.Size = UDim2.new(1,0,0,0)
+	colorGrid.AutomaticSize = Enum.AutomaticSize.Y
+	colorGrid.BackgroundTransparency = 1
+	colorGrid.LayoutOrder = 4
+	colorGrid.ZIndex = 8
+	colorGrid.Parent = body
+	local cgl = Instance.new("UIGridLayout")
+	cgl.CellSize = UDim2.new(0, 42, 0, 36)
+	cgl.CellPadding = UDim2.new(0, 6, 0, 6)
+	cgl.FillDirectionMaxCells = 4
+	cgl.Parent = colorGrid
+
+	local colorBtnRefs = {}
+	for i, data in ipairs(OCEAN_COLORS) do
+		local btn = Instance.new("TextButton")
+		btn.LayoutOrder = i
+		btn.BackgroundColor3 = data[3]
+		btn.Text = data[1]
+		btn.TextColor3 = data[5]
+		btn.Font = Enum.Font.GothamBlack
+		btn.TextSize = 14
+		btn.AutoButtonColor = false
+		btn.ZIndex = 9
+		btn.Parent = colorGrid
+		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+		local s = makeStroke(btn, 2); s.Color = data[4]
+		colorBtnRefs[i] = {btn=btn, data=data}
+		btn.MouseButton1Click:Connect(function()
+			local obj = removedOcean or findOceanObject()
+			if obj then paintOceanObject(obj, data[3]) end
+			for j, e in ipairs(colorBtnRefs) do
+				if j == i then
+					e.btn.UIStroke.Thickness = 4; e.btn.UIStroke.Color = Color3.fromRGB(255,255,255)
+				else
+					e.btn.UIStroke.Thickness = 2; e.btn.UIStroke.Color = e.data[4]
+				end
+			end
+		end)
+	end
+end
+
+-- ============================================================
+-- Раздел 3 — физика воды/столы/волны
+-- ============================================================
+local WATER_PADDING, WATER_DEPTH, WATER_SURFACE_OFFSET = 12, 25, 0
+local ISLAND_CENTER = Vector3.new(0, -7.4, 0)
+local ISLAND_CIRCLE_RADIUS = 1080
+local ISLAND_DEADZONE = 20
+
+local CONTAINER_NAME = "twink_spbaSpawnedInToys"
+local TABLE_NAME = "TableWoodFourLegsBrown"
+local TABLES_TO_STABILIZE = 5
+local SUBMERGE = 2.5
+local Y_HOLD_FORCE = 1e7
+local UPRIGHT_TORQUE = 5e6
+local WATER_ANGULAR_DRAG = 8
+local HORIZONTAL_DRAG = 1.0
+local TOP_DENSITY = 0.25
+local LEG_DENSITY = 6.0
+
+local stabilizedTables = {}
+local physicsConn = nil
+local autoStabConn = nil
+local autoStabEnabled = false
+
+local physicsWaterRegion = nil
+local waveActive, waveConn = false, nil
+local waveStartTime = 0
+local savedWaterState = nil
+
+local WAVE_SPEEDS = {["Медленно"]=0.5,["Средне"]=1.0,["Быстро"]=2.0,["Очень быстро"]=3.5}
+local speedKey = "Средне"
+local speedMult = 1.0
+
+local WAVE_KINDS = {
+	["Тихое"]  = {strength=40,  freq=0.08, lift=0.0,  kind="sine"},
+	["Легкое"] = {strength=120, freq=0.20, lift=0.05, kind="sine"},
+	["Волна"]  = {strength=350, freq=0.55, lift=0.4,  kind="sine"},
+	["Шторм"]  = {strength=1500, freq=1.1, lift=1.4,  kind="storm"},
+	["Засос"]  = {strength=1000, freq=0.5, lift=1.2,  kind="suckspit"},
+	["Цунами"] = {strength=1200, freq=0.5, lift=1.8,  kind="tsunami"},
+}
+local modeKey = "Тихое"
+
+local WAVE_DIRS = {
+	["Вокруг острова"] = {kind="island_circle", dir=0},
+	["Север"]          = {kind="flow",          dir=270},
+	["Юг"]             = {kind="flow",          dir=90},
+	["Восток"]         = {kind="flow",          dir=0},
+	["Запад"]          = {kind="flow",          dir=180},
+}
+local dirKey = "Вокруг острова"
+
+local function saveWaterState()
+	if savedWaterState then return end
+	local t = workspace.Terrain
+	savedWaterState = {
+		WaterColor = t.WaterColor, WaterTransparency = t.WaterTransparency,
+		WaterReflectance = t.WaterReflectance, WaterWaveSize = t.WaterWaveSize,
+		WaterWaveSpeed = t.WaterWaveSpeed,
+	}
+end
+local function restoreWaterState()
+	if not savedWaterState then return end
+	local t = workspace.Terrain
+	t.WaterColor = savedWaterState.WaterColor
+	t.WaterTransparency = savedWaterState.WaterTransparency
+	t.WaterReflectance = savedWaterState.WaterReflectance
+	t.WaterWaveSize = savedWaterState.WaterWaveSize
+	t.WaterWaveSpeed = savedWaterState.WaterWaveSpeed
+	savedWaterState = nil
+end
+
 local function getOceanBoundingBox(obj)
 	local mn, mx
 	for _, d in ipairs(obj:GetDescendants()) do
@@ -1615,17 +1679,20 @@ local function getOceanBoundingBox(obj)
 	return mn, mx
 end
 
-local function buildPhysicsWater(obj)
+local function buildPhysicsWater()
+	if removedOcean then return end
+	local obj = findOceanObject()
+	if not obj then return end
 	saveWaterState()
 	local mn, mx = getOceanBoundingBox(obj)
-	if not mn then return nil end
+	if not mn then return end
 	local surfaceY = mx.Y + WATER_SURFACE_OFFSET
 	local bottomY = surfaceY - WATER_DEPTH
 	local center = Vector3.new((mn.X+mx.X)*0.5, (surfaceY+bottomY)*0.5, (mn.Z+mx.Z)*0.5)
 	local size = Vector3.new((mx.X-mn.X)+WATER_PADDING*2, WATER_DEPTH, (mx.Z-mn.Z)+WATER_PADDING*2)
 	local cf = CFrame.new(center)
 	workspace.Terrain:FillBlock(cf, size, Enum.Material.Water)
-	return {cframe=cf, size=size, surfaceY=surfaceY}
+	physicsWaterRegion = {cframe=cf, size=size, surfaceY=surfaceY}
 end
 
 local function clearPhysicsWater()
@@ -1684,8 +1751,7 @@ local function getWaveImpulse(region, pos, t)
 	local dirKind = dirData.kind
 	local dirDeg = dirData.dir
 	local centerPos
-	if dirKind == "island_circle" then centerPos = ISLAND_CENTER
-	else centerPos = region.cframe.Position end
+	if dirKind == "island_circle" then centerPos = ISLAND_CENTER else centerPos = region.cframe.Position end
 	local toCenter = Vector3.new(centerPos.X - pos.X, 0, centerPos.Z - pos.Z)
 	local dist = toCenter.Magnitude
 	if dist > 0.1 then toCenter = toCenter / dist else toCenter = Vector3.new(0,0,0) end
@@ -1785,7 +1851,6 @@ end
 
 local STAB_ORIENT_TAG = "StabBodyGyro"
 local STAB_POS_TAG = "StabBodyPosition"
-local STAB_ATTACH_TAG = "StabAttach"
 
 local function getBottomOffset(tbl)
 	local primary = tbl.PrimaryPart
@@ -1803,44 +1868,28 @@ end
 
 local function setupPhysicsForTable(tbl)
 	local primary = tbl.PrimaryPart
-	if not primary then return false, "no primary" end
+	if not primary then return false end
+	pcall(function() local o = primary:FindFirstChild(STAB_ORIENT_TAG) if o then o:Destroy() end end)
 	pcall(function()
-		local oldGyro = primary:FindFirstChild(STAB_ORIENT_TAG)
-		if oldGyro then oldGyro:Destroy() end
-	end)
-	local ok1, err1 = pcall(function()
 		local bg = Instance.new("BodyGyro")
 		bg.Name = STAB_ORIENT_TAG
 		bg.MaxTorque = Vector3.new(UPRIGHT_TORQUE, 0, UPRIGHT_TORQUE)
-		bg.P = 5000
-		bg.D = 500
-		bg.CFrame = CFrame.new(primary.Position)
-		bg.Parent = primary
+		bg.P = 5000 bg.D = 500 bg.CFrame = CFrame.new(primary.Position) bg.Parent = primary
 	end)
-	if not ok1 then return false, "gyro: " .. tostring(err1) end
+	pcall(function() local o = primary:FindFirstChild(STAB_POS_TAG) if o then o:Destroy() end end)
 	pcall(function()
-		local oldPos = primary:FindFirstChild(STAB_POS_TAG)
-		if oldPos then oldPos:Destroy() end
-	end)
-	local ok2, err2 = pcall(function()
 		local bp = Instance.new("BodyPosition")
 		bp.Name = STAB_POS_TAG
 		bp.MaxForce = Vector3.new(0, Y_HOLD_FORCE, 0)
-		bp.P = 3000
-		bp.D = 300
+		bp.P = 3000 bp.D = 300
 		if physicsWaterRegion then
 			local bottomOff = getBottomOffset(tbl)
 			local targetY = physicsWaterRegion.surfaceY - SUBMERGE + bottomOff
 			bp.Position = Vector3.new(primary.Position.X, targetY, primary.Position.Z)
-		else
-			bp.Position = primary.Position
-		end
+		else bp.Position = primary.Position end
 		bp.Parent = primary
 	end)
-	if not ok2 then return false, "pos: " .. tostring(err2) end
-	pcall(function()
-		primary.AngularDamping = WATER_ANGULAR_DRAG
-	end)
+	pcall(function() primary.AngularDamping = WATER_ANGULAR_DRAG end)
 	return true
 end
 
@@ -1867,16 +1916,12 @@ local function physicsLoop()
 				local bp = primary:FindFirstChild(STAB_POS_TAG)
 				if bg then
 					local _, yaw, _ = primary.CFrame:ToOrientation()
-					pcall(function()
-						bg.CFrame = CFrame.new(primary.Position) * CFrame.Angles(0, yaw, 0)
-					end)
+					pcall(function() bg.CFrame = CFrame.new(primary.Position) * CFrame.Angles(0, yaw, 0) end)
 				end
 				if bp then
 					local bottomOff = getBottomOffset(tbl)
 					local targetY = surfaceY - SUBMERGE + bottomOff
-					pcall(function()
-						bp.Position = Vector3.new(primary.Position.X, targetY, primary.Position.Z)
-					end)
+					pcall(function() bp.Position = Vector3.new(primary.Position.X, targetY, primary.Position.Z) end)
 				end
 				applyHorizontalDrag(primary, dt)
 			end
@@ -1892,18 +1937,17 @@ local function isInStabList(tbl)
 end
 
 local function stabilizeSingleTable(tbl)
-	if not tbl or not tbl.Parent then return false, "нет Parent" end
+	if not tbl or not tbl.Parent then return false end
 	local main = tbl:FindFirstChild("Main")
-	if not main or not main:IsA("BasePart") then return false, "нет Main" end
+	if not main or not main:IsA("BasePart") then return false end
 	tbl.PrimaryPart = main
 	local minY, maxY = math.huge, -math.huge
 	for _, d in ipairs(tbl:GetDescendants()) do
 		if d:IsA("BasePart") then
-			minY = math.min(minY, d.Position.Y)
-			maxY = math.max(maxY, d.Position.Y)
+			minY = math.min(minY, d.Position.Y) maxY = math.max(maxY, d.Position.Y)
 		end
 	end
-	if minY == math.huge then return false, "нет частей" end
+	if minY == math.huge then return false end
 	local midY = (minY + maxY) * 0.5
 	for _, d in ipairs(tbl:GetDescendants()) do
 		if d:IsA("BasePart") then
@@ -1916,23 +1960,22 @@ local function stabilizeSingleTable(tbl)
 			end)
 		end
 	end
-	local ok, err = setupPhysicsForTable(tbl)
-	if ok then
+	if setupPhysicsForTable(tbl) then
 		table.insert(stabilizedTables, tbl)
 		return true
 	end
-	return false, err
+	return false
 end
 
 local function stabilizeTables()
 	stabilizedTables = {}
 	local container = workspace:FindFirstChild(CONTAINER_NAME)
-	if not container then return 0, "Контейнер не найден" end
+	if not container then return 0 end
 	local tables = {}
 	for _, child in ipairs(container:GetChildren()) do
 		if child.Name == TABLE_NAME then table.insert(tables, child) end
 	end
-	if #tables == 0 then return 0, "Столы не найдены" end
+	if #tables == 0 then return 0 end
 	local count = 0
 	for i, tbl in ipairs(tables) do
 		if i <= TABLES_TO_STABILIZE then
@@ -1940,7 +1983,7 @@ local function stabilizeTables()
 		end
 	end
 	if count > 0 then physicsLoop() end
-	return count, nil
+	return count
 end
 
 local function startAutoStabilize()
@@ -1971,10 +2014,8 @@ local function unstabilizeAll()
 		local tbl = stabilizedTables[i]
 		if tbl and tbl.Parent and tbl.PrimaryPart then
 			pcall(function()
-				local bg = tbl.PrimaryPart:FindFirstChild(STAB_ORIENT_TAG)
-				if bg then bg:Destroy() end
-				local bp = tbl.PrimaryPart:FindFirstChild(STAB_POS_TAG)
-				if bp then bp:Destroy() end
+				local bg = tbl.PrimaryPart:FindFirstChild(STAB_ORIENT_TAG) if bg then bg:Destroy() end
+				local bp = tbl.PrimaryPart:FindFirstChild(STAB_POS_TAG) if bp then bp:Destroy() end
 			end)
 		end
 	end
@@ -1982,49 +2023,8 @@ local function unstabilizeAll()
 	if physicsConn then physicsConn:Disconnect() physicsConn = nil end
 end
 
-local function populateOceanCard(body)
-	local toggleBtn = createListButton(body, "Удалить океан", 1)
-	local textureActive = false
-	local function updateToggleText()
-		if removedOcean then
-			toggleBtn.Text = "Вернуть океан"; toggleBtn.BackgroundColor3 = Color3.fromRGB(45,120,55)
-		else
-			toggleBtn.Text = "Удалить океан"; toggleBtn.BackgroundColor3 = BTN_COLOR
-		end
-	end
-	toggleBtn.MouseButton1Click:Connect(function()
-		if removedOcean then
-			if savedOceanParent and savedOceanParent.Parent then
-				removedOcean.Parent = savedOceanParent
-				removedOcean, savedOceanParent = nil, nil
-				updateToggleText()
-			end
-			return
-		end
-		local obj = findOceanObject()
-		if not obj then toggleBtn.Text = "Океан не найден" task.wait(1.5) updateToggleText() return end
-		savedOceanParent = obj.Parent
-		removedOcean = obj
-		obj.Parent = nil
-		updateToggleText()
-	end)
-
-	local texBtn = createListButton(body, "Наложить текстуру", 2)
-	texBtn.MouseButton1Click:Connect(function()
-		local obj = removedOcean or findOceanObject()
-		if not obj then texBtn.Text = "Океан не найден" task.wait(1.2) texBtn.Text = textureActive and "Убрать текстуру" or "Наложить текстуру" return end
-		if textureActive then
-			removeOceanTexture(obj); textureActive = false
-			texBtn.Text = "Наложить текстуру"; texBtn.BackgroundColor3 = BTN_COLOR
-		else
-			local n = applyOceanTexture(obj, OCEAN_TEXTURE_ID)
-			textureActive = true
-			texBtn.Text = "Убрать текстуру (" .. n .. ")"
-			texBtn.BackgroundColor3 = Color3.fromRGB(45,90,140)
-		end
-	end)
-
-	local waterBtn = createListButton(body, "Включить воду (плавать)", 3)
+local function populateWaterCard(body)
+	local waterBtn = createListButton(body, "Включить воду (плавать)", 1)
 	waterBtn.MouseButton1Click:Connect(function()
 		if physicsWaterRegion then
 			stopWaves(); clearPhysicsWater()
@@ -2032,49 +2032,58 @@ local function populateOceanCard(body)
 			waterBtn.BackgroundColor3 = BTN_COLOR
 			return
 		end
-		local obj = removedOcean or findOceanObject()
-		if not obj then waterBtn.Text = "Океан не найден" task.wait(1.6) waterBtn.Text = "Включить воду (плавать)" return end
-		if not removedOcean then
-			savedOceanParent = obj.Parent; removedOcean = obj; obj.Parent = nil; updateToggleText()
+		if removedOcean then
+			waterBtn.Text = "Сначала верни океан"
+			task.wait(1.4)
+			waterBtn.Text = "Включить воду (плавать)"
+			return
 		end
-		local region = buildPhysicsWater(obj)
-		if not region then waterBtn.Text = "Ошибка" task.wait(1.6) waterBtn.Text = "Включить воду (плавать)" return end
-		physicsWaterRegion = region
+		buildPhysicsWater()
+		if not physicsWaterRegion then
+			waterBtn.Text = "Ошибка"
+			task.wait(1.6)
+			waterBtn.Text = "Включить воду (плавать)"
+			return
+		end
 		waterBtn.Text = "Выключить воду"
 		waterBtn.BackgroundColor3 = Color3.fromRGB(45,90,140)
 	end)
+end
 
-	local stabBtn = createListButton(body, "Стабилизировать столы (5)", 4)
+local function populateStabilizeCard(body)
+	local stabBtn = createListButton(body, "Стабилизировать столы (5)", 1)
 	stabBtn.MouseButton1Click:Connect(function()
-		local count, err = stabilizeTables()
-		if err then
-			stabBtn.Text = err
+		local count = stabilizeTables()
+		if count > 0 then
+			stabBtn.Text = "Стабилизировано: " .. count
+			stabBtn.BackgroundColor3 = Color3.fromRGB(45,120,55)
+			startAutoStabilize()
+		else
+			stabBtn.Text = "Не найдено"
 			stabBtn.BackgroundColor3 = Color3.fromRGB(140,50,50)
-			task.wait(1.6)
+		end
+		task.wait(2)
+		if stabBtn.Parent then
 			stabBtn.Text = "Стабилизировать столы (5)"
 			stabBtn.BackgroundColor3 = BTN_COLOR
-			return
 		end
-		stabBtn.Text = "Стабилизировано: " .. count
-		stabBtn.BackgroundColor3 = Color3.fromRGB(45,120,55)
-		startAutoStabilize()
-		task.wait(2)
-		stabBtn.Text = "Стабилизировать столы (5)"
-		stabBtn.BackgroundColor3 = BTN_COLOR
 	end)
 
-	local unstabBtn = createListButton(body, "Убрать стабилизацию", 5)
+	local unstabBtn = createListButton(body, "Убрать стабилизацию", 2)
 	unstabBtn.MouseButton1Click:Connect(function()
 		unstabilizeAll()
 		unstabBtn.Text = "Стабилизация убрана"
 		unstabBtn.BackgroundColor3 = Color3.fromRGB(90,90,90)
 		task.wait(1.5)
-		unstabBtn.Text = "Убрать стабилизацию"
-		unstabBtn.BackgroundColor3 = BTN_COLOR
+		if unstabBtn.Parent then
+			unstabBtn.Text = "Убрать стабилизацию"
+			unstabBtn.BackgroundColor3 = BTN_COLOR
+		end
 	end)
+end
 
-	createBodyLabel(body, "── Волны ──", 6, 20)
-	local statusLabel = createBodyLabel(body, "", 7, 34)
+local function populateWavesCard(body)
+	local statusLabel = createBodyLabel(body, "", 1, 34)
 	statusLabel.TextWrapped = true
 	statusLabel.TextSize = 11
 	local function updateStatus()
@@ -2082,7 +2091,7 @@ local function populateOceanCard(body)
 	end
 	updateStatus()
 
-	local waveBtn = createListButton(body, "Включить волны", 8)
+	local waveBtn = createListButton(body, "Включить волны", 2)
 	waveBtn.MouseButton1Click:Connect(function()
 		if waveActive then
 			stopWaves(); waveBtn.Text = "Включить волны"; waveBtn.BackgroundColor3 = BTN_COLOR
@@ -2142,67 +2151,40 @@ local function populateOceanCard(body)
 		refresh()
 	end
 
-	makeChoiceGroup("Скорость:", 9,
+	makeChoiceGroup("Скорость:", 3,
 		{"Медленно","Средне","Быстро","Очень быстро"},
 		function() return speedKey end,
 		function(opt) speedKey = opt speedMult = WAVE_SPEEDS[opt] or 1.0 end
 	)
-	makeChoiceGroup("Режим:", 11,
-		{"Тихое","Легкое","Волна","Шторм","Засс","Цунами"},
+	makeChoiceGroup("Режим:", 5,
+		{"Тихое","Легкое","Волна","Шторм","Засос","Цунами"},
 		function() return modeKey end,
 		function(opt) modeKey = opt end
 	)
-	makeChoiceGroup("Направление:", 13,
+	makeChoiceGroup("Направление:", 7,
 		{"Вокруг острова","Север","Юг","Восток","Запад"},
 		function() return dirKey end,
 		function(opt) dirKey = opt end
 	)
+end
 
-	createBodyLabel(body, "Цвет воды (части + Terrain):", 15, 20)
-	local colorGrid = Instance.new("Frame")
-	colorGrid.Size = UDim2.new(1,0,0,0)
-	colorGrid.AutomaticSize = Enum.AutomaticSize.Y
-	colorGrid.BackgroundTransparency = 1
-	colorGrid.LayoutOrder = 16
-	colorGrid.ZIndex = 8
-	colorGrid.Parent = body
-	local cgl = Instance.new("UIGridLayout")
-	cgl.CellSize = UDim2.new(0, 42, 0, 36)
-	cgl.CellPadding = UDim2.new(0, 6, 0, 6)
-	cgl.FillDirectionMaxCells = 4
-	cgl.Parent = colorGrid
-
-	local colorBtnRefs = {}
-	for i, data in ipairs(OCEAN_COLORS) do
-		local btn = Instance.new("TextButton")
-		btn.LayoutOrder = i
-		btn.BackgroundColor3 = data[3]
-		btn.Text = data[1]
-		btn.TextColor3 = data[5]
-		btn.Font = Enum.Font.GothamBlack
-		btn.TextSize = 14
-		btn.AutoButtonColor = false
-		btn.ZIndex = 9
-		btn.Parent = colorGrid
-		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-		local s = makeStroke(btn, 2); s.Color = data[4]
-		colorBtnRefs[i] = {btn=btn, data=data}
-		btn.MouseButton1Click:Connect(function()
-			local obj = removedOcean or findOceanObject()
-			if obj then paintOceanObject(obj, data[3]) end
-			if physicsWaterRegion then
-				saveWaterState()
-				workspace.Terrain.WaterColor = data[3]
-			end
-			for j, e in ipairs(colorBtnRefs) do
-				if j == i then
-					e.btn.UIStroke.Thickness = 4; e.btn.UIStroke.Color = Color3.fromRGB(255,255,255)
-				else
-					e.btn.UIStroke.Thickness = 2; e.btn.UIStroke.Color = e.data[4]
-				end
-			end
-		end)
+local function populateNoBarrierCard(body)
+	createBodyLabel(body, "Отключает все коллизии (CanCollide, CanTouch,\nCanQuery, AudioCanCollide) у PlotArea и Barrier", 1, 36).TextWrapped = true
+	local statusLbl = createBodyLabel(body, "Статус: ВЫКЛ", 2, 20)
+	statusLbl.TextColor3 = Color3.fromRGB(180,220,255)
+	statusLbl.TextSize = 13
+	local toggleBtn = createListButton(body, "No Barrier: ВЫКЛ", 3)
+	local function refresh()
+		local on = NoBarrier.isActive()
+		statusLbl.Text = "Статус: " .. (on and "ВКЛ (noclip)" or "ВЫКЛ")
+		toggleBtn.Text = "No Barrier: " .. (on and "ВКЛ" or "ВЫКЛ")
+		toggleBtn.BackgroundColor3 = on and Color3.fromRGB(45,120,55) or BTN_COLOR
 	end
+	toggleBtn.MouseButton1Click:Connect(function()
+		NoBarrier.setActive(not NoBarrier.isActive())
+		refresh()
+	end)
+	refresh()
 end
 
 local function populateGuiCard(body)
@@ -2218,6 +2200,7 @@ local function populateGuiCard(body)
 		local obj = findOceanObject()
 		if obj then removeOceanTexture(obj) end
 		stopWaves(); unstabilizeAll(); clearPhysicsWater(); restoreWaterState()
+		setThirdPerson(false)
 		resetBtn.Text = "Готово"
 		task.delay(1.5, function() if resetBtn.Parent then resetBtn.Text = "Сбросить настройки" end end)
 		saveSettingsDelayed()
@@ -2235,8 +2218,10 @@ local function populateGuiCard(body)
 		stopWaves(); unstabilizeAll(); clearPhysicsWater(); restoreWaterState()
 		NoBarrier.setActive(false)
 		BarrierBreak.stopAuto()
-		BreakPCLD.setActive(false)
-		HideProps.restore() -- Восстанавливаем скрытые объекты при удалении
+		AntiKickPCLD.setEnabled(false)
+		PCLDESP.stop()
+		HideProps.restore()
+		setThirdPerson(false)
 		_G[SCRIPT_TAG] = nil
 		screenGui:Destroy()
 	end
@@ -2292,24 +2277,35 @@ for i = 1, 10 do
 	page.Parent = pagesFolder
 
 	if i == 1 then
+    -- Раздел 1: Лево Небо/Игрок/PCLD ESP/Удаление | Право Эффекты/Океан
+    local lCol = createColumn(page, 0.04)
+    local rCol = createColumn(page, 0.52)
+    local _, skiesBody     = createCard(lCol, "Небо", "SKY", 1, 156);         populateSkiesCard(skiesBody)
+    local _, playerBody    = createCard(lCol, "Игрок", "FOV", 2, 110);        populatePlayerCard(playerBody)
+    local _, espBody       = createCard(lCol, "PCLD ESP", "ESP", 3, 115);     populatePCLDESPCard(espBody)
+    local _, hidePropsBody = createCard(lCol, "Удаление объектов", "🗑", 4, 110); populateHidePropsCard(hidePropsBody)
+    local _, effectsBody   = createCard(rCol, "Эффекты", "FX", 1, 156);       populateEffectsCard(effectsBody)
+    local _, oceanBody     = createCard(rCol, "Океан", "OCN", 2, 320);        populateOceanCard(oceanBody)
+	
+elseif i == 2 then
+		-- Раздел 2: Лево Анти-лаг/AntiKick | Право BarrierBreak/KickByebye
 		local lCol = createColumn(page, 0.04)
 		local rCol = createColumn(page, 0.52)
-		local _, skiesBody = createCard(lCol, "Небо", "SKY", 1, 156); populateSkiesCard(skiesBody)
-		local _, playerBody = createCard(lCol, "Игрок", "FOV", 2, 160); populatePlayerCard(playerBody)
-		local _, effectsBody = createCard(rCol, "Эффекты", "FX", 1, 156); populateEffectsCard(effectsBody)
-		local _, oceanBody = createCard(rCol, "Океан", "OCN", 2, 1250); populateOceanCard(oceanBody)
-		-- Новая карточка "Удаление объектов" в Раздел 1
-		local _, hidePropsBody = createCard(rCol, "Удаление объектов", "🗑", 3, 150); populateHidePropsCard(hidePropsBody)
-	elseif i == 2 then
+		local _, alBody = createCard(lCol, "Анти-лаг", "AL", 1, 210); populateAntiLagCard(alBody)
+		local _, akBody = createCard(lCol, "Anti Kick", "AK", 2, 120); populateAntiKickCard(akBody)
+		local _, bbBody = createCard(rCol, "Barrier Break", "BB", 1, 160); populateBarrierBreakCard(bbBody)
+		local _, kbBody = createCard(rCol, "Break PCLD [Byebye]", "KB", 2, 75); populateKickByebyeCard(kbBody)
+	elseif i == 3 then
+		-- Раздел 3: Лево Вода/Стабилизация/NoBarrier | Право Волны
 		local lCol = createColumn(page, 0.04)
 		local rCol = createColumn(page, 0.52)
-		local _, alBody = createCard(lCol, "Анти-лаг", "AL", 1, 250); populateAntiLagCard(alBody)
-		local _, nbBody = createCard(lCol, "No Barrier Collision", "NB", 2, 150); populateNoBarrierCard(nbBody)
-		local _, bbBody = createCard(rCol, "Barrier Break", "BB", 1, 220); populateBarrierBreakCard(bbBody)
-		local _, pcldBody = createCard(rCol, "Break PCLD", "PCLD", 2, 320); populateBreakPCLDCard(pcldBody)
+		local _, waterBody = createCard(lCol, "Вода", "💧", 1, 50); populateWaterCard(waterBody)
+		local _, stabBody = createCard(lCol, "Стабилизация столов", "🔒", 2, 95); populateStabilizeCard(stabBody)
+		local _, nbBody = createCard(lCol, "No Barrier Collision", "NB", 3, 120); populateNoBarrierCard(nbBody)
+		local _, wavesBody = createCard(rCol, "Волны", "🌊", 1, 460); populateWavesCard(wavesBody)
 	elseif i == 10 then
 		local lCol = createColumn(page, 0.04)
-		local _, guiBody = createCard(lCol, "Интерфейс", "GUI", 1, 150); populateGuiCard(guiBody)
+		local _, guiBody = createCard(lCol, "Интерфейс", "GUI", 1, 40); populateGuiCard(guiBody)
 	else
 		local lCol = createColumn(page, 0.04)
 		local rCol = createColumn(page, 0.52)
