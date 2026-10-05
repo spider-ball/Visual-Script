@@ -378,14 +378,98 @@ local function applyVisualPreset(p)
 		local A=newVis("Atmosphere","A") A.Density=0.08 A.Haze=0.35 A.Glare=0.1 A.Color=Color3.fromRGB(210,225,255) A.Decay=Color3.fromRGB(130,150,205)
 		local C=newVis("ColorCorrectionEffect","C") C.Brightness=0.04 C.Contrast=0.28 C.Saturation=0.55 C.TintColor=Color3.fromRGB(235,240,255)
 		local B=newVis("BloomEffect","B") B.Intensity=0.7 B.Size=25 B.Threshold=0.85
-	elseif p == "Dark" then
+		elseif p == "Dark" then
 		Lighting.ClockTime=22; Lighting.Brightness=0.9; Lighting.Ambient=Color3.fromRGB(18,18,30); Lighting.OutdoorAmbient=Color3.fromRGB(40,40,65); Lighting.ColorShift_Top=Color3.fromRGB(45,35,90); Lighting.ColorShift_Bottom=Color3.fromRGB(12,12,30)
 		local A=newVis("Atmosphere","A") A.Density=0.3 A.Haze=1.6 A.Color=Color3.fromRGB(90,95,140) A.Decay=Color3.fromRGB(35,35,70)
 		local C=newVis("ColorCorrectionEffect","C") C.Brightness=-0.05 C.Contrast=0.42 C.Saturation=-0.05 C.TintColor=Color3.fromRGB(175,180,220)
+	elseif p == "GoldenHour2" then
+		Lighting.ClockTime = 17.8
+		local R=newVis("SunRaysEffect","R") R.Intensity=0.25 R.Spread=1
+	elseif p == "Cyberpunk2" then
+		local B=newVis("BloomEffect","B") B.Intensity=1.2 B.Size=40 B.Threshold=0.8
+		local C=newVis("ColorCorrectionEffect","C") C.TintColor=Color3.fromRGB(220,200,255) C.Contrast=0.25
+	elseif p == "Horror" then
+		Lighting.FogStart=0; Lighting.FogEnd=90; Lighting.FogColor=Color3.fromRGB(35,40,45)
+		local A=newVis("Atmosphere","A") A.Density=0.75 A.Offset=0.2
+	elseif p == "Cinematic" then
+		local D=newVis("DepthOfFieldEffect","D")
+		D.FocusDistance=12; D.InFocusRadius=18; D.FarIntensity=0.6; D.NearIntensity=0
+	elseif p == "Toxic" then
+		local C=newVis("ColorCorrectionEffect","C") C.TintColor=Color3.fromRGB(180,255,180) C.Saturation=0.3
+		local A=newVis("Atmosphere","A") A.Color=Color3.fromRGB(100,150,80) A.Decay=Color3.fromRGB(50,80,40) A.Density=0.55
+	elseif p == "Retro" then
+		local C=newVis("ColorCorrectionEffect","C") C.TintColor=Color3.fromRGB(255,230,200) C.Saturation=-0.45 C.Contrast=0.15
+	elseif p == "Dreamy" then
+		local B=newVis("BloomEffect","B") B.Intensity=0.8 B.Size=50 B.Threshold=0.2
+		local Bl=newVis("BlurEffect","Bl") Bl.Size=3
+	elseif p == "Arctic" then
+		local C=newVis("ColorCorrectionEffect","C") C.TintColor=Color3.fromRGB(190,225,255) C.Saturation=-0.2
+		local A=newVis("Atmosphere","A") A.Color=Color3.fromRGB(200,230,255) A.Density=0.45 A.Haze=2
+	elseif p == "Noir" then
+		local C=newVis("ColorCorrectionEffect","C") C.Saturation=-1 C.Contrast=0.35 C.Brightness=0.02
+	elseif p == "Underwater" then
+		local C=newVis("ColorCorrectionEffect","C") C.TintColor=Color3.fromRGB(100,200,255) C.Saturation=0.2
+		local Bl=newVis("BlurEffect","Bl") Bl.Size=5
+		local A=newVis("Atmosphere","A") A.Color=Color3.fromRGB(0,120,200) A.Density=0.65
+	elseif p == "Matrix" then
+		local C=newVis("ColorCorrectionEffect","C") C.TintColor=Color3.fromRGB(100,255,100) C.Saturation=0.5 C.Contrast=0.3
+		local B=newVis("BloomEffect","B") B.Intensity=1.0 B.Size=30 B.Threshold=0.7
+	elseif p == "Sandstorm" then
+		local C=newVis("ColorCorrectionEffect","C") C.TintColor=Color3.fromRGB(255,200,140)
+		local A=newVis("Atmosphere","A") A.Color=Color3.fromRGB(220,150,70) A.Decay=Color3.fromRGB(180,100,30) A.Density=0.75 A.Haze=5
+	elseif p == "Synthwave" then
+		local C=newVis("ColorCorrectionEffect","C") C.TintColor=Color3.fromRGB(255,120,220) C.Saturation=0.6 C.Contrast=0.25
+		local B=newVis("BloomEffect","B") B.Intensity=1.5 B.Size=45 B.Threshold=0.4
+	elseif p == "Abyss" then
+		local C=newVis("ColorCorrectionEffect","C") C.Contrast=0.4 C.Brightness=-0.05
+		local A=newVis("Atmosphere","A") A.Color=Color3.fromRGB(10,10,20) A.Density=0.85
+	elseif p == "Flashbang" then
+		local C=newVis("ColorCorrectionEffect","C") C.Brightness=0.8 C.Contrast=0.5
+		local Bl=newVis("BlurEffect","Bl") Bl.Size=24
+	elseif p == "BloodMoon" then
+		local C=newVis("ColorCorrectionEffect","C") C.TintColor=Color3.fromRGB(255,80,80) C.Saturation=0.4 C.Contrast=0.3
+		local A=newVis("Atmosphere","A") A.Color=Color3.fromRGB(150,20,20) A.Decay=Color3.fromRGB(50,0,0) A.Density=0.5
+	elseif p == "Ethereal" then
+		local C=newVis("ColorCorrectionEffect","C") C.TintColor=Color3.fromRGB(230,245,255) C.Brightness=0.1 C.Contrast=-0.15
+		local B=newVis("BloomEffect","B") B.Intensity=1.8 B.Size=60 B.Threshold=0.1
+	elseif p == "Thermal" then
+		local C=newVis("ColorCorrectionEffect","C") C.TintColor=Color3.fromRGB(100,150,255) C.Saturation=-0.8 C.Contrast=0.8 C.Brightness=0.1
+	elseif p == "Hazard" then
+		local C=newVis("ColorCorrectionEffect","C") C.TintColor=Color3.fromRGB(220,255,120) C.Saturation=-0.3 C.Contrast=0.3
+	elseif p == "Memory" then
+		local C=newVis("ColorCorrectionEffect","C") C.TintColor=Color3.fromRGB(255,240,210) C.Saturation=-0.5
+		local D=newVis("DepthOfFieldEffect","D") D.FocusDistance=8 D.InFocusRadius=10 D.NearIntensity=0.5 D.FarIntensity=0.8
 	end
 end
 
-local visualPresets = {{"None","None"},{"Blue","Blue"},{"Realistic","Realistic"},{"Realistic1","Realistic 1"},{"Pink","Pink"},{"Sunset","Sunset"},{"GoldenHour","Golden Hour"},{"Night","Night"},{"Twilight","Twilight"},{"Cyberpunk","Cyberpunk"},{"Cloudy","Cloudy"},{"Vibrant","Vibrant"},{"Dark","Dark"}}
+local visualPresets = {
+    -- Старые
+    {"None","None"}, {"Blue","Blue"}, {"Realistic","Realistic"}, {"Realistic1","Realistic 1"},
+    {"Pink","Pink"}, {"Sunset","Sunset"}, {"Night","Night"}, {"Twilight","Twilight"},
+    {"Cloudy","Cloudy"}, {"Vibrant","Vibrant"}, {"Dark","Dark"},
+    -- Дубли (рядом по алфавиту)
+    {"GoldenHour","Golden Hour"}, {"GoldenHour2","Golden Hour 2"},
+    {"Cyberpunk","Cyberpunk"}, {"Cyberpunk2","Cyberpunk 2"},
+    -- Новые
+    {"Horror","🌫 Horror"},
+    {"Cinematic","🎥 Cinematic"},
+    {"Toxic","☢ Toxic Wasteland"},
+    {"Retro","📼 Retro Sepia"},
+    {"Dreamy","💭 Dreamy"},
+    {"Arctic","❄ Arctic Cold"},
+    {"Noir","🎩 Noir"},
+    {"Underwater","🌊 Underwater"},
+    {"Matrix","💚 Matrix"},
+    {"Sandstorm","🏜 Sandstorm"},
+    {"Synthwave","🌇 Synthwave"},
+    {"Abyss","🕳 Deep Abyss"},
+    {"Flashbang","💥 Flashbang"},
+    {"BloodMoon","🌑 Blood Moon"},
+    {"Ethereal","👼 Ethereal"},
+    {"Thermal","🔵 Thermal Vision"},
+    {"Hazard","⚠ Radioactive"},
+    {"Memory","🎞 Memory Flashback"},
+}
 local visualButtons = {}
 
 local FOV_MIN, FOV_MAX = 50, 120
@@ -2294,7 +2378,7 @@ elseif i == 2 then
 		local _, alBody = createCard(lCol, "Анти-лаг", "AL", 1, 210); populateAntiLagCard(alBody)
 		local _, akBody = createCard(lCol, "Anti Kick", "AK", 2, 120); populateAntiKickCard(akBody)
 		local _, bbBody = createCard(rCol, "Barrier Break", "BB", 1, 160); populateBarrierBreakCard(bbBody)
-		local _, kbBody = createCard(rCol, "Break PCLD [Byebye]", "KB", 2, 75); populateKickByebyeCard(kbBody)
+		local _, kbBody = createCard(rCol, "Break PCLD [Byebye]", "KB", 2, 90); populateKickByebyeCard(kbBody)
 	elseif i == 3 then
 		-- Раздел 3: Лево Вода/Стабилизация/NoBarrier | Право Волны
 		local lCol = createColumn(page, 0.04)
@@ -2305,7 +2389,7 @@ elseif i == 2 then
 		local _, wavesBody = createCard(rCol, "Волны", "🌊", 1, 460); populateWavesCard(wavesBody)
 	elseif i == 10 then
 		local lCol = createColumn(page, 0.04)
-		local _, guiBody = createCard(lCol, "Интерфейс", "GUI", 1, 40); populateGuiCard(guiBody)
+		local _, guiBody = createCard(lCol, "Интерфейс", "GUI", 1, 90); populateGuiCard(guiBody)
 	else
 		local lCol = createColumn(page, 0.04)
 		local rCol = createColumn(page, 0.52)
