@@ -19,6 +19,8 @@ local COLOR_OUTLINE     = Color3.fromRGB(0, 0, 0)
 
 ----------------------------------------------------------------
 -- SETTINGS: LAYERS (ZIndex)
+-- Z_OTHER   = 1   — всё: панели, кнопки, секции
+-- Z_OUTLINE = 100 — только семья обводки (рамка, линии, разделители)
 ----------------------------------------------------------------
 local Z_OUTLINE = 100
 local Z_OTHER   = 1
@@ -37,9 +39,6 @@ local TEXT_BASE_LABEL  = 30
 
 ----------------------------------------------------------------
 -- SHARED SETTINGS: BUTTONS / DIVIDERS
--- Используются сразу двумя семьями:
---   Family 3 — разделители между кнопками
---   Family 4 — сами кнопки
 ----------------------------------------------------------------
 local BUTTON_COUNT          = 10
 local BUTTON_WIDTH          = 0.08
@@ -47,7 +46,6 @@ local BUTTON_HEIGHT         = 1
 local BUTTON_START_X        = 0.11
 local BUTTON_START_Y        = 0.5
 local BUTTON_GAP            = 0.001
-local BUTTON_ZINDEX         = 2
 local BUTTON_COLOR          = Color3.fromRGB(100, 100, 100)
 local BUTTON_ACTIVE_COLOR   = Color3.fromRGB(170, 170, 170)
 local BUTTON_INACTIVE_COLOR = BUTTON_COLOR
@@ -102,9 +100,6 @@ end
 
 ----------------------------------------------------------------
 -- TEXT SCALING SYSTEM
--- Все объекты, чей текст должен масштабироваться, регистрируются тут.
--- registerText(obj, baseSize) — при создании
--- refreshTextScale(menuSize)  — при изменении MENU_SIZE
 ----------------------------------------------------------------
 local textObjects = {}
 
@@ -234,7 +229,7 @@ sidePart3.ZIndex = Z_OTHER
 sidePart3.Parent = sideTopGroup
 
 ----------------------------------------------------------------
--- SHARED: BAR DIMENSIONS (используются в Family 3 и Family 4)
+-- SHARED: BAR DIMENSIONS
 ----------------------------------------------------------------
 local BAR_W = blackRect.Size.X.Scale
 local BAR_H = blackRect.Size.Y.Scale
@@ -271,7 +266,6 @@ outlineStroke.Parent = outline
 makeLine("Line1", outlineGroup, true,  0.729, UDim2.new(0.51, 0, 0.18, 0), Z_OUTLINE)
 makeLine("Line2", outlineGroup, false, 0.91,  UDim2.new(0.224, 0, 0.48, 0), Z_OUTLINE)
 
--- Разделители между кнопками
 local DIVIDER_THICKNESS = 2
 local DIVIDER_HEIGHT    = 1
 local DIVIDER_Y         = 0.5
@@ -292,20 +286,13 @@ end
 
 ----------------------------------------------------------------
 -- ██████  FAMILY 4: LOGIC  ██████
--- Здесь вся "живая" часть: кнопки, вкладки, разделы, переключение.
--- Внутри разбито по блокам:
---   [4.1] Хранилище разделов
---   [4.2] Переключение разделов
---   [4.3] Кнопки (верхняя панель)
---   [4.4] Панели разделов (то, что показывается по кнопке)
---   [4.5] Стартовое состояние
 ----------------------------------------------------------------
 
--- [4.1] ХРАНИЛИЩЕ РАЗДЕЛОВ ------------------------------------
+-- [4.1] ХРАНИЛИЩЕ РАЗДЕЛОВ
 local tabPanels  = {}
 local currentTab = nil
 
--- [4.2] ПЕРЕКЛЮЧЕНИЕ РАЗДЕЛОВ ---------------------------------
+-- [4.2] ПЕРЕКЛЮЧЕНИЕ РАЗДЕЛОВ
 local function openTab(i)
 	local list = tabPanels[i]
 	if not list then return end
@@ -324,7 +311,7 @@ local function openTab(i)
 	currentTab = i
 end
 
--- [4.3] КНОПКИ (верхняя панель) -------------------------------
+-- [4.3] КНОПКИ (верхняя панель)
 local topButtons = {}
 
 local function updateButtonVisuals()
@@ -351,7 +338,7 @@ for i = 1, BUTTON_COUNT do
 	btn.Text = "Раздел " .. i
 	btn.Font = Enum.Font.GothamBold
 	btn.TextColor3 = Color3.fromRGB(0, 0, 0)
-	btn.ZIndex = BUTTON_ZINDEX
+	btn.ZIndex = Z_OTHER
 	btn.Parent = sideTopGroup
 
 	registerText(btn, TEXT_BASE_BUTTON)
@@ -362,7 +349,7 @@ for i = 1, BUTTON_COUNT do
 	glow.BackgroundColor3 = GLOW_COLOR
 	glow.BackgroundTransparency = 1
 	glow.BorderSizePixel = 0
-	glow.ZIndex = BUTTON_ZINDEX
+	glow.ZIndex = Z_OTHER
 	glow.Parent = btn
 
 	local function glowOn()
@@ -384,7 +371,7 @@ for i = 1, BUTTON_COUNT do
 	topButtons[i] = btn
 end
 
--- [4.4] ПАНЕЛИ РАЗДЕЛОВ ---------------------------------------
+-- [4.4] ПАНЕЛИ РАЗДЕЛОВ
 local SEC_P1_SIZE   = UDim2.new(0.30, 0, 0.60, 0)
 local SEC_P1_POS    = UDim2.new(0.39, 0, 0.62, 0)
 local SEC_P2_SIZE   = UDim2.new(0.30, 0, 0.60, 0)
@@ -394,7 +381,6 @@ local SEC_T1_POS    = UDim2.new(0.39, 0, 0.26, 0)
 local SEC_T2_POS    = UDim2.new(0.71, 0, 0.26, 0)
 
 local SEC_COLOR     = Color3.fromRGB(100, 100, 100)
-local SEC_ZINDEX    = 1
 local SEC_ANCHOR    = Vector2.new(0.5, 0.5)
 local SEC_TRANS     = 0
 local SEC_CORNER_B  = UDim.new(0.05, 5)
@@ -409,7 +395,7 @@ local function makeSectionPanel(name, size, pos, corner, text)
 	p.BackgroundColor3 = SEC_COLOR
 	p.BackgroundTransparency = SEC_TRANS
 	p.BorderSizePixel = 0
-	p.ZIndex = SEC_ZINDEX
+	p.ZIndex = Z_OTHER
 	p.Visible = false
 	p.Parent = mainGroup
 
@@ -425,7 +411,7 @@ local function makeSectionPanel(name, size, pos, corner, text)
 		lbl.Text = text
 		lbl.Font = Enum.Font.GothamBold
 		lbl.TextColor3 = Color3.fromRGB(0, 0, 0)
-		lbl.ZIndex = SEC_ZINDEX
+		lbl.ZIndex = Z_OTHER
 		lbl.Parent = p
 
 		registerText(lbl, TEXT_BASE_LABEL)
@@ -453,16 +439,15 @@ for s = 1, BUTTON_COUNT do
 		makeSectionPanel("Sec"..s.."Tab2", SEC_T_SIZE, SEC_T2_POS, SEC_CORNER_T, "Вкладка " .. tabCounter))
 end
 
--- [4.5] СТАРТОВОЕ СОСТОЯНИЕ -----------------------------------
+-- [4.5] СТАРТОВОЕ СОСТОЯНИЕ
 openTab(1)
 updateButtonVisuals()
 
 ----------------------------------------------------------------
 -- ██████  MENU SIZE AND POSITION  ██████
--- Меняй эти 3 числа — меню едет/масштабируется, текст подстраивается.
---   MENU_SIZE     — масштаб всего меню (1 = как сейчас)
---   MENU_OFFSET_X — сдвиг по X (доли экрана, +0.1 = вправо)
---   MENU_OFFSET_Y — сдвиг по Y (доли экрана, +0.1 = вниз)
+-- MENU_SIZE     — масштаб всего меню (1 = как сейчас)
+-- MENU_OFFSET_X — сдвиг по X (доли экрана, +0.1 = вправо)
+-- MENU_OFFSET_Y — сдвиг по Y (доли экрана, +0.1 = вниз)
 ----------------------------------------------------------------
 local MENU_SIZE     = 1
 local MENU_OFFSET_X = 0
