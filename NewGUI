@@ -1,0 +1,476 @@
+-- GUI from scratch (improved version) - 4 families
+-- F1: Main panel          — визуал основной панели
+-- F2: Side + Top panels   — визуал боковой и верхней панелей
+-- F3: Outline + Lines     — рамка, линии, разделители
+-- F4: Logic               — кнопки, вкладки, разделы, переключение
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+----------------------------------------------------------------
+-- SETTINGS: OUTLINE AND LINES (all thickness = 2)
+----------------------------------------------------------------
+local LINE_THICKNESS    = 2
+local OUTLINE_THICKNESS = 2
+local COLOR_LINES       = Color3.fromRGB(0, 0, 0)
+local COLOR_OUTLINE     = Color3.fromRGB(0, 0, 0)
+
+----------------------------------------------------------------
+-- SETTINGS: LAYERS (ZIndex)
+----------------------------------------------------------------
+local Z_OUTLINE = 100
+local Z_OTHER   = 1
+
+----------------------------------------------------------------
+-- SETTINGS: MENU SCALE (глобальный базовый множитель)
+----------------------------------------------------------------
+local BASE_SCALE = 1.05
+
+----------------------------------------------------------------
+-- SETTINGS: TEXT SCALE (базовые размеры текста)
+-- Итоговый размер = BASE_* * BASE_SCALE * MENU_SIZE
+----------------------------------------------------------------
+local TEXT_BASE_BUTTON = 10
+local TEXT_BASE_LABEL  = 30
+
+----------------------------------------------------------------
+-- SHARED SETTINGS: BUTTONS / DIVIDERS
+-- Используются сразу двумя семьями:
+--   Family 3 — разделители между кнопками
+--   Family 4 — сами кнопки
+----------------------------------------------------------------
+local BUTTON_COUNT          = 10
+local BUTTON_WIDTH          = 0.08
+local BUTTON_HEIGHT         = 1
+local BUTTON_START_X        = 0.11
+local BUTTON_START_Y        = 0.5
+local BUTTON_GAP            = 0.001
+local BUTTON_ZINDEX         = 2
+local BUTTON_COLOR          = Color3.fromRGB(100, 100, 100)
+local BUTTON_ACTIVE_COLOR   = Color3.fromRGB(170, 170, 170)
+local BUTTON_INACTIVE_COLOR = BUTTON_COLOR
+
+local GLOW_COLOR        = Color3.fromRGB(255, 255, 255)
+local GLOW_TRANSPARENCY = 0.5
+local GLOW_FADE_TIME    = 0.25
+
+----------------------------------------------------------------
+-- GUI START
+----------------------------------------------------------------
+local old = playerGui:FindFirstChild("RoundedRectGui")
+if old then
+	old:Destroy()
+end
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "RoundedRectGui"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = playerGui
+
+local function makeGroup(name, zIndex)
+	local g = Instance.new("Frame")
+	g.Name = name
+	g.AnchorPoint = Vector2.new(0.5, 0.5)
+	g.Position = UDim2.new(0.5, 0, 0.5, 0)
+	g.Size = UDim2.new(1, 0, 1, 0)
+	g.BackgroundTransparency = 1
+	g.BorderSizePixel = 0
+	g.ZIndex = zIndex
+	g.Parent = screenGui
+	return g
+end
+
+local function makeLine(name, parent, isHorizontal, length, position, zIndex)
+	local line = Instance.new("Frame")
+	line.Name = name
+	if isHorizontal then
+		line.Size = UDim2.new(length, 0, 0, LINE_THICKNESS)
+	else
+		line.Size = UDim2.new(0, LINE_THICKNESS, length, 0)
+	end
+	line.Position = position
+	line.AnchorPoint = Vector2.new(0.5, 0.5)
+	line.BackgroundColor3 = COLOR_LINES
+	line.BorderSizePixel = 0
+	line.ZIndex = zIndex
+	line.Parent = parent
+	return line
+end
+
+----------------------------------------------------------------
+-- TEXT SCALING SYSTEM
+-- Все объекты, чей текст должен масштабироваться, регистрируются тут.
+-- registerText(obj, baseSize) — при создании
+-- refreshTextScale(menuSize)  — при изменении MENU_SIZE
+----------------------------------------------------------------
+local textObjects = {}
+
+local function registerText(obj, baseSize)
+	obj.TextScaled = false
+	obj.TextSize = baseSize * BASE_SCALE
+	table.insert(textObjects, { obj = obj, base = baseSize })
+	return obj
+end
+
+local function refreshTextScale(menuSize)
+	for _, entry in ipairs(textObjects) do
+		entry.obj.TextSize = entry.base * BASE_SCALE * menuSize
+	end
+end
+
+----------------------------------------------------------------
+-- FAMILY 1: MAIN PANEL + ITS PARTS
+----------------------------------------------------------------
+local mainGroup = makeGroup("MainGroup", Z_OTHER)
+
+local frame = Instance.new("Frame")
+frame.Name = "GrayRect"
+frame.Size = UDim2.new(0.65, 0, 0.75, 0)
+frame.Position = UDim2.new(0.55, 0, 0.555, 0)
+frame.AnchorPoint = Vector2.new(0.5, 0.5)
+frame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+frame.BorderSizePixel = 0
+frame.ZIndex = Z_OTHER
+frame.Parent = mainGroup
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0.11, 0)
+corner.Parent = frame
+
+local mainPart1 = Instance.new("Frame")
+mainPart1.Name = "MainPart1"
+mainPart1.Size = UDim2.new(0.03, 0, 0.1, 0)
+mainPart1.Position = UDim2.new(0.239, 1, 0.23, 0)
+mainPart1.AnchorPoint = Vector2.new(0.5, 0.5)
+mainPart1.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+mainPart1.BorderSizePixel = 0
+mainPart1.ZIndex = Z_OTHER
+mainPart1.Parent = mainGroup
+
+local mainPart2 = Instance.new("Frame")
+mainPart2.Name = "MainPart2"
+mainPart2.Size = UDim2.new(0.03, 0, 0.1, 0)
+mainPart2.Position = UDim2.new(0.240, 0, 0.88, 0)
+mainPart2.AnchorPoint = Vector2.new(0.5, 0.5)
+mainPart2.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+mainPart2.BorderSizePixel = 0
+mainPart2.ZIndex = Z_OTHER
+mainPart2.Parent = mainGroup
+
+local mainPart3 = Instance.new("Frame")
+mainPart3.Name = "MainPart3"
+mainPart3.Size = UDim2.new(0.03, 0, 0.1, 0)
+mainPart3.Position = UDim2.new(0.86, 0, 0.23, 0)
+mainPart3.AnchorPoint = Vector2.new(0.5, 0.5)
+mainPart3.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+mainPart3.BorderSizePixel = 0
+mainPart3.ZIndex = Z_OTHER
+mainPart3.Parent = mainGroup
+
+----------------------------------------------------------------
+-- FAMILY 2: SIDE PANEL + TOP PANEL + THEIR PARTS
+----------------------------------------------------------------
+local sideTopGroup = makeGroup("SideTopGroup", Z_OTHER)
+
+local innerFrame = Instance.new("Frame")
+innerFrame.Name = "InnerRect"
+innerFrame.Size = UDim2.new(0.08, 0, 0.9, 0)
+innerFrame.Position = UDim2.new(0.185, 0, 0.48, 0)
+innerFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+innerFrame.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+innerFrame.BorderSizePixel = 0
+innerFrame.ZIndex = Z_OTHER
+innerFrame.Parent = sideTopGroup
+
+local innerCorner = Instance.new("UICorner")
+innerCorner.CornerRadius = UDim.new(0.38, 0)
+innerCorner.Parent = innerFrame
+
+local blackRect = Instance.new("Frame")
+blackRect.Name = "BlackRect"
+blackRect.Size = UDim2.new(0.73, 0, 0.15, 0)
+blackRect.Position = UDim2.new(0.51, 0, 0.105, 0)
+blackRect.AnchorPoint = Vector2.new(0.5, 0.5)
+blackRect.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+blackRect.BorderSizePixel = 0
+blackRect.ZIndex = Z_OTHER
+blackRect.Parent = sideTopGroup
+
+local blackCorner = Instance.new("UICorner")
+blackCorner.CornerRadius = UDim.new(0.5, 0)
+blackCorner.Parent = blackRect
+
+local sidePart1 = Instance.new("Frame")
+sidePart1.Name = "SidePart1"
+sidePart1.Size = UDim2.new(0.03, 0, 0.1, 0)
+sidePart1.Position = UDim2.new(0.21, 0, 0.88, 0)
+sidePart1.AnchorPoint = Vector2.new(0.5, 0.5)
+sidePart1.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+sidePart1.BorderSizePixel = 0
+sidePart1.ZIndex = Z_OTHER
+sidePart1.Parent = sideTopGroup
+
+local sidePart2 = Instance.new("Frame")
+sidePart2.Name = "SidePart2"
+sidePart2.Size = UDim2.new(0.04, 0, 0.065, 0)
+sidePart2.Position = UDim2.new(0.165, 0, 0.147, 0)
+sidePart2.AnchorPoint = Vector2.new(0.5, 0.5)
+sidePart2.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+sidePart2.BorderSizePixel = 0
+sidePart2.ZIndex = Z_OTHER
+sidePart2.Parent = sideTopGroup
+
+local sidePart3 = Instance.new("Frame")
+sidePart3.Name = "SidePart3"
+sidePart3.Size = UDim2.new(0.03, 0, 0.08, 0)
+sidePart3.Position = UDim2.new(0.86, 0, 0.14, 0)
+sidePart3.AnchorPoint = Vector2.new(0.5, 0.5)
+sidePart3.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+sidePart3.BorderSizePixel = 0
+sidePart3.ZIndex = Z_OTHER
+sidePart3.Parent = sideTopGroup
+
+----------------------------------------------------------------
+-- SHARED: BAR DIMENSIONS (используются в Family 3 и Family 4)
+----------------------------------------------------------------
+local BAR_W = blackRect.Size.X.Scale
+local BAR_H = blackRect.Size.Y.Scale
+local BAR_X = blackRect.Position.X.Scale - BAR_W / 2
+local BAR_Y = blackRect.Position.Y.Scale - BAR_H / 2
+
+----------------------------------------------------------------
+-- FAMILY 3: OUTLINE + LINES + TOP BAR DIVIDERS
+----------------------------------------------------------------
+local outlineGroup = makeGroup("OutlineGroup", Z_OUTLINE)
+
+local outline = Instance.new("Frame")
+outline.Name = "OutlineRect"
+outline.Size = UDim2.new(0.728, 0, 0.9, 0)
+outline.Position = UDim2.new(0.51, 0, 0.48, 0)
+outline.AnchorPoint = Vector2.new(0.5, 0.5)
+outline.BackgroundTransparency = 1
+outline.BorderSizePixel = 0
+outline.ZIndex = Z_OUTLINE
+outline.Parent = outlineGroup
+
+local outlineCorner = Instance.new("UICorner")
+outlineCorner.CornerRadius = UDim.new(0.08, 0)
+outlineCorner.Parent = outline
+
+local outlineStroke = Instance.new("UIStroke")
+outlineStroke.Name = "OutlineStroke"
+outlineStroke.Color = COLOR_OUTLINE
+outlineStroke.Thickness = OUTLINE_THICKNESS
+outlineStroke.Transparency = 0
+outlineStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+outlineStroke.Parent = outline
+
+makeLine("Line1", outlineGroup, true,  0.729, UDim2.new(0.51, 0, 0.18, 0), Z_OUTLINE)
+makeLine("Line2", outlineGroup, false, 0.91,  UDim2.new(0.224, 0, 0.48, 0), Z_OUTLINE)
+
+-- Разделители между кнопками
+local DIVIDER_THICKNESS = 2
+local DIVIDER_HEIGHT    = 1
+local DIVIDER_Y         = 0.5
+
+for i = 1, BUTTON_COUNT do
+	local x = BUTTON_START_X + i * (BUTTON_WIDTH + BUTTON_GAP) - BUTTON_GAP / 2
+
+	local div = Instance.new("Frame")
+	div.Name = "TopDivider" .. i
+	div.Size = UDim2.new(0, DIVIDER_THICKNESS, DIVIDER_HEIGHT * BAR_H, 0)
+	div.AnchorPoint = Vector2.new(0.5, 0.5)
+	div.Position = UDim2.new(BAR_X + x * BAR_W, 0, BAR_Y + DIVIDER_Y * BAR_H, 0)
+	div.BackgroundColor3 = COLOR_LINES
+	div.BorderSizePixel = 0
+	div.ZIndex = Z_OUTLINE
+	div.Parent = outlineGroup
+end
+
+----------------------------------------------------------------
+-- ██████  FAMILY 4: LOGIC  ██████
+-- Здесь вся "живая" часть: кнопки, вкладки, разделы, переключение.
+-- Внутри разбито по блокам:
+--   [4.1] Хранилище разделов
+--   [4.2] Переключение разделов
+--   [4.3] Кнопки (верхняя панель)
+--   [4.4] Панели разделов (то, что показывается по кнопке)
+--   [4.5] Стартовое состояние
+----------------------------------------------------------------
+
+-- [4.1] ХРАНИЛИЩЕ РАЗДЕЛОВ ------------------------------------
+local tabPanels  = {}
+local currentTab = nil
+
+-- [4.2] ПЕРЕКЛЮЧЕНИЕ РАЗДЕЛОВ ---------------------------------
+local function openTab(i)
+	local list = tabPanels[i]
+	if not list then return end
+	if currentTab == i then return end
+
+	if currentTab and tabPanels[currentTab] then
+		for _, p in ipairs(tabPanels[currentTab]) do
+			p.Visible = false
+		end
+	end
+
+	for _, p in ipairs(list) do
+		p.Visible = true
+	end
+
+	currentTab = i
+end
+
+-- [4.3] КНОПКИ (верхняя панель) -------------------------------
+local topButtons = {}
+
+local function updateButtonVisuals()
+	for i, btn in ipairs(topButtons) do
+		if i == currentTab then
+			btn.BackgroundColor3 = BUTTON_ACTIVE_COLOR
+		else
+			btn.BackgroundColor3 = BUTTON_INACTIVE_COLOR
+		end
+	end
+end
+
+for i = 1, BUTTON_COUNT do
+	local btnX = BUTTON_START_X + (i - 1) * (BUTTON_WIDTH + BUTTON_GAP)
+
+	local btn = Instance.new("TextButton")
+	btn.Name = "TopButton" .. i
+	btn.Size = UDim2.new(BUTTON_WIDTH * BAR_W, 0, BUTTON_HEIGHT * BAR_H, 0)
+	btn.AnchorPoint = Vector2.new(0, 0.5)
+	btn.Position = UDim2.new(BAR_X + btnX * BAR_W, 0, BAR_Y + BUTTON_START_Y * BAR_H, 0)
+	btn.BackgroundColor3 = BUTTON_COLOR
+	btn.BorderSizePixel = 0
+	btn.AutoButtonColor = false
+	btn.Text = "Раздел " .. i
+	btn.Font = Enum.Font.GothamBold
+	btn.TextColor3 = Color3.fromRGB(0, 0, 0)
+	btn.ZIndex = BUTTON_ZINDEX
+	btn.Parent = sideTopGroup
+
+	registerText(btn, TEXT_BASE_BUTTON)
+
+	local glow = Instance.new("Frame")
+	glow.Name = "Glow"
+	glow.Size = UDim2.new(1, 0, 1, 0)
+	glow.BackgroundColor3 = GLOW_COLOR
+	glow.BackgroundTransparency = 1
+	glow.BorderSizePixel = 0
+	glow.ZIndex = BUTTON_ZINDEX
+	glow.Parent = btn
+
+	local function glowOn()
+		glow.BackgroundTransparency = GLOW_TRANSPARENCY
+	end
+
+	local function glowOff()
+		TweenService:Create(glow, TweenInfo.new(GLOW_FADE_TIME), { BackgroundTransparency = 1 }):Play()
+	end
+
+	btn.MouseButton1Down:Connect(glowOn)
+	btn.MouseButton1Up:Connect(glowOff)
+	btn.MouseLeave:Connect(glowOff)
+	btn.Activated:Connect(function()
+		openTab(i)
+		updateButtonVisuals()
+	end)
+
+	topButtons[i] = btn
+end
+
+-- [4.4] ПАНЕЛИ РАЗДЕЛОВ ---------------------------------------
+local SEC_P1_SIZE   = UDim2.new(0.30, 0, 0.60, 0)
+local SEC_P1_POS    = UDim2.new(0.39, 0, 0.62, 0)
+local SEC_P2_SIZE   = UDim2.new(0.30, 0, 0.60, 0)
+local SEC_P2_POS    = UDim2.new(0.71, 0, 0.62, 0)
+local SEC_T_SIZE    = UDim2.new(0.26, 0, 0.12, 0)
+local SEC_T1_POS    = UDim2.new(0.39, 0, 0.26, 0)
+local SEC_T2_POS    = UDim2.new(0.71, 0, 0.26, 0)
+
+local SEC_COLOR     = Color3.fromRGB(100, 100, 100)
+local SEC_ZINDEX    = 1
+local SEC_ANCHOR    = Vector2.new(0.5, 0.5)
+local SEC_TRANS     = 0
+local SEC_CORNER_B  = UDim.new(0.05, 5)
+local SEC_CORNER_T  = UDim.new(0.05, 15)
+
+local function makeSectionPanel(name, size, pos, corner, text)
+	local p = Instance.new("Frame")
+	p.Name = name
+	p.Size = size
+	p.Position = pos
+	p.AnchorPoint = SEC_ANCHOR
+	p.BackgroundColor3 = SEC_COLOR
+	p.BackgroundTransparency = SEC_TRANS
+	p.BorderSizePixel = 0
+	p.ZIndex = SEC_ZINDEX
+	p.Visible = false
+	p.Parent = mainGroup
+
+	local c = Instance.new("UICorner")
+	c.CornerRadius = corner
+	c.Parent = p
+
+	if text then
+		local lbl = Instance.new("TextLabel")
+		lbl.Name = "Label"
+		lbl.Size = UDim2.new(1, 0, 1, 0)
+		lbl.BackgroundTransparency = 1
+		lbl.Text = text
+		lbl.Font = Enum.Font.GothamBold
+		lbl.TextColor3 = Color3.fromRGB(0, 0, 0)
+		lbl.ZIndex = SEC_ZINDEX
+		lbl.Parent = p
+
+		registerText(lbl, TEXT_BASE_LABEL)
+	end
+
+	return p
+end
+
+local tabCounter = 0
+for s = 1, BUTTON_COUNT do
+	tabPanels[s] = {}
+
+	table.insert(tabPanels[s],
+		makeSectionPanel("Sec"..s.."Panel1", SEC_P1_SIZE, SEC_P1_POS, SEC_CORNER_B))
+
+	table.insert(tabPanels[s],
+		makeSectionPanel("Sec"..s.."Panel2", SEC_P2_SIZE, SEC_P2_POS, SEC_CORNER_B))
+
+	tabCounter = tabCounter + 1
+	table.insert(tabPanels[s],
+		makeSectionPanel("Sec"..s.."Tab1", SEC_T_SIZE, SEC_T1_POS, SEC_CORNER_T, "Вкладка " .. tabCounter))
+
+	tabCounter = tabCounter + 1
+	table.insert(tabPanels[s],
+		makeSectionPanel("Sec"..s.."Tab2", SEC_T_SIZE, SEC_T2_POS, SEC_CORNER_T, "Вкладка " .. tabCounter))
+end
+
+-- [4.5] СТАРТОВОЕ СОСТОЯНИЕ -----------------------------------
+openTab(1)
+updateButtonVisuals()
+
+----------------------------------------------------------------
+-- ██████  MENU SIZE AND POSITION  ██████
+-- Меняй эти 3 числа — меню едет/масштабируется, текст подстраивается.
+--   MENU_SIZE     — масштаб всего меню (1 = как сейчас)
+--   MENU_OFFSET_X — сдвиг по X (доли экрана, +0.1 = вправо)
+--   MENU_OFFSET_Y — сдвиг по Y (доли экрана, +0.1 = вниз)
+----------------------------------------------------------------
+local MENU_SIZE     = 1
+local MENU_OFFSET_X = 0
+local MENU_OFFSET_Y = 0
+
+for _, group in ipairs({ mainGroup, sideTopGroup, outlineGroup }) do
+	group.Size     = UDim2.new(BASE_SCALE * MENU_SIZE, 0, BASE_SCALE * MENU_SIZE, 0)
+	group.Position = UDim2.new(0.5 + MENU_OFFSET_X, 0, 0.5 - MENU_OFFSET_Y, 0)
+end
+
+refreshTextScale(MENU_SIZE)
