@@ -1,72 +1,162 @@
--- GUI from scratch (improved version) - 4 families
--- F1: Main panel          — визуал основной панели
--- F2: Side + Top panels   — визуал боковой и верхней панелей
--- F3: Outline + Lines     — рамка, линии, разделители
--- F4: Logic               — кнопки, вкладки, разделы, переключение
+--==============================================================
+-- КРУГЛОЕ МЕНЮ (GUI)
+--
+-- КАК ПОЛЬЗОВАТЬСЯ:
+--   1) Меняй только блок "НАСТРОЙКИ ПОЛЬЗОВАТЕЛЯ" ниже:
+--      логотип, иконки и названия разделов (просто вставь числовой ID).
+--   2) "ДОПОЛНИТЕЛЬНЫЕ НАСТРОЙКИ" - размеры, цвета, расположение.
+--   3) Всё, что ниже "СБОРКА GUI", трогать не нужно.
+--
+-- Что где находится:
+--   LOGO           - логотип слева сверху
+--   Section N      - кнопки разделов в верхней панели (SECTION_NAMES)
+--   Иконка вкладки - маленькая иконка на заголовке каждой вкладки
+--                    (в каждом разделе 4 вкладки: 2 ряда по 2, с прокруткой)
+--==============================================================
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 
-----------------------------------------------------------------
--- SETTINGS: OUTLINE AND LINES (all thickness = 2)
-----------------------------------------------------------------
-local LINE_THICKNESS    = 2
-local OUTLINE_THICKNESS = 2
-local COLOR_LINES       = Color3.fromRGB(0, 0, 0)
-local COLOR_OUTLINE     = Color3.fromRGB(0, 0, 0)
+--==============================================================
+-- НАСТРОЙКИ ПОЛЬЗОВАТЕЛЯ  (вставляй сюда свои ID и названия)
+--==============================================================
 
-----------------------------------------------------------------
--- SETTINGS: LAYERS (ZIndex)
--- Z_OTHER   = 1   — всё: панели, кнопки, секции
--- Z_OUTLINE = 100 — только семья обводки (рамка, линии, разделители)
-----------------------------------------------------------------
-local Z_OUTLINE = 100
+-- ID можно писать числом (123456) или строкой ("rbxassetid://123456").
+
+-- ЛОГОТИП (слева сверху)
+local LOGO_ID       = 117390305692041
+local LOGO_SIZE     = UDim2.new(0.17, 0, 0.17, 0)
+local LOGO_POSITION = UDim2.new(0.1857, 0, 0.1048, 0)
+
+-- КНОПКИ РАЗДЕЛОВ (верхняя панель).
+-- Сколько названий в списке - столько и разделов.
+local SECTION_NAMES = {
+	"Section 1", "Section 2", "Section 3", "Section 4", "Section 5",
+	"Section 6", "Section 7", "Section 8", "Section 9", "Section 10",
+}
+
+-- ТЕКСТ НА ПЛАШКАХ ВКЛАДОК: префикс + номер. Например "Вкладка " даст "Вкладка 1".
+local TAB_TITLE_PREFIX = "Tab "
+
+-- ИКОНКИ ВКЛАДОК
+-- У КАЖДОЙ вкладки своя иконка: замени 0 на ID нужной картинки.
+-- 0 = вкладка использует иконку по умолчанию (TAB_ICON_DEFAULT).
+local TAB_ICON_DEFAULT = 108716693326627
+
+-- [номер раздела] = { вкладка1, вкладка2, вкладка3, вкладка4 }
+--   вкладка1 = верхний ряд слева,  вкладка2 = верхний ряд справа,
+--   вкладка3 = нижний ряд слева,   вкладка4 = нижний ряд справа.
+local TAB_ICONS = {
+	[1]  = { 0, 0, 0, 0 },
+	[2]  = { 0, 0, 0, 0 },
+	[3]  = { 0, 0, 0, 0 },
+	[4]  = { 0, 0, 0, 0 },
+	[5]  = { 0, 0, 0, 0 },
+	[6]  = { 0, 0, 0, 0 },
+	[7]  = { 0, 0, 0, 0 },
+	[8]  = { 0, 0, 0, 0 },
+	[9]  = { 0, 0, 0, 0 },
+	[10] = { 0, 0, 0, 0 },
+}
+-- Пример: в разделе 1 у первой вкладки одна иконка, у второй другая:
+--   [1] = { 111111111, 222222222, 0, 0 },
+
+-- РАЗМЕР И ПОЗИЦИЯ МЕНЮ
+local MENU_SIZE     = 1
+local MENU_OFFSET_X = 0
+local MENU_OFFSET_Y = 0
+
+--==============================================================
+-- ДОПОЛНИТЕЛЬНЫЕ НАСТРОЙКИ
+--==============================================================
+
+-- Слои (ZIndex): всё на Z_OTHER, только обводка поверх всего.
 local Z_OTHER   = 1
+local Z_OUTLINE = 100
 
-----------------------------------------------------------------
--- SETTINGS: MENU SCALE (глобальный базовый множитель)
-----------------------------------------------------------------
+-- Базовый масштаб всего меню
 local BASE_SCALE = 1.05
 
-----------------------------------------------------------------
--- SETTINGS: TEXT SCALE (базовые размеры текста)
--- Итоговый размер = BASE_* * BASE_SCALE * MENU_SIZE
-----------------------------------------------------------------
+-- Базовые размеры текста
 local TEXT_BASE_BUTTON = 10
 local TEXT_BASE_LABEL  = 30
 
-----------------------------------------------------------------
--- SHARED SETTINGS: BUTTONS / DIVIDERS
-----------------------------------------------------------------
-local BUTTON_COUNT          = 10
-local BUTTON_WIDTH          = 0.08
-local BUTTON_HEIGHT         = 1
-local BUTTON_START_X        = 0.11
-local BUTTON_START_Y        = 0.5
-local BUTTON_GAP            = 0.001
-local BUTTON_COLOR          = Color3.fromRGB(100, 100, 100)
-local BUTTON_ACTIVE_COLOR   = Color3.fromRGB(170, 170, 170)
-local BUTTON_INACTIVE_COLOR = BUTTON_COLOR
+-- Цвета
+local COLOR_MAIN_PANEL = Color3.fromRGB(255, 255, 255)
+local COLOR_SIDE_PANEL = Color3.fromRGB(100, 100, 100)
+local COLOR_LINES      = Color3.fromRGB(0, 0, 0)
+local COLOR_OUTLINE    = Color3.fromRGB(0, 0, 0)
 
+-- Обводка и линии
+local LINE_THICKNESS    = 2
+local OUTLINE_THICKNESS = 2
+
+-- Верхние кнопки / разделители
+local BUTTON_COUNT        = #SECTION_NAMES
+local BUTTON_WIDTH        = 0.08
+local BUTTON_HEIGHT       = 1
+local BUTTON_START_X      = 0.11
+local BUTTON_START_Y      = 0.5
+local BUTTON_GAP          = 0.001
+local BUTTON_COLOR        = Color3.fromRGB(100, 100, 100)
+local BUTTON_ACTIVE_COLOR = Color3.fromRGB(170, 170, 170)
+
+local DIVIDER_THICKNESS = 2
+local DIVIDER_HEIGHT    = 1
+local DIVIDER_Y         = 0.5
+
+-- Подсветка кнопки
 local GLOW_COLOR        = Color3.fromRGB(255, 255, 255)
 local GLOW_TRANSPARENCY = 0.5
 local GLOW_FADE_TIME    = 0.25
 
-----------------------------------------------------------------
--- GUI START
-----------------------------------------------------------------
+-- Панели вкладок (размер и позиция в координатах меню)
+local SEC_P1_SIZE  = UDim2.new(0.30, 0, 0.60, 0)   -- большая панель, слева
+local SEC_P1_POS   = UDim2.new(0.39, 0, 0.62, 0)
+local SEC_P2_SIZE  = UDim2.new(0.30, 0, 0.60, 0)   -- большая панель, справа
+local SEC_P2_POS   = UDim2.new(0.71, 0, 0.62, 0)
+local SEC_T_SIZE   = UDim2.new(0.26, 0, 0.12, 0)   -- плашка-заголовок
+local SEC_T1_POS   = UDim2.new(0.39, 0, 0.26, 0)
+local SEC_T2_POS   = UDim2.new(0.71, 0, 0.26, 0)
+local SEC_COLOR    = Color3.fromRGB(100, 100, 100)
+local SEC_CORNER_B = UDim.new(0.05, 5)
+local SEC_CORNER_T = UDim.new(0.05, 15)
+
+-- Иконка вкладки (относительно её плашки-заголовка)
+local TAB_ICON_SIZE = UDim2.new(0.4615, 0, 1, 0)
+local TAB_ICON_POS  = UDim2.new(0.0988, 0, 0.5083, 0)
+
+-- Область скролла (координаты меню = место, где стоят панели вкладок)
+local SCROLL_LEFT      = 0.24
+local SCROLL_TOP       = 0.20
+local SCROLL_W         = 0.62
+local SCROLL_H         = 0.72
+local ROW_STEP         = 0.74   -- расстояние между рядами вкладок
+local ROWS             = 2      -- рядов вкладок (по 2 вкладки в ряду)
+local SCROLL_BAR_THICK = 6
+
+--==============================================================
+-- СБОРКА GUI  (ниже ничего менять не нужно)
+--==============================================================
+
 local old = playerGui:FindFirstChild("RoundedRectGui")
-if old then
-	old:Destroy()
-end
+if old then old:Destroy() end
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "RoundedRectGui"
 screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = playerGui
+
+----------------------------------------------------------------
+-- Вспомогательные функции
+----------------------------------------------------------------
+local function asset(id)
+	if type(id) == "number" then return "rbxassetid://" .. id end
+	if type(id) == "string" and id:match("^%d+$") then return "rbxassetid://" .. id end
+	return id
+end
 
 local function makeGroup(name, zIndex)
 	local g = Instance.new("Frame")
@@ -81,7 +171,27 @@ local function makeGroup(name, zIndex)
 	return g
 end
 
-local function makeLine(name, parent, isHorizontal, length, position, zIndex)
+-- Обычный цветной прямоугольник; cornerScale (скругление) необязателен.
+local function makePart(name, parent, size, pos, color, cornerScale)
+	local p = Instance.new("Frame")
+	p.Name = name
+	p.Size = size
+	p.Position = pos
+	p.AnchorPoint = Vector2.new(0.5, 0.5)
+	p.BackgroundColor3 = color
+	p.BorderSizePixel = 0
+	p.ZIndex = Z_OTHER
+	p.Parent = parent
+
+	if cornerScale then
+		local c = Instance.new("UICorner")
+		c.CornerRadius = UDim.new(cornerScale, 0)
+		c.Parent = p
+	end
+	return p
+end
+
+local function makeLine(name, parent, isHorizontal, length, position)
 	local line = Instance.new("Frame")
 	line.Name = name
 	if isHorizontal then
@@ -93,151 +203,52 @@ local function makeLine(name, parent, isHorizontal, length, position, zIndex)
 	line.AnchorPoint = Vector2.new(0.5, 0.5)
 	line.BackgroundColor3 = COLOR_LINES
 	line.BorderSizePixel = 0
-	line.ZIndex = zIndex
+	line.ZIndex = Z_OUTLINE
 	line.Parent = parent
 	return line
 end
 
-----------------------------------------------------------------
--- TEXT SCALING SYSTEM
-----------------------------------------------------------------
+-- Масштаб текста (текст следует за размером меню)
 local textObjects = {}
 
 local function registerText(obj, baseSize)
 	obj.TextScaled = false
 	obj.TextSize = baseSize * BASE_SCALE
 	table.insert(textObjects, { obj = obj, base = baseSize })
-	return obj
-end
-
-local function refreshTextScale(menuSize)
-	for _, entry in ipairs(textObjects) do
-		entry.obj.TextSize = entry.base * BASE_SCALE * menuSize
-	end
 end
 
 ----------------------------------------------------------------
--- FAMILY 1: MAIN PANEL + ITS PARTS
+-- Основная панель
 ----------------------------------------------------------------
 local mainGroup = makeGroup("MainGroup", Z_OTHER)
 
-local frame = Instance.new("Frame")
-frame.Name = "GrayRect"
-frame.Size = UDim2.new(0.65, 0, 0.75, 0)
-frame.Position = UDim2.new(0.55, 0, 0.555, 0)
-frame.AnchorPoint = Vector2.new(0.5, 0.5)
-frame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-frame.BorderSizePixel = 0
-frame.ZIndex = Z_OTHER
-frame.Parent = mainGroup
+makePart("GrayRect", mainGroup, UDim2.new(0.65, 0, 0.75, 0), UDim2.new(0.55, 0, 0.555, 0), COLOR_MAIN_PANEL, 0.11)
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0.11, 0)
-corner.Parent = frame
-
-local mainPart1 = Instance.new("Frame")
-mainPart1.Name = "MainPart1"
-mainPart1.Size = UDim2.new(0.03, 0, 0.1, 0)
-mainPart1.Position = UDim2.new(0.239, 1, 0.23, 0)
-mainPart1.AnchorPoint = Vector2.new(0.5, 0.5)
-mainPart1.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-mainPart1.BorderSizePixel = 0
-mainPart1.ZIndex = Z_OTHER
-mainPart1.Parent = mainGroup
-
-local mainPart2 = Instance.new("Frame")
-mainPart2.Name = "MainPart2"
-mainPart2.Size = UDim2.new(0.03, 0, 0.1, 0)
-mainPart2.Position = UDim2.new(0.240, 0, 0.88, 0)
-mainPart2.AnchorPoint = Vector2.new(0.5, 0.5)
-mainPart2.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-mainPart2.BorderSizePixel = 0
-mainPart2.ZIndex = Z_OTHER
-mainPart2.Parent = mainGroup
-
-local mainPart3 = Instance.new("Frame")
-mainPart3.Name = "MainPart3"
-mainPart3.Size = UDim2.new(0.03, 0, 0.1, 0)
-mainPart3.Position = UDim2.new(0.86, 0, 0.23, 0)
-mainPart3.AnchorPoint = Vector2.new(0.5, 0.5)
-mainPart3.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-mainPart3.BorderSizePixel = 0
-mainPart3.ZIndex = Z_OTHER
-mainPart3.Parent = mainGroup
+local PART_SIZE = UDim2.new(0.03, 0, 0.1, 0)
+makePart("MainPart1", mainGroup, PART_SIZE, UDim2.new(0.239, 1, 0.23, 0), COLOR_MAIN_PANEL)
+makePart("MainPart2", mainGroup, PART_SIZE, UDim2.new(0.240, 0, 0.88, 0), COLOR_MAIN_PANEL)
+makePart("MainPart3", mainGroup, PART_SIZE, UDim2.new(0.86, 0, 0.23, 0), COLOR_MAIN_PANEL)
 
 ----------------------------------------------------------------
--- FAMILY 2: SIDE PANEL + TOP PANEL + THEIR PARTS
+-- Боковая панель + верхняя панель
 ----------------------------------------------------------------
 local sideTopGroup = makeGroup("SideTopGroup", Z_OTHER)
 
-local innerFrame = Instance.new("Frame")
-innerFrame.Name = "InnerRect"
-innerFrame.Size = UDim2.new(0.08, 0, 0.9, 0)
-innerFrame.Position = UDim2.new(0.185, 0, 0.48, 0)
-innerFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-innerFrame.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-innerFrame.BorderSizePixel = 0
-innerFrame.ZIndex = Z_OTHER
-innerFrame.Parent = sideTopGroup
+makePart("InnerRect", sideTopGroup, UDim2.new(0.08, 0, 0.9, 0), UDim2.new(0.185, 0, 0.48, 0), COLOR_SIDE_PANEL, 0.38)
+local blackRect = makePart("BlackRect", sideTopGroup, UDim2.new(0.73, 0, 0.15, 0), UDim2.new(0.51, 0, 0.105, 0), COLOR_SIDE_PANEL, 0.5)
 
-local innerCorner = Instance.new("UICorner")
-innerCorner.CornerRadius = UDim.new(0.38, 0)
-innerCorner.Parent = innerFrame
+makePart("SidePart1", sideTopGroup, UDim2.new(0.03, 0, 0.1, 0),   UDim2.new(0.21, 0, 0.88, 0),   COLOR_SIDE_PANEL)
+makePart("SidePart2", sideTopGroup, UDim2.new(0.04, 0, 0.065, 0), UDim2.new(0.165, 0, 0.147, 0), COLOR_SIDE_PANEL)
+makePart("SidePart3", sideTopGroup, UDim2.new(0.03, 0, 0.08, 0),  UDim2.new(0.86, 0, 0.14, 0),   COLOR_SIDE_PANEL)
 
-local blackRect = Instance.new("Frame")
-blackRect.Name = "BlackRect"
-blackRect.Size = UDim2.new(0.73, 0, 0.15, 0)
-blackRect.Position = UDim2.new(0.51, 0, 0.105, 0)
-blackRect.AnchorPoint = Vector2.new(0.5, 0.5)
-blackRect.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-blackRect.BorderSizePixel = 0
-blackRect.ZIndex = Z_OTHER
-blackRect.Parent = sideTopGroup
-
-local blackCorner = Instance.new("UICorner")
-blackCorner.CornerRadius = UDim.new(0.5, 0)
-blackCorner.Parent = blackRect
-
-local sidePart1 = Instance.new("Frame")
-sidePart1.Name = "SidePart1"
-sidePart1.Size = UDim2.new(0.03, 0, 0.1, 0)
-sidePart1.Position = UDim2.new(0.21, 0, 0.88, 0)
-sidePart1.AnchorPoint = Vector2.new(0.5, 0.5)
-sidePart1.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-sidePart1.BorderSizePixel = 0
-sidePart1.ZIndex = Z_OTHER
-sidePart1.Parent = sideTopGroup
-
-local sidePart2 = Instance.new("Frame")
-sidePart2.Name = "SidePart2"
-sidePart2.Size = UDim2.new(0.04, 0, 0.065, 0)
-sidePart2.Position = UDim2.new(0.165, 0, 0.147, 0)
-sidePart2.AnchorPoint = Vector2.new(0.5, 0.5)
-sidePart2.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-sidePart2.BorderSizePixel = 0
-sidePart2.ZIndex = Z_OTHER
-sidePart2.Parent = sideTopGroup
-
-local sidePart3 = Instance.new("Frame")
-sidePart3.Name = "SidePart3"
-sidePart3.Size = UDim2.new(0.03, 0, 0.08, 0)
-sidePart3.Position = UDim2.new(0.86, 0, 0.14, 0)
-sidePart3.AnchorPoint = Vector2.new(0.5, 0.5)
-sidePart3.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-sidePart3.BorderSizePixel = 0
-sidePart3.ZIndex = Z_OTHER
-sidePart3.Parent = sideTopGroup
-
-----------------------------------------------------------------
--- SHARED: BAR DIMENSIONS
-----------------------------------------------------------------
+-- Размеры верхней панели (внутри неё стоят кнопки и разделители)
 local BAR_W = blackRect.Size.X.Scale
 local BAR_H = blackRect.Size.Y.Scale
 local BAR_X = blackRect.Position.X.Scale - BAR_W / 2
 local BAR_Y = blackRect.Position.Y.Scale - BAR_H / 2
 
 ----------------------------------------------------------------
--- FAMILY 3: OUTLINE + LINES + TOP BAR DIVIDERS
+-- Обводка, линии, разделители верхней панели
 ----------------------------------------------------------------
 local outlineGroup = makeGroup("OutlineGroup", Z_OUTLINE)
 
@@ -256,19 +267,13 @@ outlineCorner.CornerRadius = UDim.new(0.08, 0)
 outlineCorner.Parent = outline
 
 local outlineStroke = Instance.new("UIStroke")
-outlineStroke.Name = "OutlineStroke"
 outlineStroke.Color = COLOR_OUTLINE
 outlineStroke.Thickness = OUTLINE_THICKNESS
-outlineStroke.Transparency = 0
 outlineStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 outlineStroke.Parent = outline
 
-makeLine("Line1", outlineGroup, true,  0.729, UDim2.new(0.51, 0, 0.18, 0), Z_OUTLINE)
-makeLine("Line2", outlineGroup, false, 0.91,  UDim2.new(0.224, 0, 0.48, 0), Z_OUTLINE)
-
-local DIVIDER_THICKNESS = 2
-local DIVIDER_HEIGHT    = 1
-local DIVIDER_Y         = 0.5
+makeLine("Line1", outlineGroup, true,  0.729, UDim2.new(0.51, 0, 0.18, 0))
+makeLine("Line2", outlineGroup, false, 0.91,  UDim2.new(0.224, 0, 0.48, 0))
 
 for i = 1, BUTTON_COUNT do
 	local x = BUTTON_START_X + i * (BUTTON_WIDTH + BUTTON_GAP) - BUTTON_GAP / 2
@@ -285,45 +290,27 @@ for i = 1, BUTTON_COUNT do
 end
 
 ----------------------------------------------------------------
--- ██████  FAMILY 4: LOGIC  ██████
+-- Переключение разделов
 ----------------------------------------------------------------
-
--- [4.1] ХРАНИЛИЩЕ РАЗДЕЛОВ
-local tabPanels  = {}
+local sections   = {}   -- [i] = ScrollingFrame раздела i
+local topButtons = {}
 local currentTab = nil
 
--- [4.2] ПЕРЕКЛЮЧЕНИЕ РАЗДЕЛОВ
 local function openTab(i)
-	local list = tabPanels[i]
-	if not list then return end
-	if currentTab == i then return end
+	if not sections[i] or currentTab == i then return end
 
-	if currentTab and tabPanels[currentTab] then
-		for _, p in ipairs(tabPanels[currentTab]) do
-			p.Visible = false
-		end
-	end
-
-	for _, p in ipairs(list) do
-		p.Visible = true
-	end
-
+	if currentTab then sections[currentTab].Visible = false end
+	sections[i].Visible = true
 	currentTab = i
-end
 
--- [4.3] КНОПКИ (верхняя панель)
-local topButtons = {}
-
-local function updateButtonVisuals()
-	for i, btn in ipairs(topButtons) do
-		if i == currentTab then
-			btn.BackgroundColor3 = BUTTON_ACTIVE_COLOR
-		else
-			btn.BackgroundColor3 = BUTTON_INACTIVE_COLOR
-		end
+	for n, btn in ipairs(topButtons) do
+		btn.BackgroundColor3 = (n == i) and BUTTON_ACTIVE_COLOR or BUTTON_COLOR
 	end
 end
 
+----------------------------------------------------------------
+-- Верхние кнопки
+----------------------------------------------------------------
 for i = 1, BUTTON_COUNT do
 	local btnX = BUTTON_START_X + (i - 1) * (BUTTON_WIDTH + BUTTON_GAP)
 
@@ -335,12 +322,11 @@ for i = 1, BUTTON_COUNT do
 	btn.BackgroundColor3 = BUTTON_COLOR
 	btn.BorderSizePixel = 0
 	btn.AutoButtonColor = false
-	btn.Text = "Раздел " .. i
+	btn.Text = SECTION_NAMES[i]
 	btn.Font = Enum.Font.GothamBold
 	btn.TextColor3 = Color3.fromRGB(0, 0, 0)
 	btn.ZIndex = Z_OTHER
 	btn.Parent = sideTopGroup
-
 	registerText(btn, TEXT_BASE_BUTTON)
 
 	local glow = Instance.new("Frame")
@@ -352,52 +338,69 @@ for i = 1, BUTTON_COUNT do
 	glow.ZIndex = Z_OTHER
 	glow.Parent = btn
 
-	local function glowOn()
-		glow.BackgroundTransparency = GLOW_TRANSPARENCY
-	end
-
 	local function glowOff()
 		TweenService:Create(glow, TweenInfo.new(GLOW_FADE_TIME), { BackgroundTransparency = 1 }):Play()
 	end
 
-	btn.MouseButton1Down:Connect(glowOn)
+	btn.MouseButton1Down:Connect(function() glow.BackgroundTransparency = GLOW_TRANSPARENCY end)
 	btn.MouseButton1Up:Connect(glowOff)
 	btn.MouseLeave:Connect(glowOff)
-	btn.Activated:Connect(function()
-		openTab(i)
-		updateButtonVisuals()
-	end)
+	btn.Activated:Connect(function() openTab(i) end)
 
 	topButtons[i] = btn
 end
 
--- [4.4] ПАНЕЛИ РАЗДЕЛОВ
-local SEC_P1_SIZE   = UDim2.new(0.30, 0, 0.60, 0)
-local SEC_P1_POS    = UDim2.new(0.39, 0, 0.62, 0)
-local SEC_P2_SIZE   = UDim2.new(0.30, 0, 0.60, 0)
-local SEC_P2_POS    = UDim2.new(0.71, 0, 0.62, 0)
-local SEC_T_SIZE    = UDim2.new(0.26, 0, 0.12, 0)
-local SEC_T1_POS    = UDim2.new(0.39, 0, 0.26, 0)
-local SEC_T2_POS    = UDim2.new(0.71, 0, 0.26, 0)
+----------------------------------------------------------------
+-- Панели вкладок со скроллом
+-- Вкладка = большая панель  (Sec{S}Tab{N})
+-- Плашка-заголовок          (Sec{S}Tab{N}Title), внутри неё иконка вкладки
+----------------------------------------------------------------
 
-local SEC_COLOR     = Color3.fromRGB(100, 100, 100)
-local SEC_ANCHOR    = Vector2.new(0.5, 0.5)
-local SEC_TRANS     = 0
-local SEC_CORNER_B  = UDim.new(0.05, 5)
-local SEC_CORNER_T  = UDim.new(0.05, 15)
+-- Content всегда равен размеру меню, поэтому каждая панель сохраняет свои
+-- исходные размер и позицию; окно скролла лишь показывает часть Content.
+local scrollSections = {}
 
-local function makeSectionPanel(name, size, pos, corner, text)
-	local p = Instance.new("Frame")
-	p.Name = name
-	p.Size = size
-	p.Position = pos
-	p.AnchorPoint = SEC_ANCHOR
-	p.BackgroundColor3 = SEC_COLOR
-	p.BackgroundTransparency = SEC_TRANS
-	p.BorderSizePixel = 0
-	p.ZIndex = Z_OTHER
-	p.Visible = false
-	p.Parent = mainGroup
+local function syncScroll()
+	local w = mainGroup.AbsoluteSize.X
+	local h = mainGroup.AbsoluteSize.Y
+	for _, e in ipairs(scrollSections) do
+		e.content.Size = UDim2.fromOffset(w, h)
+		e.content.Position = UDim2.fromOffset(-SCROLL_LEFT * w, -SCROLL_TOP * h)
+		e.sf.CanvasSize = UDim2.fromOffset(0, ((ROWS - 1) * ROW_STEP + SCROLL_H) * h)
+	end
+end
+mainGroup:GetPropertyChangedSignal("AbsoluteSize"):Connect(syncScroll)
+
+local function makeSectionScroll(name)
+	local sf = Instance.new("ScrollingFrame")
+	sf.Name = name
+	sf.AnchorPoint = Vector2.new(0.5, 0.5)
+	sf.Size = UDim2.new(SCROLL_W, 0, SCROLL_H, 0)
+	sf.Position = UDim2.new(SCROLL_LEFT + SCROLL_W / 2, 0, SCROLL_TOP + SCROLL_H / 2, 0)
+	sf.BackgroundTransparency = 1
+	sf.BorderSizePixel = 0
+	sf.ScrollingDirection = Enum.ScrollingDirection.Y
+	sf.ScrollBarThickness = SCROLL_BAR_THICK
+	sf.ZIndex = Z_OTHER
+	sf.Visible = false
+	sf.Parent = mainGroup
+
+	local content = Instance.new("Frame")
+	content.Name = "Content"
+	content.BackgroundTransparency = 1
+	content.BorderSizePixel = 0
+	content.ZIndex = Z_OTHER
+	content.Parent = sf
+
+	table.insert(scrollSections, { sf = sf, content = content })
+	return sf, content
+end
+
+-- row = 1 - исходное место; каждый следующий ряд сдвинут вниз на ROW_STEP.
+local function makeSectionPanel(name, parent, row, size, pos, corner, text)
+	local p = makePart(name, parent, size,
+		UDim2.new(pos.X.Scale, pos.X.Offset, pos.Y.Scale + (row - 1) * ROW_STEP, pos.Y.Offset),
+		SEC_COLOR)
 
 	local c = Instance.new("UICorner")
 	c.CornerRadius = corner
@@ -413,49 +416,85 @@ local function makeSectionPanel(name, size, pos, corner, text)
 		lbl.TextColor3 = Color3.fromRGB(0, 0, 0)
 		lbl.ZIndex = Z_OTHER
 		lbl.Parent = p
-
 		registerText(lbl, TEXT_BASE_LABEL)
 	end
 
 	return p
 end
 
-local tabCounter = 0
-for s = 1, BUTTON_COUNT do
-	tabPanels[s] = {}
-
-	table.insert(tabPanels[s],
-		makeSectionPanel("Sec"..s.."Panel1", SEC_P1_SIZE, SEC_P1_POS, SEC_CORNER_B))
-
-	table.insert(tabPanels[s],
-		makeSectionPanel("Sec"..s.."Panel2", SEC_P2_SIZE, SEC_P2_POS, SEC_CORNER_B))
-
-	tabCounter = tabCounter + 1
-	table.insert(tabPanels[s],
-		makeSectionPanel("Sec"..s.."Tab1", SEC_T_SIZE, SEC_T1_POS, SEC_CORNER_T, "Вкладка " .. tabCounter))
-
-	tabCounter = tabCounter + 1
-	table.insert(tabPanels[s],
-		makeSectionPanel("Sec"..s.."Tab2", SEC_T_SIZE, SEC_T2_POS, SEC_CORNER_T, "Вкладка " .. tabCounter))
+local function tabIconId(section, index)
+	local list = TAB_ICONS[section]
+	local id = list and list[index]
+	if id and id ~= 0 and id ~= "" then return id end
+	return TAB_ICON_DEFAULT
 end
 
--- [4.5] СТАРТОВОЕ СОСТОЯНИЕ
-openTab(1)
-updateButtonVisuals()
+local function addTitleIcon(title, id)
+	local ic = Instance.new("ImageLabel")
+	ic.Name = "Icon"
+	ic.AnchorPoint = Vector2.new(0.5, 0.5)
+	ic.Position = TAB_ICON_POS
+	ic.Size = TAB_ICON_SIZE
+	ic.BackgroundTransparency = 1
+	ic.BorderSizePixel = 0
+	ic.Image = asset(id)
+	ic.ScaleType = Enum.ScaleType.Fit
+	ic.ZIndex = Z_OTHER
+	ic.Parent = title
+end
+
+local tabCounter = 0
+for s = 1, BUTTON_COUNT do
+	local sf, content = makeSectionScroll("Sec" .. s .. "Scroll")
+	sections[s] = sf
+
+	for row = 1, ROWS do
+		for col = 1, 2 do
+			tabCounter = tabCounter + 1
+			local isLeft = (col == 1)
+			local index = (row - 1) * 2 + col
+
+			makeSectionPanel("Sec" .. s .. "Tab" .. tabCounter, content, row,
+				isLeft and SEC_P1_SIZE or SEC_P2_SIZE,
+				isLeft and SEC_P1_POS or SEC_P2_POS,
+				SEC_CORNER_B)
+
+			local title = makeSectionPanel("Sec" .. s .. "Tab" .. tabCounter .. "Title", content, row,
+				SEC_T_SIZE,
+				isLeft and SEC_T1_POS or SEC_T2_POS,
+				SEC_CORNER_T, TAB_TITLE_PREFIX .. tabCounter)
+
+			addTitleIcon(title, tabIconId(s, index))
+		end
+	end
+end
+syncScroll()
 
 ----------------------------------------------------------------
--- ██████  MENU SIZE AND POSITION  ██████
--- MENU_SIZE     — масштаб всего меню (1 = как сейчас)
--- MENU_OFFSET_X — сдвиг по X (доли экрана, +0.1 = вправо)
--- MENU_OFFSET_Y — сдвиг по Y (доли экрана, +0.1 = вниз)
+-- Логотип
 ----------------------------------------------------------------
-local MENU_SIZE     = 1
-local MENU_OFFSET_X = 0
-local MENU_OFFSET_Y = 0
+local logo = Instance.new("ImageLabel")
+logo.Name = "Logo"
+logo.AnchorPoint = Vector2.new(0.5, 0.5)
+logo.Position = LOGO_POSITION
+logo.Size = LOGO_SIZE
+logo.BackgroundTransparency = 1
+logo.BorderSizePixel = 0
+logo.Image = asset(LOGO_ID)
+logo.ScaleType = Enum.ScaleType.Fit
+logo.ZIndex = Z_OTHER
+logo.Parent = sideTopGroup
 
+----------------------------------------------------------------
+-- Применяем размер / позицию меню, открываем первый раздел
+----------------------------------------------------------------
 for _, group in ipairs({ mainGroup, sideTopGroup, outlineGroup }) do
-	group.Size     = UDim2.new(BASE_SCALE * MENU_SIZE, 0, BASE_SCALE * MENU_SIZE, 0)
+	group.Size = UDim2.new(BASE_SCALE * MENU_SIZE, 0, BASE_SCALE * MENU_SIZE, 0)
 	group.Position = UDim2.new(0.5 + MENU_OFFSET_X, 0, 0.5 - MENU_OFFSET_Y, 0)
 end
 
-refreshTextScale(MENU_SIZE)
+for _, entry in ipairs(textObjects) do
+	entry.obj.TextSize = entry.base * BASE_SCALE * MENU_SIZE
+end
+
+openTab(1)
