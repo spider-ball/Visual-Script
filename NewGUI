@@ -1,17 +1,13 @@
 --==============================================================
--- КРУГЛОЕ МЕНЮ (GUI)
+-- КРУГЛОЕ МЕНЮ (GUI) — с подробными комментариями
+--==============================================================
 --
--- КАК ПОЛЬЗОВАТЬСЯ:
---   1) Меняй только блок "НАСТРОЙКИ ПОЛЬЗОВАТЕЛЯ" ниже:
---      логотип, иконки и названия разделов (просто вставь числовой ID).
---   2) "ДОПОЛНИТЕЛЬНЫЕ НАСТРОЙКИ" - размеры, цвета, расположение.
---   3) Всё, что ниже "СБОРКА GUI", трогать не нужно.
---
--- Что где находится:
---   LOGO           - логотип слева сверху
---   Section N      - кнопки разделов в верхней панели (SECTION_NAMES)
---   Иконка вкладки - маленькая иконка на заголовке каждой вкладки
---                    (в каждом разделе 4 вкладки: 2 ряда по 2, с прокруткой)
+-- Стрелка "v" на заголовке вкладки — КНОПКА ОТКРЫТИЯ/ЗАКРЫТИЯ:
+--   • клик — прячет/показывает тело вкладки (большую панель + её обводку);
+--   • стрелка поворачивается на TAB_TOGGLE_ROTATION_CLOSED;
+--   • вкладки НИЖЕ в этом же столбце сдвигаются вверх на TAB_COLLAPSE_SHIFT_Y,
+--     чтобы занять освободившееся место.
+-- Изначально все вкладки открыты.
 --==============================================================
 
 local Players = game:GetService("Players")
@@ -19,80 +15,70 @@ local TweenService = game:GetService("TweenService")
 local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 
 --==============================================================
--- НАСТРОЙКИ ПОЛЬЗОВАТЕЛЯ  (вставляй сюда свои ID и названия)
+-- БЛОК 1. НАСТРОЙКИ ПОЛЬЗОВАТЕЛЯ
 --==============================================================
 
--- ID можно писать числом (123456) или строкой ("rbxassetid://123456").
-
--- ЛОГОТИП (слева сверху)
 local LOGO_ID       = 117390305692041
 local LOGO_SIZE     = UDim2.new(0.17, 0, 0.17, 0)
 local LOGO_POSITION = UDim2.new(0.1857, 0, 0.1048, 0)
 
--- КНОПКИ РАЗДЕЛОВ (верхняя панель).
--- Сколько названий в списке - столько и разделов.
 local SECTION_NAMES = {
 	"Section 1", "Section 2", "Section 3", "Section 4", "Section 5",
 	"Section 6", "Section 7", "Section 8", "Section 9", "Section 10",
 }
 
--- ТЕКСТ НА ПЛАШКАХ ВКЛАДОК: префикс + номер. Например "Вкладка " даст "Вкладка 1".
 local TAB_TITLE_PREFIX = "Tab "
-
--- ИКОНКИ ВКЛАДОК
--- У КАЖДОЙ вкладки своя иконка: замени 0 на ID нужной картинки.
--- 0 = вкладка использует иконку по умолчанию (TAB_ICON_DEFAULT).
 local TAB_ICON_DEFAULT = 108716693326627
 
--- [номер раздела] = { вкладка1, вкладка2, вкладка3, вкладка4 }
---   вкладка1 = верхний ряд слева,  вкладка2 = верхний ряд справа,
---   вкладка3 = нижний ряд слева,   вкладка4 = нижний ряд справа.
 local TAB_ICONS = {
-	[1]  = { 0, 0, 0, 0 },
-	[2]  = { 0, 0, 0, 0 },
-	[3]  = { 0, 0, 0, 0 },
-	[4]  = { 0, 0, 0, 0 },
-	[5]  = { 0, 0, 0, 0 },
-	[6]  = { 0, 0, 0, 0 },
-	[7]  = { 0, 0, 0, 0 },
-	[8]  = { 0, 0, 0, 0 },
-	[9]  = { 0, 0, 0, 0 },
+	[1]  = { 0, 0, 0, 0 }, [2]  = { 0, 0, 0, 0 }, [3]  = { 0, 0, 0, 0 },
+	[4]  = { 0, 0, 0, 0 }, [5]  = { 0, 0, 0, 0 }, [6]  = { 0, 0, 0, 0 },
+	[7]  = { 0, 0, 0, 0 }, [8]  = { 0, 0, 0, 0 }, [9]  = { 0, 0, 0, 0 },
 	[10] = { 0, 0, 0, 0 },
 }
--- Пример: в разделе 1 у первой вкладки одна иконка, у второй другая:
---   [1] = { 111111111, 222222222, 0, 0 },
 
--- РАЗМЕР И ПОЗИЦИЯ МЕНЮ
+-- Стрелка на каждой вкладке (это же кликабельная кнопка открытия/закрытия).
+local TAB_DECOR_ID        = 89884279192043
+local TAB_DECOR_SIZE      = UDim2.new(0.1905, 0, 0.1905, 0)
+local TAB_DECOR_POS_LEFT  = UDim2.new(0.4992, 0, 0.2619, 0)
+local TAB_DECOR_POS_RIGHT = UDim2.new(0.8183, 0, 0.2619, 0)
+
+-- Угол поворота стрелки в ЗАКРЫТОМ состоянии.
+local TAB_TOGGLE_ROTATION_CLOSED = 180
+
+-- На сколько СДВИГАТЬ ВВЕРХ вкладки ниже закрытой (в долях от высоты меню).
+-- 0.60 — примерно высота тела вкладки. Плюс небольшой зазор.
+local TAB_COLLAPSE_SHIFT_Y = 0.62
+
+local TAB_VLINE_THICKNESS = 2
+local TAB_VLINE_LENGTH    = 0.12
+local TAB_VLINE_POS_LEFT  = UDim2.new(0.480, 0, 0.26, 0)
+local TAB_VLINE_POS_RIGHT = UDim2.new(0.799, 0, 0.26, 0)
+
 local MENU_SIZE     = 1
 local MENU_OFFSET_X = 0
 local MENU_OFFSET_Y = 0
 
 --==============================================================
--- ДОПОЛНИТЕЛЬНЫЕ НАСТРОЙКИ
+-- БЛОК 2. ДОПОЛНИТЕЛЬНЫЕ НАСТРОЙКИ
 --==============================================================
 
--- Слои (ZIndex): всё на Z_OTHER, только обводка поверх всего.
 local Z_OTHER   = 1
 local Z_OUTLINE = 100
 
--- Базовый масштаб всего меню
 local BASE_SCALE = 1.05
 
--- Базовые размеры текста
 local TEXT_BASE_BUTTON = 10
 local TEXT_BASE_LABEL  = 30
 
--- Цвета
 local COLOR_MAIN_PANEL = Color3.fromRGB(255, 255, 255)
 local COLOR_SIDE_PANEL = Color3.fromRGB(100, 100, 100)
 local COLOR_LINES      = Color3.fromRGB(0, 0, 0)
 local COLOR_OUTLINE    = Color3.fromRGB(0, 0, 0)
 
--- Обводка и линии
 local LINE_THICKNESS    = 2
 local OUTLINE_THICKNESS = 2
 
--- Верхние кнопки / разделители
 local BUTTON_COUNT        = #SECTION_NAMES
 local BUTTON_WIDTH        = 0.08
 local BUTTON_HEIGHT       = 1
@@ -106,38 +92,34 @@ local DIVIDER_THICKNESS = 2
 local DIVIDER_HEIGHT    = 1
 local DIVIDER_Y         = 0.5
 
--- Подсветка кнопки
 local GLOW_COLOR        = Color3.fromRGB(255, 255, 255)
 local GLOW_TRANSPARENCY = 0.5
 local GLOW_FADE_TIME    = 0.25
 
--- Панели вкладок (размер и позиция в координатах меню)
-local SEC_P1_SIZE  = UDim2.new(0.30, 0, 0.60, 0)   -- большая панель, слева
+local SEC_P1_SIZE  = UDim2.new(0.30, 0, 0.60, 0)
 local SEC_P1_POS   = UDim2.new(0.39, 0, 0.62, 0)
-local SEC_P2_SIZE  = UDim2.new(0.30, 0, 0.60, 0)   -- большая панель, справа
+local SEC_P2_SIZE  = UDim2.new(0.30, 0, 0.60, 0)
 local SEC_P2_POS   = UDim2.new(0.71, 0, 0.62, 0)
-local SEC_T_SIZE   = UDim2.new(0.26, 0, 0.12, 0)   -- плашка-заголовок
+local SEC_T_SIZE   = UDim2.new(0.26, 0, 0.12, 0)
 local SEC_T1_POS   = UDim2.new(0.39, 0, 0.26, 0)
 local SEC_T2_POS   = UDim2.new(0.71, 0, 0.26, 0)
 local SEC_COLOR    = Color3.fromRGB(100, 100, 100)
-local SEC_CORNER_B = UDim.new(0.05, 5)
-local SEC_CORNER_T = UDim.new(0.05, 15)
+local SEC_CORNER_B = UDim.new(0, 20)
+local SEC_CORNER_T = UDim.new(0, 20)
 
--- Иконка вкладки (относительно её плашки-заголовка)
 local TAB_ICON_SIZE = UDim2.new(0.4615, 0, 1, 0)
 local TAB_ICON_POS  = UDim2.new(0.0988, 0, 0.5083, 0)
 
--- Область скролла (координаты меню = место, где стоят панели вкладок)
-local SCROLL_LEFT      = 0.24
-local SCROLL_TOP       = 0.20
-local SCROLL_W         = 0.62
-local SCROLL_H         = 0.72
-local ROW_STEP         = 0.74   -- расстояние между рядами вкладок
-local ROWS             = 2      -- рядов вкладок (по 2 вкладки в ряду)
+local SCROLL_LEFT      = 0.22
+local SCROLL_TOP       = 0.185
+local SCROLL_W         = 0.66
+local SCROLL_H         = 0.75
+local ROW_STEP         = 0.80
+local ROWS             = 2
 local SCROLL_BAR_THICK = 6
 
 --==============================================================
--- СБОРКА GUI  (ниже ничего менять не нужно)
+-- БЛОК 3. СБОРКА GUI
 --==============================================================
 
 local old = playerGui:FindFirstChild("RoundedRectGui")
@@ -150,7 +132,7 @@ screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = playerGui
 
 ----------------------------------------------------------------
--- Вспомогательные функции
+-- Утилиты
 ----------------------------------------------------------------
 local function asset(id)
 	if type(id) == "number" then return "rbxassetid://" .. id end
@@ -171,7 +153,6 @@ local function makeGroup(name, zIndex)
 	return g
 end
 
--- Обычный цветной прямоугольник; cornerScale (скругление) необязателен.
 local function makePart(name, parent, size, pos, color, cornerScale)
 	local p = Instance.new("Frame")
 	p.Name = name
@@ -185,7 +166,7 @@ local function makePart(name, parent, size, pos, color, cornerScale)
 
 	if cornerScale then
 		local c = Instance.new("UICorner")
-		c.CornerRadius = UDim.new(cornerScale, 0)
+		c.CornerRadius = cornerScale
 		c.Parent = p
 	end
 	return p
@@ -208,7 +189,6 @@ local function makeLine(name, parent, isHorizontal, length, position)
 	return line
 end
 
--- Масштаб текста (текст следует за размером меню)
 local textObjects = {}
 
 local function registerText(obj, baseSize)
@@ -222,7 +202,7 @@ end
 ----------------------------------------------------------------
 local mainGroup = makeGroup("MainGroup", Z_OTHER)
 
-makePart("GrayRect", mainGroup, UDim2.new(0.65, 0, 0.75, 0), UDim2.new(0.55, 0, 0.555, 0), COLOR_MAIN_PANEL, 0.11)
+makePart("GrayRect", mainGroup, UDim2.new(0.65, 0, 0.75, 0), UDim2.new(0.55, 0, 0.555, 0), COLOR_MAIN_PANEL, UDim.new(0.11, 0))
 
 local PART_SIZE = UDim2.new(0.03, 0, 0.1, 0)
 makePart("MainPart1", mainGroup, PART_SIZE, UDim2.new(0.239, 1, 0.23, 0), COLOR_MAIN_PANEL)
@@ -230,25 +210,24 @@ makePart("MainPart2", mainGroup, PART_SIZE, UDim2.new(0.240, 0, 0.88, 0), COLOR_
 makePart("MainPart3", mainGroup, PART_SIZE, UDim2.new(0.86, 0, 0.23, 0), COLOR_MAIN_PANEL)
 
 ----------------------------------------------------------------
--- Боковая панель + верхняя панель
+-- Левая боковая панель + верхняя панель
 ----------------------------------------------------------------
 local sideTopGroup = makeGroup("SideTopGroup", Z_OTHER)
 
-makePart("InnerRect", sideTopGroup, UDim2.new(0.08, 0, 0.9, 0), UDim2.new(0.185, 0, 0.48, 0), COLOR_SIDE_PANEL, 0.38)
-local blackRect = makePart("BlackRect", sideTopGroup, UDim2.new(0.73, 0, 0.15, 0), UDim2.new(0.51, 0, 0.105, 0), COLOR_SIDE_PANEL, 0.5)
+makePart("InnerRect", sideTopGroup, UDim2.new(0.08, 0, 0.9, 0), UDim2.new(0.185, 0, 0.48, 0), COLOR_SIDE_PANEL, UDim.new(0.38, 0))
+local blackRect = makePart("BlackRect", sideTopGroup, UDim2.new(0.73, 0, 0.15, 0), UDim2.new(0.51, 0, 0.105, 0), COLOR_SIDE_PANEL, UDim.new(0.5, 0))
 
 makePart("SidePart1", sideTopGroup, UDim2.new(0.03, 0, 0.1, 0),   UDim2.new(0.21, 0, 0.88, 0),   COLOR_SIDE_PANEL)
 makePart("SidePart2", sideTopGroup, UDim2.new(0.04, 0, 0.065, 0), UDim2.new(0.165, 0, 0.147, 0), COLOR_SIDE_PANEL)
 makePart("SidePart3", sideTopGroup, UDim2.new(0.03, 0, 0.08, 0),  UDim2.new(0.86, 0, 0.14, 0),   COLOR_SIDE_PANEL)
 
--- Размеры верхней панели (внутри неё стоят кнопки и разделители)
 local BAR_W = blackRect.Size.X.Scale
 local BAR_H = blackRect.Size.Y.Scale
 local BAR_X = blackRect.Position.X.Scale - BAR_W / 2
 local BAR_Y = blackRect.Position.Y.Scale - BAR_H / 2
 
 ----------------------------------------------------------------
--- Обводка, линии, разделители верхней панели
+-- Обводки, линии, разделители верхней панели
 ----------------------------------------------------------------
 local outlineGroup = makeGroup("OutlineGroup", Z_OUTLINE)
 
@@ -277,7 +256,6 @@ makeLine("Line2", outlineGroup, false, 0.91,  UDim2.new(0.224, 0, 0.48, 0))
 
 for i = 1, BUTTON_COUNT do
 	local x = BUTTON_START_X + i * (BUTTON_WIDTH + BUTTON_GAP) - BUTTON_GAP / 2
-
 	local div = Instance.new("Frame")
 	div.Name = "TopDivider" .. i
 	div.Size = UDim2.new(0, DIVIDER_THICKNESS, DIVIDER_HEIGHT * BAR_H, 0)
@@ -292,17 +270,15 @@ end
 ----------------------------------------------------------------
 -- Переключение разделов
 ----------------------------------------------------------------
-local sections   = {}   -- [i] = ScrollingFrame раздела i
+local sections   = {}
 local topButtons = {}
 local currentTab = nil
 
 local function openTab(i)
 	if not sections[i] or currentTab == i then return end
-
 	if currentTab then sections[currentTab].Visible = false end
 	sections[i].Visible = true
 	currentTab = i
-
 	for n, btn in ipairs(topButtons) do
 		btn.BackgroundColor3 = (n == i) and BUTTON_ACTIVE_COLOR or BUTTON_COLOR
 	end
@@ -351,13 +327,8 @@ for i = 1, BUTTON_COUNT do
 end
 
 ----------------------------------------------------------------
--- Панели вкладок со скроллом
--- Вкладка = большая панель  (Sec{S}Tab{N})
--- Плашка-заголовок          (Sec{S}Tab{N}Title), внутри неё иконка вкладки
+-- Скролл-контейнеры
 ----------------------------------------------------------------
-
--- Content всегда равен размеру меню, поэтому каждая панель сохраняет свои
--- исходные размер и позицию; окно скролла лишь показывает часть Content.
 local scrollSections = {}
 
 local function syncScroll()
@@ -396,7 +367,6 @@ local function makeSectionScroll(name)
 	return sf, content
 end
 
--- row = 1 - исходное место; каждый следующий ряд сдвинут вниз на ROW_STEP.
 local function makeSectionPanel(name, parent, row, size, pos, corner, text)
 	local p = makePart(name, parent, size,
 		UDim2.new(pos.X.Scale, pos.X.Offset, pos.Y.Scale + (row - 1) * ROW_STEP, pos.Y.Offset),
@@ -431,7 +401,7 @@ end
 
 local function addTitleIcon(title, id)
 	local ic = Instance.new("ImageLabel")
-	ic.Name = "Icon"
+	ic.Name = "YuoIcon"
 	ic.AnchorPoint = Vector2.new(0.5, 0.5)
 	ic.Position = TAB_ICON_POS
 	ic.Size = TAB_ICON_SIZE
@@ -443,28 +413,161 @@ local function addTitleIcon(title, id)
 	ic.Parent = title
 end
 
+-- Кликабельная стрелка-кнопка. ВОЗВРАЩАЕТ ImageButton.
+local function addTabDecor(name, parent, row, isLeft)
+	local pos = isLeft and TAB_DECOR_POS_LEFT or TAB_DECOR_POS_RIGHT
+	local ic = Instance.new("ImageButton")
+	ic.Name = name
+	ic.AnchorPoint = Vector2.new(0.5, 0.5)
+	ic.Position = UDim2.new(pos.X.Scale, pos.X.Offset, pos.Y.Scale + (row - 1) * ROW_STEP, pos.Y.Offset)
+	ic.Size = TAB_DECOR_SIZE
+	ic.BackgroundTransparency = 1
+	ic.BorderSizePixel = 0
+	ic.Image = asset(TAB_DECOR_ID)
+	ic.ScaleType = Enum.ScaleType.Fit
+	ic.AutoButtonColor = false
+	ic.ZIndex = Z_OTHER
+	ic.Parent = parent
+	return ic
+end
+
+-- ВАЖНО: возвращаем Frame (иначе нельзя потом скрыть обводку).
+local function makeTabOutline(name, parent, row, size, pos, corner, zIndex)
+	local fr = Instance.new("Frame")
+	fr.Name = name
+	fr.AnchorPoint = Vector2.new(0.5, 0.5)
+	fr.Size = size
+	fr.Position = UDim2.new(pos.X.Scale, pos.X.Offset, pos.Y.Scale + (row - 1) * ROW_STEP, pos.Y.Offset)
+	fr.BackgroundTransparency = 1
+	fr.BorderSizePixel = 0
+	fr.ZIndex = zIndex or Z_OUTLINE
+	fr.Parent = parent
+
+	local c = Instance.new("UICorner")
+	c.CornerRadius = corner
+	c.Parent = fr
+
+	local st = Instance.new("UIStroke")
+	st.Color = COLOR_OUTLINE
+	st.Thickness = OUTLINE_THICKNESS
+	st.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+	st.Parent = fr
+	return fr
+end
+
+local function addTabVLine(name, parent, row, isLeft)
+	local pos = isLeft and TAB_VLINE_POS_LEFT or TAB_VLINE_POS_RIGHT
+	local ln = Instance.new("Frame")
+	ln.Name = name
+	ln.AnchorPoint = Vector2.new(0.5, 0.5)
+	ln.Size = UDim2.new(0, TAB_VLINE_THICKNESS, TAB_VLINE_LENGTH, 0)
+	ln.Position = UDim2.new(pos.X.Scale, pos.X.Offset, pos.Y.Scale + (row - 1) * ROW_STEP, pos.Y.Offset)
+	ln.BackgroundColor3 = COLOR_LINES
+	ln.BorderSizePixel = 0
+	ln.ZIndex = Z_OUTLINE
+	ln.Parent = parent
+	return ln
+end
+
+----------------------------------------------------------------
+-- ГЛАВНЫЙ ЦИКЛ
+----------------------------------------------------------------
 local tabCounter = 0
 for s = 1, BUTTON_COUNT do
 	local sf, content = makeSectionScroll("Sec" .. s .. "Scroll")
 	sections[s] = sf
 
+	-- Для каждого раздела свои столбцы. columns[col][row] = tabInfo.
+	local columns = { {}, {} }
+
+	-- Пересчитывает Y всех вкладок в столбце col:
+	-- идёт сверху вниз, накапливает смещение от закрытых выше.
+	local function relayoutColumn(col)
+		local yOff = 0
+		for r = 1, ROWS do
+			local t = columns[col][r]
+			if t then
+				local function moveTo(el, baseY)
+					el.Position = UDim2.new(
+						el.Position.X.Scale, el.Position.X.Offset,
+						baseY + yOff, el.Position.Y.Offset)
+				end
+				moveTo(t.body,         t.baseBodyY)
+				moveTo(t.bodyOutline,  t.baseBodyY)
+				moveTo(t.title,        t.baseTitleY)
+				moveTo(t.titleOutline, t.baseTitleY)
+				moveTo(t.decor,        t.baseDecorY)
+				moveTo(t.vline,        t.baseVlineY)
+
+				if t.closed then
+					yOff = yOff - TAB_COLLAPSE_SHIFT_Y
+				end
+			end
+		end
+	end
+
 	for row = 1, ROWS do
 		for col = 1, 2 do
 			tabCounter = tabCounter + 1
+			local myId = tabCounter
 			local isLeft = (col == 1)
 			local index = (row - 1) * 2 + col
 
-			makeSectionPanel("Sec" .. s .. "Tab" .. tabCounter, content, row,
+			-- 1) Заголовок + его обводка (обводка спрячется под телом).
+			local title = makeSectionPanel("Sec" .. s .. "Tab" .. myId .. "Title", content, row,
+				SEC_T_SIZE,
+				isLeft and SEC_T1_POS or SEC_T2_POS,
+				SEC_CORNER_T, TAB_TITLE_PREFIX .. myId)
+
+			local titleOutline = makeTabOutline("Sec" .. s .. "Tab" .. myId .. "TitleOutline", content, row,
+				SEC_T_SIZE,
+				isLeft and SEC_T1_POS or SEC_T2_POS,
+				SEC_CORNER_T, Z_OTHER)
+
+			addTitleIcon(title, tabIconId(s, index))
+
+			-- 2) Тело вкладки + его обводка.
+			local bodyPanel = makeSectionPanel("Sec" .. s .. "Tab" .. myId, content, row,
 				isLeft and SEC_P1_SIZE or SEC_P2_SIZE,
 				isLeft and SEC_P1_POS or SEC_P2_POS,
 				SEC_CORNER_B)
 
-			local title = makeSectionPanel("Sec" .. s .. "Tab" .. tabCounter .. "Title", content, row,
-				SEC_T_SIZE,
-				isLeft and SEC_T1_POS or SEC_T2_POS,
-				SEC_CORNER_T, TAB_TITLE_PREFIX .. tabCounter)
+			local bodyOutline = makeTabOutline("Sec" .. s .. "Tab" .. myId .. "Outline", content, row,
+				isLeft and SEC_P1_SIZE or SEC_P2_SIZE,
+				isLeft and SEC_P1_POS or SEC_P2_POS,
+				SEC_CORNER_B)
 
-			addTitleIcon(title, tabIconId(s, index))
+			-- 3) Стрелка-кнопка.
+			local decor = addTabDecor("Sec" .. s .. "Tab" .. myId .. "ToggleIcon", content, row, isLeft)
+			decor.Rotation = 0
+
+			-- 4) Вертикальная линия в заголовке.
+			local vline = addTabVLine("Sec" .. s .. "Tab" .. myId .. "VLine", content, row, isLeft)
+
+			-- Сохраняем базовые Y для последующих сдвигов.
+			local baseBodyY  = (isLeft and SEC_P1_POS.Y.Scale or SEC_P2_POS.Y.Scale) + (row - 1) * ROW_STEP
+			local baseTitleY = (isLeft and SEC_T1_POS.Y.Scale or SEC_T2_POS.Y.Scale) + (row - 1) * ROW_STEP
+			local baseDecorY = (isLeft and TAB_DECOR_POS_LEFT.Y.Scale or TAB_DECOR_POS_RIGHT.Y.Scale) + (row - 1) * ROW_STEP
+			local baseVlineY = (isLeft and TAB_VLINE_POS_LEFT.Y.Scale or TAB_VLINE_POS_RIGHT.Y.Scale) + (row - 1) * ROW_STEP
+
+			local tabInfo = {
+				body = bodyPanel, bodyOutline = bodyOutline,
+				title = title, titleOutline = titleOutline,
+				decor = decor, vline = vline,
+				baseBodyY = baseBodyY, baseTitleY = baseTitleY,
+				baseDecorY = baseDecorY, baseVlineY = baseVlineY,
+				closed = false,
+			}
+			columns[col][row] = tabInfo
+
+			-- Клик по стрелке: свернуть/развернуть + пересобрать столбец.
+			decor.Activated:Connect(function()
+				tabInfo.closed = not tabInfo.closed
+				tabInfo.body.Visible = not tabInfo.closed
+				tabInfo.bodyOutline.Visible = not tabInfo.closed
+				tabInfo.decor.Rotation = tabInfo.closed and TAB_TOGGLE_ROTATION_CLOSED or 0
+				relayoutColumn(col)
+			end)
 		end
 	end
 end
@@ -486,7 +589,7 @@ logo.ZIndex = Z_OTHER
 logo.Parent = sideTopGroup
 
 ----------------------------------------------------------------
--- Применяем размер / позицию меню, открываем первый раздел
+-- Применяем размер / позицию меню и открываем первый раздел
 ----------------------------------------------------------------
 for _, group in ipairs({ mainGroup, sideTopGroup, outlineGroup }) do
 	group.Size = UDim2.new(BASE_SCALE * MENU_SIZE, 0, BASE_SCALE * MENU_SIZE, 0)
