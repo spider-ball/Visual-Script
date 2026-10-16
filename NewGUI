@@ -1,14 +1,6 @@
 --==============================================================
 -- КРУГЛОЕ МЕНЮ (GUI) — с подробными комментариями
 --==============================================================
---
--- Стрелка "v" на заголовке вкладки — КНОПКА ОТКРЫТИЯ/ЗАКРЫТИЯ:
---   • клик — прячет/показывает тело вкладки (большую панель + её обводку);
---   • стрелка поворачивается на TAB_TOGGLE_ROTATION_CLOSED;
---   • вкладки НИЖЕ в этом же столбце сдвигаются вверх на TAB_COLLAPSE_SHIFT_Y,
---     чтобы занять освободившееся место.
--- Изначально все вкладки открыты.
---==============================================================
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -22,10 +14,44 @@ local LOGO_ID       = 117390305692041
 local LOGO_SIZE     = UDim2.new(0.17, 0, 0.17, 0)
 local LOGO_POSITION = UDim2.new(0.1857, 0, 0.1048, 0)
 
+-- Картинка "Move" (на одном уровне с лого)
+local MOVE_ID       = 95701131111383
+local MOVE_SIZE     = UDim2.new(0.3, 0, 0.3, 0)
+local MOVE_POSITION = UDim2.new(0.846, 0, 0.1048, 0)
+local MOVE_ANCHOR   = Vector2.new(0.5, 0.5)
+local MOVE_ROTATION = 0
+
 local SECTION_NAMES = {
 	"Section 1", "Section 2", "Section 3", "Section 4", "Section 5",
 	"Section 6", "Section 7", "Section 8", "Section 9", "Section 10",
 }
+
+--==============================================================
+-- ИКОНКИ ВЕРХНИХ КНОПОК-РАЗДЕЛОВ (НЕ ТАБОВ!)
+--==============================================================
+
+local SECTION_ICON_DEFAULT = 108716693326627
+
+local SECTION_ICONS = {
+	[1]  = 0, [2]  = 0, [3]  = 0, [4]  = 0, [5]  = 0,
+	[6]  = 0, [7]  = 0, [8]  = 0, [9]  = 0, [10] = 0,
+}
+
+-- Иконка: КВАДРАТ 1:1 (X = Y). UIAspectRatioConstraint держит форму.
+local SECTION_ICON_SIZE   = UDim2.new(15, 0.78,0.78, 0)   -- X и Y РАВНЫ (1:1)
+local SECTION_ICON_POS    = UDim2.new(0.5,  0, 0.34, 0)   -- позиция иконки
+local SECTION_ICON_ANCHOR = Vector2.new(0.5, 0.5)
+local SECTION_ICON_SCALE  = Enum.ScaleType.Fit
+local SECTION_ICON_ASPECT = 1                             -- 1 = строго квадрат
+
+-- Текст
+local SECTION_TEXT_SIZE   = UDim2.new(0.95, 0, 0.30, 0)
+local SECTION_TEXT_POS    = UDim2.new(0.5,  0, 0.82, 0)
+local SECTION_TEXT_ANCHOR = Vector2.new(0.5, 0.5)
+local SECTION_TEXT_COLOR  = Color3.fromRGB(0, 0, 0)
+local SECTION_TEXT_FONT   = Enum.Font.GothamBold
+
+--==============================================================
 
 local TAB_TITLE_PREFIX = "Tab "
 local TAB_ICON_DEFAULT = 108716693326627
@@ -37,17 +63,12 @@ local TAB_ICONS = {
 	[10] = { 0, 0, 0, 0 },
 }
 
--- Стрелка на каждой вкладке (это же кликабельная кнопка открытия/закрытия).
 local TAB_DECOR_ID        = 89884279192043
 local TAB_DECOR_SIZE      = UDim2.new(0.1905, 0, 0.1905, 0)
 local TAB_DECOR_POS_LEFT  = UDim2.new(0.4992, 0, 0.2619, 0)
 local TAB_DECOR_POS_RIGHT = UDim2.new(0.8183, 0, 0.2619, 0)
 
--- Угол поворота стрелки в ЗАКРЫТОМ состоянии.
 local TAB_TOGGLE_ROTATION_CLOSED = 180
-
--- На сколько СДВИГАТЬ ВВЕРХ вкладки ниже закрытой (в долях от высоты меню).
--- 0.60 — примерно высота тела вкладки. Плюс небольшой зазор.
 local TAB_COLLAPSE_SHIFT_Y = 0.62
 
 local TAB_VLINE_THICKNESS = 2
@@ -285,8 +306,14 @@ local function openTab(i)
 end
 
 ----------------------------------------------------------------
--- Верхние кнопки
+-- Верхние кнопки-РАЗДЕЛЫ (Section 1..10)
 ----------------------------------------------------------------
+local function sectionIconId(i)
+	local id = SECTION_ICONS[i]
+	if id and id ~= 0 and id ~= "" then return id end
+	return SECTION_ICON_DEFAULT
+end
+
 for i = 1, BUTTON_COUNT do
 	local btnX = BUTTON_START_X + (i - 1) * (BUTTON_WIDTH + BUTTON_GAP)
 
@@ -298,13 +325,46 @@ for i = 1, BUTTON_COUNT do
 	btn.BackgroundColor3 = BUTTON_COLOR
 	btn.BorderSizePixel = 0
 	btn.AutoButtonColor = false
-	btn.Text = SECTION_NAMES[i]
+	btn.Text = ""
 	btn.Font = Enum.Font.GothamBold
 	btn.TextColor3 = Color3.fromRGB(0, 0, 0)
 	btn.ZIndex = Z_OTHER
 	btn.Parent = sideTopGroup
-	registerText(btn, TEXT_BASE_BUTTON)
 
+	-- ИКОНКА СВЕРХУ (КВАДРАТ 1:1, не сплющивается)
+	local icon = Instance.new("ImageLabel")
+	icon.Name = "SectionIcon"
+	icon.AnchorPoint = SECTION_ICON_ANCHOR
+	icon.Position = SECTION_ICON_POS
+	icon.Size = SECTION_ICON_SIZE
+	icon.BackgroundTransparency = 1
+	icon.BorderSizePixel = 0
+	icon.Image = asset(sectionIconId(i))
+	icon.ScaleType = SECTION_ICON_SCALE
+	icon.ZIndex = Z_OTHER
+	icon.Parent = btn
+
+	local aspect = Instance.new("UIAspectRatioConstraint")
+	aspect.AspectRatio = SECTION_ICON_ASPECT
+	aspect.AspectType = Enum.AspectType.FitWithinMaxSize
+	aspect.DominantAxis = Enum.DominantAxis.Width
+	aspect.Parent = icon
+
+	-- ТЕКСТ СНИЗУ
+	local lbl = Instance.new("TextLabel")
+	lbl.Name = "SectionText"
+	lbl.AnchorPoint = SECTION_TEXT_ANCHOR
+	lbl.Position = SECTION_TEXT_POS
+	lbl.Size = SECTION_TEXT_SIZE
+	lbl.BackgroundTransparency = 1
+	lbl.Text = SECTION_NAMES[i]
+	lbl.Font = SECTION_TEXT_FONT
+	lbl.TextColor3 = SECTION_TEXT_COLOR
+	lbl.ZIndex = Z_OTHER
+	lbl.Parent = btn
+	registerText(lbl, TEXT_BASE_BUTTON)
+
+	-- Свечение
 	local glow = Instance.new("Frame")
 	glow.Name = "Glow"
 	glow.Size = UDim2.new(1, 0, 1, 0)
@@ -413,7 +473,6 @@ local function addTitleIcon(title, id)
 	ic.Parent = title
 end
 
--- Кликабельная стрелка-кнопка. ВОЗВРАЩАЕТ ImageButton.
 local function addTabDecor(name, parent, row, isLeft)
 	local pos = isLeft and TAB_DECOR_POS_LEFT or TAB_DECOR_POS_RIGHT
 	local ic = Instance.new("ImageButton")
@@ -431,7 +490,6 @@ local function addTabDecor(name, parent, row, isLeft)
 	return ic
 end
 
--- ВАЖНО: возвращаем Frame (иначе нельзя потом скрыть обводку).
 local function makeTabOutline(name, parent, row, size, pos, corner, zIndex)
 	local fr = Instance.new("Frame")
 	fr.Name = name
@@ -477,11 +535,8 @@ for s = 1, BUTTON_COUNT do
 	local sf, content = makeSectionScroll("Sec" .. s .. "Scroll")
 	sections[s] = sf
 
-	-- Для каждого раздела свои столбцы. columns[col][row] = tabInfo.
 	local columns = { {}, {} }
 
-	-- Пересчитывает Y всех вкладок в столбце col:
-	-- идёт сверху вниз, накапливает смещение от закрытых выше.
 	local function relayoutColumn(col)
 		local yOff = 0
 		for r = 1, ROWS do
@@ -513,7 +568,6 @@ for s = 1, BUTTON_COUNT do
 			local isLeft = (col == 1)
 			local index = (row - 1) * 2 + col
 
-			-- 1) Заголовок + его обводка (обводка спрячется под телом).
 			local title = makeSectionPanel("Sec" .. s .. "Tab" .. myId .. "Title", content, row,
 				SEC_T_SIZE,
 				isLeft and SEC_T1_POS or SEC_T2_POS,
@@ -526,7 +580,6 @@ for s = 1, BUTTON_COUNT do
 
 			addTitleIcon(title, tabIconId(s, index))
 
-			-- 2) Тело вкладки + его обводка.
 			local bodyPanel = makeSectionPanel("Sec" .. s .. "Tab" .. myId, content, row,
 				isLeft and SEC_P1_SIZE or SEC_P2_SIZE,
 				isLeft and SEC_P1_POS or SEC_P2_POS,
@@ -537,14 +590,11 @@ for s = 1, BUTTON_COUNT do
 				isLeft and SEC_P1_POS or SEC_P2_POS,
 				SEC_CORNER_B)
 
-			-- 3) Стрелка-кнопка.
 			local decor = addTabDecor("Sec" .. s .. "Tab" .. myId .. "ToggleIcon", content, row, isLeft)
 			decor.Rotation = 0
 
-			-- 4) Вертикальная линия в заголовке.
 			local vline = addTabVLine("Sec" .. s .. "Tab" .. myId .. "VLine", content, row, isLeft)
 
-			-- Сохраняем базовые Y для последующих сдвигов.
 			local baseBodyY  = (isLeft and SEC_P1_POS.Y.Scale or SEC_P2_POS.Y.Scale) + (row - 1) * ROW_STEP
 			local baseTitleY = (isLeft and SEC_T1_POS.Y.Scale or SEC_T2_POS.Y.Scale) + (row - 1) * ROW_STEP
 			local baseDecorY = (isLeft and TAB_DECOR_POS_LEFT.Y.Scale or TAB_DECOR_POS_RIGHT.Y.Scale) + (row - 1) * ROW_STEP
@@ -560,7 +610,6 @@ for s = 1, BUTTON_COUNT do
 			}
 			columns[col][row] = tabInfo
 
-			-- Клик по стрелке: свернуть/развернуть + пересобрать столбец.
 			decor.Activated:Connect(function()
 				tabInfo.closed = not tabInfo.closed
 				tabInfo.body.Visible = not tabInfo.closed
@@ -587,6 +636,22 @@ logo.Image = asset(LOGO_ID)
 logo.ScaleType = Enum.ScaleType.Fit
 logo.ZIndex = Z_OTHER
 logo.Parent = sideTopGroup
+
+----------------------------------------------------------------
+-- Картинка "Move" (на одном уровне с лого)
+----------------------------------------------------------------
+local move = Instance.new("ImageLabel")
+move.Name = "Move"
+move.AnchorPoint = MOVE_ANCHOR
+move.Position = MOVE_POSITION
+move.Size = MOVE_SIZE
+move.Rotation = MOVE_ROTATION
+move.BackgroundTransparency = 1
+move.BorderSizePixel = 0
+move.Image = asset(MOVE_ID)
+move.ScaleType = Enum.ScaleType.Fit
+move.ZIndex = Z_OTHER
+move.Parent = sideTopGroup
 
 ----------------------------------------------------------------
 -- Применяем размер / позицию меню и открываем первый раздел
