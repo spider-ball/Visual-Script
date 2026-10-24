@@ -4,7 +4,10 @@
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+
+local SCRIPT_START = os.clock()   -- used for the script uptime in the side panel
 
 --==============================================================
 -- BLOCK 1. SETTINGS
@@ -33,30 +36,82 @@ local COLOR_TEXT           = Color3.fromRGB(0, 0, 0)
 local SECTIONS_AREA_X     = 0.109   -- start of the buttons row, relative to the top panel
 local SECTIONS_AREA_WIDTH = 0.81   -- width of the buttons row (the rest on the right is free space for Move)
 
-local SECTION_ICON_SIZE = 0.9   -- icon height, as a fraction of the button height
+local SECTION_ICON_SIZE  = 0.9    -- icon height, as a fraction of the button height
+local SECTION_LABEL_SIZE = 0.20   -- text height, as a fraction of the button height
 
 -- SECTIONS: one entry per section button (left to right).
 --   Name   = text under the icon
 --   IconId = rbxassetid number of the icon (change the number for each section)
---   Tabs   = (optional) list of { Title = "...", IconId = 123 } for this section's tabs.
---            Without it the section gets TABS_PER_SECTION default tabs.
+--   Tabs   = this section's tabs (1 left, 2 right, 3 left, 4 right, ...)
+--     Title  = tab name
+--     IconId = rbxassetid number of the tab icon
+--   More than 4 tabs are fine: the page becomes scrollable.
 local SECTIONS = {
-	{ Name = "Section 1",  IconId = 108716693326627 },
-	{ Name = "Section 2",  IconId = 108716693326627 },
-	{ Name = "Section 3",  IconId = 108716693326627 },
-	{ Name = "Section 4",  IconId = 108716693326627 },
-	{ Name = "Section 5",  IconId = 108716693326627 },
-	{ Name = "Section 6",  IconId = 108716693326627 },
-	{ Name = "Section 7",  IconId = 108716693326627 },
-	{ Name = "Section 8",  IconId = 108716693326627 },
-	{ Name = "Section 9",  IconId = 108716693326627 },
-	{ Name = "Section 10", IconId = 108716693326627 },
+	{ Name = "Section 1", IconId = 108716693326627, Tabs = {
+		{ Title = "Tab 1", IconId = 108716693326627 },
+		{ Title = "Tab 2", IconId = 108716693326627 },
+		{ Title = "Tab 3", IconId = 108716693326627 },
+		{ Title = "Tab 4", IconId = 108716693326627 },
+	} },
+	{ Name = "Section 2", IconId = 108716693326627, Tabs = {
+		{ Title = "Tab 1", IconId = 108716693326627 },
+		{ Title = "Tab 2", IconId = 108716693326627 },
+		{ Title = "Tab 3", IconId = 108716693326627 },
+		{ Title = "Tab 4", IconId = 108716693326627 },
+	} },
+	{ Name = "Section 3", IconId = 108716693326627, Tabs = {
+		{ Title = "Tab 1", IconId = 108716693326627 },
+		{ Title = "Tab 2", IconId = 108716693326627 },
+		{ Title = "Tab 3", IconId = 108716693326627 },
+		{ Title = "Tab 4", IconId = 108716693326627 },
+	} },
+	{ Name = "Section 4", IconId = 108716693326627, Tabs = {
+		{ Title = "Tab 1", IconId = 108716693326627 },
+		{ Title = "Tab 2", IconId = 108716693326627 },
+		{ Title = "Tab 3", IconId = 108716693326627 },
+		{ Title = "Tab 4", IconId = 108716693326627 },
+	} },
+	{ Name = "Section 5", IconId = 108716693326627, Tabs = {
+		{ Title = "Tab 1", IconId = 108716693326627 },
+		{ Title = "Tab 2", IconId = 108716693326627 },
+		{ Title = "Tab 3", IconId = 108716693326627 },
+		{ Title = "Tab 4", IconId = 108716693326627 },
+	} },
+	{ Name = "Section 6", IconId = 108716693326627, Tabs = {
+		{ Title = "Tab 1", IconId = 108716693326627 },
+		{ Title = "Tab 2", IconId = 108716693326627 },
+		{ Title = "Tab 3", IconId = 108716693326627 },
+		{ Title = "Tab 4", IconId = 108716693326627 },
+	} },
+	{ Name = "Section 7", IconId = 108716693326627, Tabs = {
+		{ Title = "Tab 1", IconId = 108716693326627 },
+		{ Title = "Tab 2", IconId = 108716693326627 },
+		{ Title = "Tab 3", IconId = 108716693326627 },
+		{ Title = "Tab 4", IconId = 108716693326627 },
+	} },
+	{ Name = "Section 8", IconId = 108716693326627, Tabs = {
+		{ Title = "Tab 1", IconId = 108716693326627 },
+		{ Title = "Tab 2", IconId = 108716693326627 },
+		{ Title = "Tab 3", IconId = 108716693326627 },
+		{ Title = "Tab 4", IconId = 108716693326627 },
+	} },
+	{ Name = "Section 9", IconId = 108716693326627, Tabs = {
+		{ Title = "Tab 1", IconId = 108716693326627 },
+		{ Title = "Tab 2", IconId = 108716693326627 },
+		{ Title = "Tab 3", IconId = 108716693326627 },
+		{ Title = "Tab 4", IconId = 108716693326627 },
+	} },
+	{ Name = "Section 10", IconId = 108716693326627, Tabs = {
+		{ Title = "Tab 1", IconId = 108716693326627 },
+		{ Title = "Tab 2", IconId = 108716693326627 },
+		{ Title = "Tab 3", IconId = 108716693326627 },
+		{ Title = "Tab 4", IconId = 108716693326627 },
+	} },
 }
 
 -- Tabs (two columns inside every section: 1 left, 2 right, 3 left, 4 right)
 local TAB_ARROW_ID        = 89884279192043    -- rbxassetid number of the open/close icon
-local DEFAULT_TAB_ICON_ID = 108716693326627   -- rbxassetid number of the tab icon (default)
-local TABS_PER_SECTION    = 4                 -- number of default tabs in a section
+local DEFAULT_TAB_ICON_ID = 108716693326627   -- tab icon used when a tab has no IconId
 
 local COLOR_TAB_HEADER = COLOR_SIDE_PANEL
 local COLOR_TAB_BODY   = Color3.fromRGB(115, 115, 115)
@@ -74,9 +129,28 @@ local TAB_TITLE_SIZE    = 1     -- tab title height, as a fraction of the tab he
 local TAB_ARROW_ROTATION_OPEN   = 0     -- arrow rotation when the tab is open
 local TAB_ARROW_ROTATION_CLOSED = 180   -- arrow rotation when the tab is closed
 
+-- Scroll (the tabs of a section page scroll down when they do not fit)
+local PAGE_SCROLL_HEIGHT   = 0.95   -- height of the scroll window, relative to the page (keeps tabs inside the rounded corners)
+local SCROLL_BAR_THICKNESS = 0      -- scroll bar width in pixels (0 = hidden, scrolling still works)
+local TAB_COLUMN_TOP       = 0.03   -- space above the tabs, relative to the page height
+local TAB_COLUMN_HEIGHT    = 0.94   -- the "column height" that the tab sizes above are relative to
+
 -- Logo (top-left corner of the top panel)
 local LOGO_ID   = 117390305692041   -- rbxassetid number of the logo (change to your own)
 local LOGO_SIZE = 1.15              -- logo height, as a fraction of the top panel height
+
+-- Side panel (left): player card, search, stats. All heights are relative to the side panel height.
+local SIDE_CONTENT_WIDTH = 0.84    -- width of the card texts / search box / stats, relative to the side panel width
+local SIDE_TOP_GAP       = 0.015   -- space above the avatar
+local SIDE_ITEM_GAP      = 0.012   -- space between two items
+local SIDE_AVATAR_SIZE   = 0.17    -- avatar height (the avatar is round)
+local SIDE_NAME_HEIGHT   = 0.045   -- display name height
+local SIDE_INFO_HEIGHT   = 0.035   -- @username and ID line height
+local SIDE_SEARCH_HEIGHT = 0.07    -- search box height
+local SIDE_STATS_HEIGHT  = 0.2     -- height of the 4 stats rows together
+local SIDE_STATS_BOTTOM  = 0.955   -- bottom edge of the stats (keeps them inside the rounded corner)
+local STATS_UPDATE_INTERVAL = 0.5  -- seconds between stats updates
+local COLOR_SEARCH_BOX      = COLOR_TAB_BODY
 
 --==============================================================
 -- BLOCK 2. BUILD GUI
@@ -169,6 +243,7 @@ pagesArea.ZIndex = Z_OTHER + 1
 pagesArea.Parent = mainGroup
 
 local pages = {}
+local pageStates = {}
 
 local function addCornerAndStroke(frame, cornerScale)
 	local corner = Instance.new("UICorner")
@@ -185,8 +260,8 @@ end
 local function makeColumn(page, name, x)
 	local column = Instance.new("Frame")
 	column.Name = name
-	column.Position = UDim2.new(x, 0, 0.03, 0)
-	column.Size = UDim2.new(0.46, 0, 0.94, 0)
+	column.Position = UDim2.new(x, 0, TAB_COLUMN_TOP, 0)
+	column.Size = UDim2.new(0.46, 0, TAB_COLUMN_HEIGHT, 0)
 	column.BackgroundTransparency = 1
 	column.BorderSizePixel = 0
 	column.ZIndex = Z_OTHER
@@ -203,7 +278,7 @@ end
 
 -- A tab = header (icon, title, open/close button) + body. Closing hides the body,
 -- the tabs below move up by themselves (UIListLayout skips invisible objects).
-local function makeTab(column, order, data)
+local function makeTab(column, order, data, columnIndex, onChanged)
 	local base = order * 3
 
 	local header = Instance.new("Frame")
@@ -306,44 +381,107 @@ local function makeTab(column, order, data)
 	spacer.ZIndex = Z_OTHER
 	spacer.Parent = column
 
-	local isOpen = true
+	local tab = {
+		open = true,
+		matched = true,   -- false = hidden by the search
+		columnIndex = columnIndex,
+		title = data.Title or "Tab",
+		header = header,
+		body = body,
+		spacer = spacer,
+	}
 	toggle.Activated:Connect(function()
-		isOpen = not isOpen
-		body.Visible = isOpen
+		tab.open = not tab.open
+		body.Visible = tab.open
 		TweenService:Create(arrow, TweenInfo.new(0.15), {
-			Rotation = isOpen and TAB_ARROW_ROTATION_OPEN or TAB_ARROW_ROTATION_CLOSED,
+			Rotation = tab.open and TAB_ARROW_ROTATION_OPEN or TAB_ARROW_ROTATION_CLOSED,
 		}):Play()
+		onChanged()
 	end)
+
+	return tab
 end
 
-local function makeDefaultTabs()
-	local tabs = {}
-	for k = 1, TABS_PER_SECTION do
-		tabs[k] = { Title = "Tab " .. k, IconId = DEFAULT_TAB_ICON_ID }
+-- Canvas of a page: grows when the tabs do not fit, shrinks when tabs are closed.
+-- Column size and position are divided by the canvas size, so the tabs keep the same size on screen.
+local function refreshCanvas(pageState)
+	local heights = { 0, 0 }   -- [1] = left column, [2] = right column
+	for _, tab in ipairs(pageState.tabs) do
+		if tab.matched then
+			local h = TAB_HEADER_HEIGHT + TAB_GAP
+			if tab.open then
+				h = h + TAB_BODY_HEIGHT
+			end
+			heights[tab.columnIndex] = heights[tab.columnIndex] + h
+		end
 	end
-	return tabs
+
+	local content = (TAB_COLUMN_TOP * 2 + math.max(heights[1], heights[2]) * TAB_COLUMN_HEIGHT) / PAGE_SCROLL_HEIGHT
+	local canvas = math.max(1, content)
+	pageState.scroll.CanvasSize = UDim2.new(0, 0, canvas, 0)
+
+	for _, column in ipairs(pageState.columns) do
+		column.Position = UDim2.new(column.Position.X.Scale, 0, TAB_COLUMN_TOP / PAGE_SCROLL_HEIGHT / canvas, 0)
+		column.Size = UDim2.new(0.46, 0, TAB_COLUMN_HEIGHT / PAGE_SCROLL_HEIGHT / canvas, 0)
+	end
+end
+
+-- Places the visible (matching) tabs 1 left, 2 right, 3 left, 4 right and hides the others.
+local function arrangeTabs(pageState)
+	local shown = 0
+	for _, tab in ipairs(pageState.tabs) do
+		tab.header.Visible = tab.matched
+		tab.spacer.Visible = tab.matched
+		tab.body.Visible = tab.matched and tab.open
+		if tab.matched then
+			shown = shown + 1
+			local base = math.floor((shown - 1) / 2) * 3
+			tab.columnIndex = (shown % 2 == 1) and 1 or 2
+			local column = pageState.columns[tab.columnIndex]
+			tab.header.Parent = column
+			tab.body.Parent = column
+			tab.spacer.Parent = column
+			tab.header.LayoutOrder = base + 1
+			tab.body.LayoutOrder = base + 2
+			tab.spacer.LayoutOrder = base + 3
+		end
+	end
+	refreshCanvas(pageState)
 end
 
 for i, data in ipairs(SECTIONS) do
-	local page = Instance.new("Frame")
+	local page = Instance.new("ScrollingFrame")
 	page.Name = "Page" .. i
-	page.Size = UDim2.new(1, 0, 1, 0)
+	page.Size = UDim2.new(1, 0, PAGE_SCROLL_HEIGHT, 0)
 	page.BackgroundTransparency = 1
 	page.BorderSizePixel = 0
+	page.ScrollingDirection = Enum.ScrollingDirection.Y
+	page.ScrollBarThickness = SCROLL_BAR_THICKNESS
+	page.ScrollBarImageColor3 = COLOR_LINES
+	page.CanvasSize = UDim2.new(0, 0, 1, 0)
 	page.Visible = (i == 1)
 	page.ZIndex = Z_OTHER
 	page.Parent = pagesArea
 
-	local leftColumn  = makeColumn(page, "LeftColumn",  0.02)
-	local rightColumn = makeColumn(page, "RightColumn", 0.52)
-
-	-- Tabs go 1 left, 2 right, 3 left, 4 right
-	for k, tabData in ipairs(data.Tabs or makeDefaultTabs()) do
-		local column = (k % 2 == 1) and leftColumn or rightColumn
-		makeTab(column, math.floor((k - 1) / 2), tabData)
+	local pageState = {
+		scroll  = page,
+		columns = { makeColumn(page, "LeftColumn", 0.02), makeColumn(page, "RightColumn", 0.52) },
+		tabs    = {},
+	}
+	local function refresh()
+		refreshCanvas(pageState)
 	end
 
+	-- Tabs go 1 left, 2 right, 3 left, 4 right
+	for k, tabData in ipairs(data.Tabs or {}) do
+		local columnIndex = (k % 2 == 1) and 1 or 2
+		local tab = makeTab(pageState.columns[columnIndex], math.floor((k - 1) / 2), tabData, columnIndex, refresh)
+		table.insert(pageState.tabs, tab)
+	end
+	arrangeTabs(pageState)
+
 	pages[i] = page
+	pageStates[i] = pageState
 end
 
 ----------------------------------------------------------------
@@ -423,7 +561,7 @@ for i, data in ipairs(SECTIONS) do
 	label.Name = "Label"
 	label.AnchorPoint = Vector2.new(0.5, 1)
 	label.Position = UDim2.new(0.5, 0, 0.98, 0)
-	label.Size = UDim2.new(1, 0, 0.17, 0)
+	label.Size = UDim2.new(1, 0, SECTION_LABEL_SIZE, 0)
 	label.BackgroundTransparency = 1
 	label.BorderSizePixel = 0
 	label.Text = data.Name
@@ -471,6 +609,279 @@ logo.Parent = topBar
 local logoRatio = Instance.new("UIAspectRatioConstraint")
 logoRatio.AspectRatio = 1
 logoRatio.Parent = logo
+
+----------------------------------------------------------------
+-- Side panel content: player card, search, stats
+----------------------------------------------------------------
+local localPlayer = Players.LocalPlayer
+
+local sideArea = Instance.new("Frame")
+sideArea.Name = "SideArea"
+sideArea.AnchorPoint = Vector2.new(0.5, 0)
+sideArea.Position = UDim2.new(0.185, 0, 0.185, 0)   -- inside the side panel, under the top panel
+sideArea.Size = UDim2.new(0.074, 0, 0.735, 0)
+sideArea.BackgroundTransparency = 1
+sideArea.BorderSizePixel = 0
+sideArea.ZIndex = Z_OTHER + 1   -- above SidePart1-3
+sideArea.Parent = sideTopGroup
+
+-- Items are placed one under another (top to bottom)
+local sideY = SIDE_TOP_GAP
+
+local function placeSideItem(item, height)
+	item.AnchorPoint = Vector2.new(0.5, 0)
+	item.Position = UDim2.new(0.5, 0, sideY, 0)
+	item.Size = UDim2.new(SIDE_CONTENT_WIDTH, 0, height, 0)
+	item.Parent = sideArea
+	sideY = sideY + height + SIDE_ITEM_GAP
+end
+
+local function makeSideLabel(name, text, textTransparency, alignment)
+	local label = Instance.new("TextLabel")
+	label.Name = name
+	label.BackgroundTransparency = 1
+	label.BorderSizePixel = 0
+	label.Text = text
+	label.TextColor3 = COLOR_TEXT
+	label.TextTransparency = textTransparency
+	label.Font = Enum.Font.GothamBold
+	label.TextScaled = true
+	label.TextXAlignment = alignment
+	label.ZIndex = Z_OTHER
+	return label
+end
+
+local function makeSideLine(name, anchorY, y)
+	local line = Instance.new("Frame")
+	line.Name = name
+	line.AnchorPoint = Vector2.new(0.5, anchorY)
+	line.Position = UDim2.new(0.5, 0, y, 0)
+	line.Size = UDim2.new(SIDE_CONTENT_WIDTH, 0, 0, LINE_THICKNESS)
+	line.BackgroundColor3 = COLOR_LINES
+	line.BorderSizePixel = 0
+	line.ZIndex = Z_OTHER
+	line.Parent = sideArea
+	return line
+end
+
+-- Player card: avatar, display name, @username, user id
+local avatar = Instance.new("ImageLabel")
+avatar.Name = "Avatar"
+avatar.BackgroundColor3 = COLOR_TAB_BODY
+avatar.BorderSizePixel = 0
+avatar.ScaleType = Enum.ScaleType.Crop
+avatar.ZIndex = Z_OTHER
+placeSideItem(avatar, SIDE_AVATAR_SIZE)
+addCornerAndStroke(avatar, 0.5)
+
+local avatarRatio = Instance.new("UIAspectRatioConstraint")
+avatarRatio.AspectRatio = 1
+avatarRatio.Parent = avatar
+
+task.spawn(function()
+	local ok, image = pcall(function()
+		return Players:GetUserThumbnailAsync(localPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
+	end)
+	if ok and image then
+		avatar.Image = image
+	end
+end)
+
+placeSideItem(makeSideLabel("DisplayName", localPlayer.DisplayName, 0, Enum.TextXAlignment.Center), SIDE_NAME_HEIGHT)
+placeSideItem(makeSideLabel("Username", "@" .. localPlayer.Name, 0.3, Enum.TextXAlignment.Center), SIDE_INFO_HEIGHT)
+placeSideItem(makeSideLabel("UserId", "ID: " .. localPlayer.UserId, 0.3, Enum.TextXAlignment.Center), SIDE_INFO_HEIGHT)
+
+makeSideLine("CardLine", 0, sideY)
+sideY = sideY + SIDE_ITEM_GAP
+
+-- Search box (filters the tabs of all sections while you type)
+local searchBox = Instance.new("Frame")
+searchBox.Name = "Search"
+searchBox.BackgroundColor3 = COLOR_SEARCH_BOX
+searchBox.BorderSizePixel = 0
+searchBox.ZIndex = Z_OTHER
+placeSideItem(searchBox, SIDE_SEARCH_HEIGHT)
+addCornerAndStroke(searchBox, 0.3)
+
+local searchInput = Instance.new("TextBox")
+searchInput.Name = "Input"
+searchInput.AnchorPoint = Vector2.new(0, 0.5)
+searchInput.Position = UDim2.new(0.07, 0, 0.5, 0)
+searchInput.Size = UDim2.new(0.68, 0, 0.6, 0)
+searchInput.BackgroundTransparency = 1
+searchInput.BorderSizePixel = 0
+searchInput.Text = ""
+searchInput.PlaceholderText = "Search..."
+searchInput.PlaceholderColor3 = Color3.fromRGB(45, 45, 45)
+searchInput.TextColor3 = COLOR_TEXT
+searchInput.Font = Enum.Font.GothamBold
+searchInput.TextScaled = true
+searchInput.TextXAlignment = Enum.TextXAlignment.Left
+searchInput.ClearTextOnFocus = false
+searchInput.ZIndex = Z_OTHER
+searchInput.Parent = searchBox
+
+local searchInputSize = Instance.new("UITextSizeConstraint")
+searchInputSize.MinTextSize = 10
+searchInputSize.MaxTextSize = 24
+searchInputSize.Parent = searchInput
+
+local searchClear = Instance.new("TextButton")
+searchClear.Name = "Clear"
+searchClear.AnchorPoint = Vector2.new(1, 0.5)
+searchClear.Position = UDim2.new(0.97, 0, 0.5, 0)
+searchClear.Size = UDim2.new(0.2, 0, 0.55, 0)
+searchClear.BackgroundTransparency = 1
+searchClear.BorderSizePixel = 0
+searchClear.Text = "X"
+searchClear.TextColor3 = COLOR_TEXT
+searchClear.Font = Enum.Font.GothamBold
+searchClear.TextScaled = true
+searchClear.AutoButtonColor = false
+searchClear.Visible = false
+searchClear.ZIndex = Z_OTHER
+searchClear.Parent = searchBox
+
+-- Shown in the main panel when nothing matches
+local noResults = Instance.new("TextLabel")
+noResults.Name = "NoResults"
+noResults.AnchorPoint = Vector2.new(0.5, 0.5)
+noResults.Position = UDim2.new(0.5, 0, 0.45, 0)
+noResults.Size = UDim2.new(0.5, 0, 0.08, 0)
+noResults.BackgroundTransparency = 1
+noResults.BorderSizePixel = 0
+noResults.Text = "No results"
+noResults.TextColor3 = COLOR_TEXT
+noResults.TextTransparency = 0.3
+noResults.Font = Enum.Font.GothamBold
+noResults.TextScaled = true
+noResults.Visible = false
+noResults.ZIndex = Z_OTHER
+noResults.Parent = pagesArea
+
+-- Search by tab title or section name (not case sensitive).
+-- Sections without matches are dimmed; if the open section has no matches, the first section with matches opens.
+local function applySearch(rawText)
+	local query = string.lower(string.match(rawText, "^%s*(.-)%s*$"))
+	local searching = (query ~= "")
+
+	local firstMatch = nil
+	local activeHasMatch = false
+
+	for i, state in ipairs(pageStates) do
+		local sectionMatches = searching and (string.find(string.lower(SECTIONS[i].Name), query, 1, true) ~= nil)
+		local count = 0
+		for _, tab in ipairs(state.tabs) do
+			tab.matched = (not searching) or sectionMatches
+				or (string.find(string.lower(tab.title), query, 1, true) ~= nil)
+			if tab.matched then
+				count = count + 1
+			end
+		end
+		arrangeTabs(state)
+		state.scroll.CanvasPosition = Vector2.new(0, 0)
+
+		local dimmed = searching and count == 0
+		local btn = sectionButtons[i]
+		local icon = btn:FindFirstChild("Icon")
+		local label = btn:FindFirstChild("Label")
+		if icon then
+			icon.ImageTransparency = dimmed and 0.6 or 0
+		end
+		if label then
+			label.TextTransparency = dimmed and 0.6 or 0
+		end
+
+		if count > 0 then
+			firstMatch = firstMatch or i
+			if i == activeSection then
+				activeHasMatch = true
+			end
+		end
+	end
+
+	if searching and firstMatch and not activeHasMatch then
+		setActiveSection(firstMatch)
+	end
+	noResults.Visible = searching and firstMatch == nil
+	searchClear.Visible = (rawText ~= "")
+end
+
+searchInput:GetPropertyChangedSignal("Text"):Connect(function()
+	applySearch(searchInput.Text)
+end)
+
+searchClear.Activated:Connect(function()
+	searchInput.Text = ""
+end)
+
+-- Stats (bottom): FPS, ping, script uptime, players on the server
+makeSideLine("StatsLine", 1, SIDE_STATS_BOTTOM - SIDE_STATS_HEIGHT - SIDE_ITEM_GAP)
+
+local statsFrame = Instance.new("Frame")
+statsFrame.Name = "Stats"
+statsFrame.AnchorPoint = Vector2.new(0.5, 1)
+statsFrame.Position = UDim2.new(0.5, 0, SIDE_STATS_BOTTOM, 0)
+statsFrame.Size = UDim2.new(SIDE_CONTENT_WIDTH, 0, SIDE_STATS_HEIGHT, 0)
+statsFrame.BackgroundTransparency = 1
+statsFrame.BorderSizePixel = 0
+statsFrame.ZIndex = Z_OTHER
+statsFrame.Parent = sideArea
+
+local statsLayout = Instance.new("UIListLayout")
+statsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+statsLayout.Parent = statsFrame
+
+local function makeStatRow(order, text)
+	local row = makeSideLabel("Stat" .. order, text, 0, Enum.TextXAlignment.Left)
+	row.LayoutOrder = order
+	row.Size = UDim2.new(1, 0, 1 / 4, 0)
+	row.Parent = statsFrame
+	return row
+end
+
+local fpsLabel     = makeStatRow(1, "FPS: --")
+local pingLabel    = makeStatRow(2, "Ping: --")
+local uptimeLabel  = makeStatRow(3, "Uptime: 00:00")
+local playersLabel = makeStatRow(4, "Players: --")
+
+local function formatTime(seconds)
+	seconds = math.floor(seconds)
+	local h = math.floor(seconds / 3600)
+	local m = math.floor((seconds % 3600) / 60)
+	local s = seconds % 60
+	if h > 0 then
+		return string.format("%d:%02d:%02d", h, m, s)
+	end
+	return string.format("%02d:%02d", m, s)
+end
+
+local statFrames, statElapsed = 0, 0
+local statsConnection = RunService.RenderStepped:Connect(function(dt)
+	statFrames = statFrames + 1
+	statElapsed = statElapsed + dt
+	if statElapsed < STATS_UPDATE_INTERVAL then
+		return
+	end
+
+	fpsLabel.Text = "FPS: " .. math.floor(statFrames / statElapsed + 0.5)
+	statFrames, statElapsed = 0, 0
+
+	local ok, ping = pcall(function()
+		return localPlayer:GetNetworkPing()
+	end)
+	pingLabel.Text = ok and ("Ping: " .. math.floor(ping * 1000 + 0.5) .. " ms") or "Ping: --"
+
+	uptimeLabel.Text = "Uptime: " .. formatTime(os.clock() - SCRIPT_START)
+	playersLabel.Text = "Players: " .. #Players:GetPlayers() .. "/" .. Players.MaxPlayers
+end)
+
+-- Stop the stats loop when the menu is destroyed (for example when the script is run again)
+screenGui.AncestryChanged:Connect(function(_, parent)
+	if not parent then
+		statsConnection:Disconnect()
+	end
+end)
 
 ----------------------------------------------------------------
 -- Outline of the whole menu + separators
