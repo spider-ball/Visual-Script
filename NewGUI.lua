@@ -141,16 +141,23 @@ local LOGO_SIZE = 1.15              -- logo height, as a fraction of the top pan
 
 -- Side panel (left): player card, search, stats. All heights are relative to the side panel height.
 local SIDE_CONTENT_WIDTH = 0.84    -- width of the card texts / search box / stats, relative to the side panel width
-local SIDE_TOP_GAP       = 0.015   -- space above the avatar
+local SIDE_TOP_GAP       = 0.015   -- space above the white player card panel
 local SIDE_ITEM_GAP      = 0.012   -- space between two items
 local SIDE_AVATAR_SIZE   = 0.17    -- avatar height (the avatar is round)
 local SIDE_NAME_HEIGHT   = 0.045   -- display name height
 local SIDE_INFO_HEIGHT   = 0.035   -- @username and ID line height
 local SIDE_SEARCH_HEIGHT = 0.07    -- search box height
 local SIDE_STATS_HEIGHT  = 0.2     -- height of the 4 stats rows together
-local SIDE_STATS_BOTTOM  = 0.955   -- bottom edge of the stats (keeps them inside the rounded corner)
+local SIDE_STATS_BOTTOM  = 0.97    -- bottom edge of the stats panel (bigger = lower; keep it inside the rounded corner)
 local STATS_UPDATE_INTERVAL = 0.5  -- seconds between stats updates
-local COLOR_SEARCH_BOX      = COLOR_TAB_BODY
+local COLOR_SEARCH_BOX      = Color3.fromRGB(255, 255, 255)   -- white search box
+local COLOR_STATS_PANEL     = Color3.fromRGB(255, 255, 255)   -- white panel under the stats
+local COLOR_CARD_PANEL      = Color3.fromRGB(255, 255, 255)   -- white panel under the player card
+local SIDE_CARD_PADDING     = 0.012   -- space inside the card panel (top and bottom), relative to the side panel height
+local SIDE_SEARCH_GAP       = 0.02    -- space between the search box and the stats panel under it
+local SIDE_CARD_TEXT_WIDTH  = 0.74    -- width of the name / @username / ID texts inside the card panel
+local STATS_TEXT_AREA       = 0.9                              -- stats text size inside the panel (fraction of the panel)
+local STATS_TEXT_SIZE       = 14      -- text size of all 4 stats rows (the same for every row; the longest row limits how big it can be)
 
 --==============================================================
 -- BLOCK 2. BUILD GUI
@@ -222,7 +229,7 @@ end
 ----------------------------------------------------------------
 local mainGroup = makeGroup("MainGroup", Z_OTHER)
 
-makePart("GrayRect", mainGroup, UDim2.new(0.65, 0, 0.75, 0), UDim2.new(0.55, 0, 0.555, 0), COLOR_MAIN_PANEL, UDim.new(0.11, 0))
+makePart("GrayRect", mainGroup, UDim2.new(0.65, 0, 0.75, 0), UDim2.new(0.55, 0, 0.555, 0), COLOR_MAIN_PANEL, UDim.new(0.096, 0))
 
 local PART_SIZE = UDim2.new(0.03, 0, 0.1, 0)
 makePart("MainPart1", mainGroup, PART_SIZE, UDim2.new(0.239, 1, 0.23, 0), COLOR_MAIN_PANEL)
@@ -626,12 +633,12 @@ sideArea.ZIndex = Z_OTHER + 1   -- above SidePart1-3
 sideArea.Parent = sideTopGroup
 
 -- Items are placed one under another (top to bottom)
-local sideY = SIDE_TOP_GAP
+local sideY = SIDE_TOP_GAP + SIDE_CARD_PADDING
 
-local function placeSideItem(item, height)
+local function placeSideItem(item, height, width)
 	item.AnchorPoint = Vector2.new(0.5, 0)
 	item.Position = UDim2.new(0.5, 0, sideY, 0)
-	item.Size = UDim2.new(SIDE_CONTENT_WIDTH, 0, height, 0)
+	item.Size = UDim2.new(width or SIDE_CONTENT_WIDTH, 0, height, 0)
 	item.Parent = sideArea
 	sideY = sideY + height + SIDE_ITEM_GAP
 end
@@ -664,6 +671,17 @@ local function makeSideLine(name, anchorY, y)
 	return line
 end
 
+-- White panel behind the player card; its height is set after the card items are placed
+local cardPanel = Instance.new("Frame")
+cardPanel.Name = "CardPanel"
+cardPanel.AnchorPoint = Vector2.new(0.5, 0)
+cardPanel.Position = UDim2.new(0.5, 0, SIDE_TOP_GAP, 0)
+cardPanel.BackgroundColor3 = COLOR_CARD_PANEL
+cardPanel.BorderSizePixel = 0
+cardPanel.ZIndex = Z_OTHER - 1   -- under the avatar and texts (they are siblings)
+cardPanel.Parent = sideArea
+addCornerAndStroke(cardPanel, 0.1)
+
 -- Player card: avatar, display name, @username, user id
 local avatar = Instance.new("ImageLabel")
 avatar.Name = "Avatar"
@@ -687,12 +705,13 @@ task.spawn(function()
 	end
 end)
 
-placeSideItem(makeSideLabel("DisplayName", localPlayer.DisplayName, 0, Enum.TextXAlignment.Center), SIDE_NAME_HEIGHT)
-placeSideItem(makeSideLabel("Username", "@" .. localPlayer.Name, 0.3, Enum.TextXAlignment.Center), SIDE_INFO_HEIGHT)
-placeSideItem(makeSideLabel("UserId", "ID: " .. localPlayer.UserId, 0.3, Enum.TextXAlignment.Center), SIDE_INFO_HEIGHT)
+placeSideItem(makeSideLabel("DisplayName", localPlayer.DisplayName, 0, Enum.TextXAlignment.Center), SIDE_NAME_HEIGHT, SIDE_CARD_TEXT_WIDTH)
+makeSideLine("CardLine", 0.5, sideY - SIDE_ITEM_GAP / 2)   -- separator under the display name (full width of the card panel)
+placeSideItem(makeSideLabel("Username", "@" .. localPlayer.Name, 0, Enum.TextXAlignment.Center), SIDE_INFO_HEIGHT, SIDE_CARD_TEXT_WIDTH)
+placeSideItem(makeSideLabel("UserId", "ID: " .. localPlayer.UserId, 0, Enum.TextXAlignment.Center), SIDE_INFO_HEIGHT, SIDE_CARD_TEXT_WIDTH)
 
-makeSideLine("CardLine", 0, sideY)
-sideY = sideY + SIDE_ITEM_GAP
+local cardBottom = sideY - SIDE_ITEM_GAP + SIDE_CARD_PADDING   -- bottom edge of the card panel
+cardPanel.Size = UDim2.new(SIDE_CONTENT_WIDTH, 0, cardBottom - SIDE_TOP_GAP, 0)
 
 -- Search box (filters the tabs of all sections while you type)
 local searchBox = Instance.new("Frame")
@@ -700,7 +719,10 @@ searchBox.Name = "Search"
 searchBox.BackgroundColor3 = COLOR_SEARCH_BOX
 searchBox.BorderSizePixel = 0
 searchBox.ZIndex = Z_OTHER
-placeSideItem(searchBox, SIDE_SEARCH_HEIGHT)
+searchBox.AnchorPoint = Vector2.new(0.5, 1)
+searchBox.Position = UDim2.new(0.5, 0, SIDE_STATS_BOTTOM - SIDE_STATS_HEIGHT - SIDE_SEARCH_GAP, 0)   -- right above the stats panel
+searchBox.Size = UDim2.new(SIDE_CONTENT_WIDTH, 0, SIDE_SEARCH_HEIGHT, 0)
+searchBox.Parent = sideArea
 addCornerAndStroke(searchBox, 0.3)
 
 local searchInput = Instance.new("TextBox")
@@ -712,18 +734,18 @@ searchInput.BackgroundTransparency = 1
 searchInput.BorderSizePixel = 0
 searchInput.Text = ""
 searchInput.PlaceholderText = "Search..."
-searchInput.PlaceholderColor3 = Color3.fromRGB(45, 45, 45)
+searchInput.PlaceholderColor3 = COLOR_TEXT
 searchInput.TextColor3 = COLOR_TEXT
 searchInput.Font = Enum.Font.GothamBold
 searchInput.TextScaled = true
 searchInput.TextXAlignment = Enum.TextXAlignment.Left
-searchInput.ClearTextOnFocus = false
+searchInput.ClearTextOnFocus = true
 searchInput.ZIndex = Z_OTHER
 searchInput.Parent = searchBox
 
 local searchInputSize = Instance.new("UITextSizeConstraint")
 searchInputSize.MinTextSize = 10
-searchInputSize.MaxTextSize = 24
+searchInputSize.MaxTextSize = 18
 searchInputSize.Parent = searchInput
 
 local searchClear = Instance.new("TextButton")
@@ -816,17 +838,29 @@ searchClear.Activated:Connect(function()
 end)
 
 -- Stats (bottom): FPS, ping, script uptime, players on the server
-makeSideLine("StatsLine", 1, SIDE_STATS_BOTTOM - SIDE_STATS_HEIGHT - SIDE_ITEM_GAP)
+local statsPanel = Instance.new("Frame")
+statsPanel.Name = "StatsPanel"
+statsPanel.AnchorPoint = Vector2.new(0.5, 1)
+statsPanel.Position = UDim2.new(0.5, 0, SIDE_STATS_BOTTOM, 0)
+statsPanel.Size = UDim2.new(SIDE_CONTENT_WIDTH, 0, SIDE_STATS_HEIGHT, 0)
+statsPanel.BackgroundColor3 = COLOR_STATS_PANEL
+statsPanel.BorderSizePixel = 0
+statsPanel.ZIndex = Z_OTHER
+statsPanel.Parent = sideArea
+addCornerAndStroke(statsPanel, 0.1)
 
 local statsFrame = Instance.new("Frame")
 statsFrame.Name = "Stats"
-statsFrame.AnchorPoint = Vector2.new(0.5, 1)
-statsFrame.Position = UDim2.new(0.5, 0, SIDE_STATS_BOTTOM, 0)
-statsFrame.Size = UDim2.new(SIDE_CONTENT_WIDTH, 0, SIDE_STATS_HEIGHT, 0)
+statsFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+statsFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+statsFrame.Size = UDim2.new(STATS_TEXT_AREA, 0, STATS_TEXT_AREA, 0)
 statsFrame.BackgroundTransparency = 1
 statsFrame.BorderSizePixel = 0
 statsFrame.ZIndex = Z_OTHER
-statsFrame.Parent = sideArea
+statsFrame.Parent = statsPanel
+
+-- Separator between Ping and Uptime (full width of the stats panel, exactly in the middle of the 4 rows)
+makeLine("StatsLine", statsPanel, true, 1, UDim2.new(0.5, 0, 0.5, 0))
 
 local statsLayout = Instance.new("UIListLayout")
 statsLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -837,6 +871,10 @@ local function makeStatRow(order, text)
 	row.LayoutOrder = order
 	row.Size = UDim2.new(1, 0, 1 / 4, 0)
 	row.Parent = statsFrame
+
+	local rowSize = Instance.new("UITextSizeConstraint")
+	rowSize.MaxTextSize = STATS_TEXT_SIZE
+	rowSize.Parent = row
 	return row
 end
 
