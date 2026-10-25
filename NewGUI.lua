@@ -5,6 +5,8 @@
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
 local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 
 local SCRIPT_START = os.clock()   -- used for the script uptime in the side panel
@@ -101,7 +103,7 @@ local SECTIONS = {
 		{ Title = "Tab 3", IconId = 108716693326627 },
 		{ Title = "Tab 4", IconId = 108716693326627 },
 	} },
-	{ Name = "Section 10", IconId = 108716693326627, Tabs = {
+	{ Name = "Settings", IconId = 91451569195722, Tabs = {
 		{ Title = "Tab 1", IconId = 108716693326627 },
 		{ Title = "Tab 2", IconId = 108716693326627 },
 		{ Title = "Tab 3", IconId = 108716693326627 },
@@ -139,6 +141,16 @@ local TAB_COLUMN_HEIGHT    = 0.94   -- the "column height" that the tab sizes ab
 local LOGO_ID   = 117390305692041   -- rbxassetid number of the logo (change to your own)
 local LOGO_SIZE = 1.15              -- logo height, as a fraction of the top panel height
 
+-- Move area (top-right corner of the top panel): drag the icon to move the whole menu
+local MOVE_ICON_ID   = 95701131111383   -- rbxassetid number of the move icon
+local MOVE_ICON_SIZE = 0.9              -- move icon height, as a fraction of the top panel height (0.9 = same as SECTION_ICON_SIZE)
+local DRAG_THRESHOLD = 6                -- pixels the pointer must move before a press counts as a drag (less = a tap)
+
+-- Floating open/close button (round, uses the logo image LOGO_ID)
+local TOGGLE_SIZE = 0.09   -- button height, as a fraction of the screen height
+local TOGGLE_X    = 0.02   -- button position from the left edge, as a fraction of the screen width
+local TOGGLE_Y    = 0.25   -- button position from the top edge, as a fraction of the screen height
+
 -- Side panel (left): player card, search, stats. All heights are relative to the side panel height.
 local SIDE_CONTENT_WIDTH = 0.84    -- width of the card texts / search box / stats, relative to the side panel width
 local SIDE_TOP_GAP       = 0.015   -- space above the white player card panel
@@ -146,7 +158,7 @@ local SIDE_ITEM_GAP      = 0.012   -- space between two items
 local SIDE_AVATAR_SIZE   = 0.17    -- avatar height (the avatar is round)
 local SIDE_NAME_HEIGHT   = 0.045   -- display name height
 local SIDE_INFO_HEIGHT   = 0.035   -- @username and ID line height
-local SIDE_SEARCH_HEIGHT = 0.07    -- search box height
+local SIDE_SEARCH_HEIGHT = 0.09    -- search box height
 local SIDE_STATS_HEIGHT  = 0.2     -- height of the 4 stats rows together
 local SIDE_STATS_BOTTOM  = 0.97    -- bottom edge of the stats panel (bigger = lower; keep it inside the rounded corner)
 local STATS_UPDATE_INTERVAL = 0.5  -- seconds between stats updates
@@ -155,6 +167,9 @@ local COLOR_STATS_PANEL     = Color3.fromRGB(255, 255, 255)   -- white panel und
 local COLOR_CARD_PANEL      = Color3.fromRGB(255, 255, 255)   -- white panel under the player card
 local SIDE_CARD_PADDING     = 0.012   -- space inside the card panel (top and bottom), relative to the side panel height
 local SIDE_SEARCH_GAP       = 0.02    -- space between the search box and the stats panel under it
+local SIDE_SERVER_HEIGHT    = 0.1     -- height of the server info panel (2 rows) under the player card
+local SIDE_SERVER_GAP       = 0.02    -- space between the player card panel and the server info panel
+local SEARCH_TEXT_SIZE      = 14      -- text size of the search box (fixed, so "Search..." never wraps to a second line)
 local SIDE_CARD_TEXT_WIDTH  = 0.74    -- width of the name / @username / ID texts inside the card panel
 local STATS_TEXT_AREA       = 0.9                              -- stats text size inside the panel (fraction of the panel)
 local STATS_TEXT_SIZE       = 14      -- text size of all 4 stats rows (the same for every row; the longest row limits how big it can be)
@@ -172,6 +187,15 @@ screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = playerGui
 
+-- Everything that belongs to the menu lives under MenuRoot (moving / hiding the menu = moving / hiding this frame)
+local menuRoot = Instance.new("Frame")
+menuRoot.Name = "MenuRoot"
+menuRoot.Size = UDim2.new(1, 0, 1, 0)
+menuRoot.BackgroundTransparency = 1
+menuRoot.BorderSizePixel = 0
+menuRoot.ZIndex = Z_OTHER
+menuRoot.Parent = screenGui
+
 ----------------------------------------------------------------
 -- Utilities
 ----------------------------------------------------------------
@@ -184,7 +208,7 @@ local function makeGroup(name, zIndex)
 	g.BackgroundTransparency = 1
 	g.BorderSizePixel = 0
 	g.ZIndex = zIndex
-	g.Parent = screenGui
+	g.Parent = menuRoot
 	return g
 end
 
@@ -222,6 +246,56 @@ local function makeLine(name, parent, isHorizontal, length, position)
 	line.ZIndex = Z_OUTLINE
 	line.Parent = parent
 	return line
+end
+
+-- Pointer / touch drag: dragging `handle` moves `target`.
+-- keepOnScreen = true: the handle cannot leave the screen (false / nil: it can go past the edges).
+-- A press that moves less than DRAG_THRESHOLD pixels is a tap and calls onTap (optional).
+local function makeDraggable(handle, target, onTap, keepOnScreen)
+	local dragging = false
+
+	handle.InputBegan:Connect(function(input)
+		local inputType = input.UserInputType
+		if dragging or (inputType ~= Enum.UserInputType.MouseButton1 and inputType ~= Enum.UserInputType.Touch) then
+			return
+		end
+		dragging = true
+
+		local moved = false
+		local dragStart = input.Position
+		local startPos = target.Position
+		local handlePos = handle.AbsolutePosition
+		local handleSize = handle.AbsoluteSize
+		local screenSize = screenGui.AbsoluteSize
+
+		local changedConnection
+		changedConnection = UserInputService.InputChanged:Connect(function(changed)
+			if changed.UserInputType ~= Enum.UserInputType.MouseMovement and changed ~= input then
+				return
+			end
+			local delta = changed.Position - dragStart
+			if not moved and delta.Magnitude < DRAG_THRESHOLD then
+				return
+			end
+			moved = true
+			local dx, dy = delta.X, delta.Y
+			if keepOnScreen then
+				dx = math.clamp(dx, -handlePos.X, screenSize.X - handleSize.X - handlePos.X)
+				dy = math.clamp(dy, -handlePos.Y, screenSize.Y - handleSize.Y - handlePos.Y)
+			end
+			target.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + dx, startPos.Y.Scale, startPos.Y.Offset + dy)
+		end)
+
+		input.Changed:Connect(function()
+			if dragging and input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+				changedConnection:Disconnect()
+				if not moved and onTap then
+					onTap()
+				end
+			end
+		end)
+	end)
 end
 
 ----------------------------------------------------------------
@@ -618,6 +692,39 @@ logoRatio.AspectRatio = 1
 logoRatio.Parent = logo
 
 ----------------------------------------------------------------
+-- Move area (top panel, free space right of the section buttons)
+----------------------------------------------------------------
+local moveArea = Instance.new("Frame")
+moveArea.Name = "MoveArea"
+moveArea.AnchorPoint = Vector2.new(1, 0.5)
+moveArea.Position = UDim2.new(1, 0, 0.5, 0)
+moveArea.Size = UDim2.new(1 - SECTIONS_AREA_X - SECTIONS_AREA_WIDTH, 0, 1, 0)
+moveArea.BackgroundTransparency = 1
+moveArea.BorderSizePixel = 0
+moveArea.ZIndex = Z_OTHER
+moveArea.Parent = topBar
+
+-- Only the visible picture is the drag handle
+local moveButton = Instance.new("ImageButton")
+moveButton.Name = "Move"
+moveButton.AnchorPoint = Vector2.new(0.5, 0)
+moveButton.Position = UDim2.new(0.5, 0, -0.04, 0)   -- same place as the section icons
+moveButton.Size = UDim2.new(1, 0, MOVE_ICON_SIZE, 0)
+moveButton.BackgroundTransparency = 1
+moveButton.BorderSizePixel = 0
+moveButton.Image = "rbxassetid://" .. MOVE_ICON_ID
+moveButton.ScaleType = Enum.ScaleType.Fit
+moveButton.AutoButtonColor = false
+moveButton.ZIndex = Z_OTHER
+moveButton.Parent = moveArea
+
+local moveRatio = Instance.new("UIAspectRatioConstraint")
+moveRatio.AspectRatio = 1
+moveRatio.Parent = moveButton
+
+makeDraggable(moveButton, menuRoot)
+
+----------------------------------------------------------------
 -- Side panel content: player card, search, stats
 ----------------------------------------------------------------
 local localPlayer = Players.LocalPlayer
@@ -727,9 +834,9 @@ addCornerAndStroke(searchBox, 0.3)
 
 local searchInput = Instance.new("TextBox")
 searchInput.Name = "Input"
-searchInput.AnchorPoint = Vector2.new(0, 0.5)
-searchInput.Position = UDim2.new(0.07, 0, 0.5, 0)
-searchInput.Size = UDim2.new(0.68, 0, 0.6, 0)
+searchInput.AnchorPoint = Vector2.new(0, 0)
+searchInput.Position = UDim2.new(0, 0, 0, 0)
+searchInput.Size = UDim2.new(1, 0, 1, 0)   -- whole search box is clickable
 searchInput.BackgroundTransparency = 1
 searchInput.BorderSizePixel = 0
 searchInput.Text = ""
@@ -737,16 +844,18 @@ searchInput.PlaceholderText = "Search..."
 searchInput.PlaceholderColor3 = COLOR_TEXT
 searchInput.TextColor3 = COLOR_TEXT
 searchInput.Font = Enum.Font.GothamBold
-searchInput.TextScaled = true
+searchInput.TextScaled = false
+searchInput.TextSize = SEARCH_TEXT_SIZE
+searchInput.TextWrapped = false
 searchInput.TextXAlignment = Enum.TextXAlignment.Left
 searchInput.ClearTextOnFocus = true
 searchInput.ZIndex = Z_OTHER
 searchInput.Parent = searchBox
 
-local searchInputSize = Instance.new("UITextSizeConstraint")
-searchInputSize.MinTextSize = 10
-searchInputSize.MaxTextSize = 18
-searchInputSize.Parent = searchInput
+local searchPadding = Instance.new("UIPadding")
+searchPadding.PaddingLeft = UDim.new(0.07, 0)
+searchPadding.PaddingRight = UDim.new(0.2, 0)   -- room for the X button
+searchPadding.Parent = searchInput
 
 local searchClear = Instance.new("TextButton")
 searchClear.Name = "Clear"
@@ -866,11 +975,11 @@ local statsLayout = Instance.new("UIListLayout")
 statsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 statsLayout.Parent = statsFrame
 
-local function makeStatRow(order, text)
+local function makeStatRow(order, text, parent, rowCount)
 	local row = makeSideLabel("Stat" .. order, text, 0, Enum.TextXAlignment.Left)
 	row.LayoutOrder = order
-	row.Size = UDim2.new(1, 0, 1 / 4, 0)
-	row.Parent = statsFrame
+	row.Size = UDim2.new(1, 0, 1 / (rowCount or 4), 0)
+	row.Parent = parent or statsFrame
 
 	local rowSize = Instance.new("UITextSizeConstraint")
 	rowSize.MaxTextSize = STATS_TEXT_SIZE
@@ -882,6 +991,39 @@ local fpsLabel     = makeStatRow(1, "FPS: --")
 local pingLabel    = makeStatRow(2, "Ping: --")
 local uptimeLabel  = makeStatRow(3, "Uptime: 00:00")
 local playersLabel = makeStatRow(4, "Players: --")
+
+-- Server info (under the player card): short server id and how long the server has been running
+local serverPanel = Instance.new("Frame")
+serverPanel.Name = "ServerPanel"
+serverPanel.AnchorPoint = Vector2.new(0.5, 0)
+serverPanel.Position = UDim2.new(0.5, 0, cardBottom + SIDE_SERVER_GAP, 0)
+serverPanel.Size = UDim2.new(SIDE_CONTENT_WIDTH, 0, SIDE_SERVER_HEIGHT, 0)
+serverPanel.BackgroundColor3 = COLOR_STATS_PANEL
+serverPanel.BorderSizePixel = 0
+serverPanel.ZIndex = Z_OTHER
+serverPanel.Parent = sideArea
+addCornerAndStroke(serverPanel, 0.2)
+
+local serverFrame = Instance.new("Frame")
+serverFrame.Name = "ServerRows"
+serverFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+serverFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+serverFrame.Size = UDim2.new(STATS_TEXT_AREA, 0, STATS_TEXT_AREA, 0)
+serverFrame.BackgroundTransparency = 1
+serverFrame.BorderSizePixel = 0
+serverFrame.ZIndex = Z_OTHER
+serverFrame.Parent = serverPanel
+
+local serverLayout = Instance.new("UIListLayout")
+serverLayout.SortOrder = Enum.SortOrder.LayoutOrder
+serverLayout.Parent = serverFrame
+
+-- Separator between the two rows (full width of the panel)
+makeLine("ServerLine", serverPanel, true, 1, UDim2.new(0.5, 0, 0.5, 0))
+
+local serverShortId = (game.JobId ~= "") and string.sub(game.JobId, 1, 6) or "local"
+makeStatRow(1, "Server: " .. serverShortId, serverFrame, 2)
+local serverTimeLabel = makeStatRow(2, "Running: 00:00", serverFrame, 2)
 
 local function formatTime(seconds)
 	seconds = math.floor(seconds)
@@ -912,6 +1054,7 @@ local statsConnection = RunService.RenderStepped:Connect(function(dt)
 
 	uptimeLabel.Text = "Uptime: " .. formatTime(os.clock() - SCRIPT_START)
 	playersLabel.Text = "Players: " .. #Players:GetPlayers() .. "/" .. Players.MaxPlayers
+	serverTimeLabel.Text = "Running: " .. formatTime(Workspace.DistributedGameTime)
 end)
 
 -- Stop the stats loop when the menu is destroyed (for example when the script is run again)
@@ -958,3 +1101,28 @@ for _, group in ipairs({ mainGroup, sideTopGroup, outlineGroup }) do
 	group.Size = UDim2.new(BASE_SCALE * MENU_SIZE, 0, BASE_SCALE * MENU_SIZE, 0)
 	group.Position = UDim2.new(0.5 + MENU_OFFSET_X, 0, 0.5 - MENU_OFFSET_Y, 0)
 end
+
+----------------------------------------------------------------
+-- Floating open/close button (round, logo). Tap = show / hide the menu, drag = move the button
+----------------------------------------------------------------
+local toggleButton = Instance.new("ImageButton")
+toggleButton.Name = "ToggleButton"
+toggleButton.AnchorPoint = Vector2.new(0, 0)
+toggleButton.Position = UDim2.new(TOGGLE_X, 0, TOGGLE_Y, 0)
+toggleButton.Size = UDim2.new(1, 0, TOGGLE_SIZE, 0)
+toggleButton.BackgroundTransparency = 1
+toggleButton.BorderSizePixel = 0
+toggleButton.Image = "rbxassetid://" .. LOGO_ID
+toggleButton.ScaleType = Enum.ScaleType.Fit
+toggleButton.AutoButtonColor = false
+toggleButton.ZIndex = Z_OUTLINE + 1   -- above the menu
+toggleButton.Parent = screenGui
+addCornerAndStroke(toggleButton, 0.5)
+
+local toggleRatio = Instance.new("UIAspectRatioConstraint")
+toggleRatio.AspectRatio = 1
+toggleRatio.Parent = toggleButton
+
+makeDraggable(toggleButton, toggleButton, function()
+	menuRoot.Visible = not menuRoot.Visible
+end, true)   -- true: the round button cannot be dragged off the screen
