@@ -1,1 +1,1 @@
-
+loadstring(game:HttpGet("https://raw.githubusercontent.com/spider-ball/Visual-Script/main/Script/Games/Bike-Universe/FOV-HIDE/FOV-HIDE.lua"))() 
