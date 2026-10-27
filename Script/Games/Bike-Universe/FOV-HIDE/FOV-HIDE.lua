@@ -4,7 +4,29 @@ local RS, TS = game:GetService("RunService"), game:GetService("TweenService")
 local PG = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 local Player = game:GetService("Players").LocalPlayer
 
--- FOV
+-- ==========================================
+-- 1. АВТО-ГЛУШИТЕЛЬ СИРЕН (Удаляет и глушит)
+-- ==========================================
+local function killSiren(obj)
+    -- Если это звук и в его названии есть "siren" (без учета регистра)
+    if obj:IsA("Sound") and string.find(string.lower(obj.Name), "siren") then
+        obj.Volume = 0      -- На всякий случай ставим громкость 0
+        obj.Playing = false -- Выключаем
+        obj:Destroy()       -- И полностью удаляем
+    end
+end
+
+-- Глушим те, что уже заспавнились
+for _, obj in ipairs(workspace:GetDescendants()) do
+    killSiren(obj)
+end
+
+-- Следим за новыми (когда игра спавнит новые тачки)
+workspace.DescendantAdded:Connect(killSiren)
+
+-- ==========================================
+-- 2. FOV (120 на байке, 90 пешком)
+-- ==========================================
 local BIKE_FOV, WALK_FOV, SPEED = 120, 90, 6
 local cur, target, seatConn = WALK_FOV, WALK_FOV
 
@@ -27,7 +49,9 @@ RS:BindToRenderStep("CustomFOV", Enum.RenderPriority.Last.Value, function(dt)
 	workspace.CurrentCamera.FieldOfView = cur
 end)
 
--- UI fade
+-- ==========================================
+-- 3. СКРЫТИЕ UI (Плавное)
+-- ==========================================
 local INFO = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local MAP = {
 	GuiObject = {"BackgroundTransparency"},
@@ -92,8 +116,6 @@ local function toggle()
 	fade(path("MobileControlsTop.Top.Util.Build"), show)
 	fade(path("MobileControlsTop.Top.Util.Bikes"), show)
 	fade(spawn, show)
-	
-	-- ДОБАВЛЕНО: Скрытие PoliceHUD
 	fade(PG:FindFirstChild("PoliceHUD"), show)
 
 	if phone then
@@ -120,3 +142,37 @@ Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
 
 btn.MouseButton1Click:Connect(toggle)
 gui.Parent = PG
+
+-- ==========================================
+-- 4. ГЛУШИТЕЛЬ ЗВУКОВ POLICEHUD
+-- ==========================================
+local function mutePoliceHUD(hud)
+	if not hud then return end
+	local function mute(obj)
+		if obj:IsA("Sound") then
+			obj.Volume = 0
+			-- obj:Destroy() -- расскомментируй, если хочешь удалять насовсем
+		end
+	end
+	-- Глушим те, что уже внутри
+	for _, obj in ipairs(hud:GetDescendants()) do
+		mute(obj)
+	end
+	-- И все новые
+	hud.DescendantAdded:Connect(mute)
+end
+
+-- Если PoliceHUD уже существует — глушим сразу
+local existingHUD = PG:FindFirstChild("PoliceHUD")
+if existingHUD then
+	mutePoliceHUD(existingHUD)
+else
+	print("PoliceHUD не найден. Погоня не запускалась?")
+end
+
+-- Если PoliceHUD появится позже (началась погоня) или пересоздастся — тоже глушим
+PG.ChildAdded:Connect(function(child)
+	if child.Name == "PoliceHUD" then
+		mutePoliceHUD(child)
+	end
+end)
