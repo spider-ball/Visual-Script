@@ -92,6 +92,9 @@ local function toggle()
 	fade(path("MobileControlsTop.Top.Util.Build"), show)
 	fade(path("MobileControlsTop.Top.Util.Bikes"), show)
 	fade(spawn, show)
+	
+	-- ДОБАВЛЕНО: Скрытие PoliceHUD
+	fade(PG:FindFirstChild("PoliceHUD"), show)
 
 	if phone then
 		origPhone = origPhone or phone.Position
