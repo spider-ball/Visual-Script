@@ -1,10 +1,10 @@
 -- ==========================================
--- OPT v10
+-- OPT v15
 -- ==========================================
-local Players   = game:GetService("Players")
-local Lighting  = game:GetService("Lighting")
-local Workspace = game:GetService("Workspace")
-local UIS       = game:GetService("UserInputService")
+local Players    = game:GetService("Players")
+local Lighting   = game:GetService("Lighting")
+local Workspace  = game:GetService("Workspace")
+local UIS        = game:GetService("UserInputService")
 
 local Player = Players.LocalPlayer
 local PG = Player:WaitForChild("PlayerGui", 10)
@@ -18,18 +18,20 @@ if old then old:Destroy() end
 -- НАСТРОЙКИ
 -- ==========================================
 local KEEP_OWN_LIGHTS = false -- true = не трогать свет на своём персонаже (фонарик)
+local KEEP_OWN_NEON = false   -- true = не трогать неон на своём персонаже и машине
 local TARGET_FOG = 180
-local TARGET_BRIGHTNESS = 0.5
+local TARGET_BRIGHTNESS = 1
 local YIELD_EVERY = 500
 
 local EFFECT_CLASSES = { ParticleEmitter=true, Beam=true, Trail=true, Smoke=true, Fire=true, Sparkles=true, Highlight=true }
 local LIGHT_CLASSES  = { PointLight=true, SpotLight=true, SurfaceLight=true }
+-- Эффекты ударов/падений (ColorCorrection и новые эффекты в камере) не трогаем
 local POST_FX = { BloomEffect=true, BlurEffect=true, DepthOfFieldEffect=true, SunRaysEffect=true }
 
 local function weak() return setmetatable({}, { __mode = "k" }) end
 
 local enabled = false
-local restore = { effects = weak(), lights = weak(), postFx = weak(), lighting = nil, quality = nil }
+local restore = { effects = weak(), lights = weak(), postFx = weak(), neon = weak(), lighting = nil, quality = nil }
 local conns = {}
 local lightHooks = weak()
 local cleanToken = 0
@@ -78,7 +80,7 @@ local function isProtected(obj)
 end
 
 -- ==========================================
--- СВЕТ И ЭФФЕКТЫ
+-- СВЕТ, ЭФФЕКТЫ, НЕОН
 -- ==========================================
 local function killLight(obj)
     if KEEP_OWN_LIGHTS and isProtected(obj) then return end
@@ -88,7 +90,7 @@ local function killLight(obj)
     if not lightHooks[obj] then
         lightHooks[obj] = obj:GetPropertyChangedSignal("Enabled"):Connect(function()
             if enabled and obj.Enabled then
-                restore.lights[obj] = true -- игра хотела включить: запомним
+                restore.lights[obj] = true
                 obj.Enabled = false
             end
         end)
@@ -101,12 +103,20 @@ local function killEffect(obj)
     obj.Enabled = false
 end
 
+local function killNeon(obj)
+    if KEEP_OWN_NEON and isProtected(obj) then return end
+    if restore.neon[obj] == nil then restore.neon[obj] = obj.Material end
+    obj.Material = Enum.Material.SmoothPlastic
+end
+
 local function handle(obj)
     local cls = obj.ClassName
     if LIGHT_CLASSES[cls] then
         killLight(obj)
     elseif EFFECT_CLASSES[cls] then
         killEffect(obj)
+    elseif obj:IsA("BasePart") and obj.Material == Enum.Material.Neon then
+        killNeon(obj)
     end
 end
 
@@ -130,10 +140,18 @@ end
 -- ==========================================
 -- LIGHTING: удержание значений
 -- ==========================================
+local function applyLighting()
+    pcall(function()
+        if Lighting.FogEnd ~= TARGET_FOG then Lighting.FogEnd = TARGET_FOG end
+        if Lighting.Brightness ~= TARGET_BRIGHTNESS then Lighting.Brightness = TARGET_BRIGHTNESS end
+        if Lighting.GlobalShadows ~= false then Lighting.GlobalShadows = false end
+    end)
+end
+
 local function holdProperty(prop, target)
     table.insert(conns, Lighting:GetPropertyChangedSignal(prop):Connect(function()
         if enabled and Lighting[prop] ~= target then
-            if restore.lighting then restore.lighting[prop] = Lighting[prop] end -- значение игры
+            if restore.lighting then restore.lighting[prop] = Lighting[prop] end
             Lighting[prop] = target
         end
     end))
@@ -156,9 +174,7 @@ local function enable()
         restore.quality = UserSettings():GetService("UserGameSettings").SavedQualityLevel
     end)
 
-    Lighting.FogEnd = TARGET_FOG
-    Lighting.Brightness = TARGET_BRIGHTNESS
-    Lighting.GlobalShadows = false
+    applyLighting()
     pcall(function()
         UserSettings():GetService("UserGameSettings").SavedQualityLevel = Enum.SavedQualitySetting.QualityLevel1
     end)
@@ -172,6 +188,15 @@ local function enable()
     holdProperty("FogEnd", TARGET_FOG)
     holdProperty("Brightness", TARGET_BRIGHTNESS)
     holdProperty("GlobalShadows", false)
+
+    -- после респавна (авария) очищаем заново
+    table.insert(conns, Player.CharacterAdded:Connect(function()
+        if not enabled then return end
+        task.wait(1)
+        cleanToken += 1
+        task.spawn(cleanOnce, cleanToken)
+        applyLighting()
+    end))
 
     btn.Text = "ON"
     btn.TextColor3 = Color3.fromRGB(80, 255, 120)
@@ -198,7 +223,10 @@ local function disable()
     for obj, v in pairs(restore.postFx) do
         if obj.Parent then pcall(function() obj.Enabled = v end) end
     end
-    restore.effects, restore.lights, restore.postFx = weak(), weak(), weak()
+    for obj, v in pairs(restore.neon) do
+        if obj.Parent then pcall(function() obj.Material = v end) end
+    end
+    restore.effects, restore.lights, restore.postFx, restore.neon = weak(), weak(), weak(), weak()
 
     if restore.lighting then
         for k, v in pairs(restore.lighting) do
@@ -223,48 +251,56 @@ end
 -- ПЕРЕТАСКИВАНИЕ / КЛИК (ПК + тач)
 -- ==========================================
 local DRAG_THRESHOLD = 10
-local activeInput, dragStart, startAbs, dragDistance = nil, nil, nil, 0
+local activeInput, startInput, startPos, dragging = nil, Vector2.zero, btn.Position, false
 
-local function clampToScreen(pos)
-    local cam = Workspace.CurrentCamera
-    if not cam then return pos end
-    local vp, size = cam.ViewportSize, btn.AbsoluteSize
-    return Vector2.new(
-        math.clamp(pos.X, 0, math.max(0, vp.X - size.X)),
-        math.clamp(pos.Y, 0, math.max(0, vp.Y - size.Y))
-    )
+local function clampOnScreen()
+    local ap, sz, vp = btn.AbsolutePosition, btn.AbsoluteSize, gui.AbsoluteSize
+    local fixX = math.clamp(ap.X, 0, math.max(0, vp.X - sz.X)) - ap.X
+    local fixY = math.clamp(ap.Y, 0, math.max(0, vp.Y - sz.Y)) - ap.Y
+    if fixX ~= 0 or fixY ~= 0 then
+        local p = btn.Position
+        btn.Position = UDim2.new(p.X.Scale, p.X.Offset + fixX, p.Y.Scale, p.Y.Offset + fixY)
+    end
 end
 
 btn.InputBegan:Connect(function(input)
+    if activeInput then return end
     local t = input.UserInputType
     if t == Enum.UserInputType.MouseButton1 or t == Enum.UserInputType.Touch then
         activeInput = input
-        dragStart = input.Position
-        startAbs = btn.AbsolutePosition
-        dragDistance = 0
+        dragging = false
+        startInput = Vector2.new(input.Position.X, input.Position.Y)
+        startPos = btn.Position
     end
 end)
 
 UIS.InputChanged:Connect(function(input)
     if not activeInput then return end
-    local isMove = input == activeInput or input.UserInputType == Enum.UserInputType.MouseMovement
+    local isMove = input == activeInput
+        or (activeInput.UserInputType == Enum.UserInputType.MouseButton1
+            and input.UserInputType == Enum.UserInputType.MouseMovement)
     if not isMove then return end
 
-    local delta = Vector2.new(input.Position.X, input.Position.Y) - Vector2.new(dragStart.X, dragStart.Y)
-    dragDistance = math.max(dragDistance, math.abs(delta.X) + math.abs(delta.Y))
-    if dragDistance > DRAG_THRESHOLD then
-        local p = clampToScreen(startAbs + delta)
-        btn.Position = UDim2.fromOffset(p.X, p.Y)
+    local delta = Vector2.new(input.Position.X, input.Position.Y) - startInput
+    if not dragging and delta.Magnitude > DRAG_THRESHOLD then
+        dragging = true
+    end
+    if dragging then
+        btn.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+        clampOnScreen()
     end
 end)
 
 UIS.InputEnded:Connect(function(input)
     if activeInput and input == activeInput then
-        if dragDistance <= DRAG_THRESHOLD then
+        if not dragging then
             if enabled then disable() else enable() end
         end
-        activeInput = nil
+        activeInput, dragging = nil, false
     end
 end)
 
-print("[OPT v10] Готово.")
+print("[OPT v15] Готово.")
