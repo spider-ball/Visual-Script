@@ -113,9 +113,10 @@ local function toggle()
 
 	fade(PG:FindFirstChild("RobuxShopButton"), show)
 	fade(PG:FindFirstChild("PumpkinHUD"), show)
+	fade(PG:FindFirstChild("HalloweenProgress"), show)
+	fade(PG:FindFirstChild("HalloweenToast"), show)
 	fade(path("MobileControlsTop.Top.Util.Build"), show)
 	fade(path("MobileControlsTop.Top.Util.Bikes"), show)
-	fade(path("PumpkinPit.Holder.Panel.Tabs"), show) -- << добавлено
 	fade(spawn, show)
 	fade(PG:FindFirstChild("PoliceHUD"), show)
 
@@ -139,6 +140,7 @@ btn.BackgroundTransparency = 0.7
 btn.BorderSizePixel = 0
 btn.Text = ""
 btn.Parent = gui
+
 Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
 
 btn.MouseButton1Click:Connect(toggle)
@@ -177,3 +179,35 @@ PG.ChildAdded:Connect(function(child)
 		mutePoliceHUD(child)
 	end
 end)
+
+-- ==========================================
+-- 5. HALLOWEEN GUI: не даём появиться, пока UI скрыт
+-- ==========================================
+local WATCH = {
+	HalloweenProgress = true,
+	HalloweenToast = true,
+}
+
+local function watch(obj)
+	if not WATCH[obj.Name] then return end
+	local prop = obj:IsA("ScreenGui") and "Enabled" or "Visible"
+
+	-- Если игра сама включит обратно, пока UI скрыт — выключаем снова
+	obj:GetPropertyChangedSignal(prop):Connect(function()
+		if hidden and obj[prop] then
+			obj[prop] = false
+		end
+	end)
+
+	-- Если создался уже при скрытом UI
+	if hidden then
+		obj[prop] = false
+	end
+end
+
+for _, obj in ipairs(PG:GetChildren()) do
+	watch(obj)
+end
+
+-- Если игра пересоздаст GUI — подхватываем новый
+PG.ChildAdded:Connect(watch)
