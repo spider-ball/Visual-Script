@@ -115,6 +115,7 @@ local function toggle()
 	fade(PG:FindFirstChild("PumpkinHUD"), show)
 	fade(path("MobileControlsTop.Top.Util.Build"), show)
 	fade(path("MobileControlsTop.Top.Util.Bikes"), show)
+	fade(path("PumpkinPit.Holder.Panel.Tabs"), show) -- << добавлено
 	fade(spawn, show)
 	fade(PG:FindFirstChild("PoliceHUD"), show)
 
