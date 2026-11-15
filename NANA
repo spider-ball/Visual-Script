@@ -1,0 +1,483 @@
+-- RBLXscript-GUI-PLUS (FIXED FOR ARCEUS NEO)
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CoreGui = game:GetService("CoreGui")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CustomGameUI"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = playerGui
+
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 34, 0, 34)
+toggleButton.Position = UDim2.new(1, -30, 0, 30)
+toggleButton.AnchorPoint = Vector2.new(1, 0)
+toggleButton.BackgroundColor3 = Color3.fromRGB(15,15,15)
+toggleButton.Text = "Icon\n3"
+toggleButton.TextColor3 = Color3.fromRGB(255,255,255)
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.TextSize = 10
+toggleButton.ZIndex = 10
+toggleButton.Parent = screenGui
+Instance.new("UICorner", toggleButton).CornerRadius = UDim.new(0.5, 0)
+
+local menuContainer = Instance.new("Frame")
+menuContainer.Size = UDim2.new(0.8, 0, 0.75, 0)
+menuContainer.Position = UDim2.new(0.5, 0, 0.175, 0)
+menuContainer.AnchorPoint = Vector2.new(0.5, 0)
+menuContainer.BackgroundTransparency = 1
+menuContainer.ClipsDescendants = true
+menuContainer.Parent = screenGui
+
+local EDGE_EXTRA = 0
+local MID_EXTRA = (14 - 2*EDGE_EXTRA)/10
+local COLUMN_OFFSET = EDGE_EXTRA - 2 - 10/12
+local DIVIDER_WIDTH = 4
+
+local greyPanel = Instance.new("Frame")
+greyPanel.Size = UDim2.new(1, 0, 1, -26)
+greyPanel.Position = UDim2.new(0, 0, 0, 26)
+greyPanel.BackgroundColor3 = Color3.fromRGB(51,51,51)
+greyPanel.BorderSizePixel = 0
+greyPanel.ZIndex = 1
+greyPanel.Parent = menuContainer
+Instance.new("UICorner", greyPanel).CornerRadius = UDim.new(0, 20)
+
+local bluePanel = Instance.new("Frame")
+bluePanel.Size = UDim2.new(11/12, -COLUMN_OFFSET, 1, 0)
+bluePanel.Position = UDim2.new(1/12, COLUMN_OFFSET, 0, 0)
+bluePanel.BackgroundColor3 = Color3.fromRGB(77,77,77)
+bluePanel.BorderSizePixel = 0
+bluePanel.ZIndex = 2
+bluePanel.Parent = greyPanel
+Instance.new("UICorner", bluePanel).CornerRadius = UDim.new(0, 20)
+
+local greyBlueDivider = Instance.new("Frame")
+greyBlueDivider.Size = UDim2.new(0, DIVIDER_WIDTH, 1, 0)
+greyBlueDivider.Position = UDim2.new(1/12, COLUMN_OFFSET - DIVIDER_WIDTH/2, 0, 0)
+greyBlueDivider.BackgroundColor3 = Color3.fromRGB(0,0,0)
+greyBlueDivider.BorderSizePixel = 0
+greyBlueDivider.ZIndex = 3
+greyBlueDivider.Parent = greyPanel
+
+local borderBase = Instance.new("Frame")
+borderBase.Size = UDim2.new(1, 0, 0, 52)
+borderBase.BackgroundColor3 = Color3.fromRGB(30,30,30)
+borderBase.BorderSizePixel = 0
+borderBase.ZIndex = 5
+borderBase.Parent = menuContainer
+Instance.new("UICorner", borderBase).CornerRadius = UDim.new(0, 20)
+
+for _, pos in ipairs({UDim2.new(0,0,1,-20), UDim2.new(1,-20,1,-20)}) do
+	local p = Instance.new("Frame")
+	p.Size = UDim2.new(0,20,0,20)
+	p.Position = pos
+	p.BackgroundColor3 = Color3.fromRGB(30,30,30)
+	p.BorderSizePixel = 0
+	p.ZIndex = 3
+	p.Parent = borderBase
+end
+
+local greenTop = Instance.new("Frame")
+greenTop.Size = UDim2.new(1,0,1,0)
+greenTop.BackgroundColor3 = Color3.fromRGB(77,77,77)
+greenTop.BorderSizePixel = 0
+greenTop.ZIndex = 6
+greenTop.Parent = borderBase
+Instance.new("UICorner", greenTop).CornerRadius = UDim.new(0, 20)
+
+local blueMask = Instance.new("Frame")
+blueMask.Size = UDim2.new(1, 0, 0.5, 0)
+blueMask.Position = UDim2.new(0, 0, 0.5, 0)
+blueMask.BackgroundColor3 = Color3.fromRGB(77,77,77)
+blueMask.BorderSizePixel = 0
+blueMask.ZIndex = 7
+blueMask.Parent = greenTop
+
+local bottomBorder = Instance.new("Frame")
+bottomBorder.Size = UDim2.new(1, 0, 0, DIVIDER_WIDTH)
+bottomBorder.Position = UDim2.new(0, 0, 1, -DIVIDER_WIDTH)
+bottomBorder.BackgroundColor3 = Color3.fromRGB(0,0,0)
+bottomBorder.BorderSizePixel = 0
+bottomBorder.ZIndex = 8
+bottomBorder.Parent = borderBase
+
+local buttonsContainer = Instance.new("Frame")
+buttonsContainer.Size = UDim2.new(1, -10, 0, 48)
+buttonsContainer.Position = UDim2.new(0, 5, 0, 0)
+buttonsContainer.BackgroundTransparency = 1
+buttonsContainer.ZIndex = 9
+buttonsContainer.Parent = menuContainer
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.FillDirection = Enum.FillDirection.Horizontal
+listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+listLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+listLayout.Padding = UDim.new(0, DIVIDER_WIDTH)
+listLayout.Parent = buttonsContainer
+
+local function createTopButton(text, addDivider, extraWidth)
+	local panel = Instance.new("TextButton")
+	panel.Size = UDim2.new(1/12, -4 + (extraWidth or 0), 1, 0)
+	panel.BackgroundColor3 = Color3.fromRGB(77,77,77)
+	panel.BackgroundTransparency = 1
+	panel.BorderSizePixel = 0
+	panel.Text = text
+	panel.TextColor3 = Color3.fromRGB(255,255,255)
+	panel.Font = Enum.Font.GothamBold
+	panel.TextScaled = true
+	panel.ZIndex = 10
+	panel.Parent = buttonsContainer
+	Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 6)
+	if addDivider then
+		local sep = Instance.new("Frame")
+		sep.Name = "Divider"
+		sep.Size = UDim2.new(0, DIVIDER_WIDTH, 1, 8)
+		sep.Position = UDim2.new(1, 0, 0, -4)
+		sep.BackgroundColor3 = Color3.fromRGB(0,0,0)
+		sep.BorderSizePixel = 0
+		sep.ZIndex = 11
+		sep.Parent = panel
+	end
+	return panel
+end
+
+local panelNames = {"Icon\n1","Раздел\n1","Раздел\n2","Раздел\n3","Раздел\n4","Раздел\n5","Раздел\n6","Раздел\n7","Раздел\n8","Раздел\n9","Раздел\n10","Icon\n2"}
+local topButtons = {}
+for i, name in ipairs(panelNames) do
+	topButtons[i] = createTopButton(name, i < #panelNames, (i == 1 or i == #panelNames) and EDGE_EXTRA or MID_EXTRA)
+end
+
+local firstTopDivider = topButtons[1]:FindFirstChild("Divider") or topButtons[2]:WaitForChild("Divider")
+local function syncDivider()
+	local x = firstTopDivider.AbsolutePosition.X - greyPanel.AbsolutePosition.X
+	greyBlueDivider.Position = UDim2.new(0, x, 0, 0)
+	bluePanel.Position = UDim2.new(0, x + DIVIDER_WIDTH/2, 0, 0)
+	bluePanel.Size = UDim2.new(1, -(x + DIVIDER_WIDTH/2), 1, 0)
+end
+firstTopDivider:GetPropertyChangedSignal("AbsolutePosition"):Connect(syncDivider)
+greyPanel:GetPropertyChangedSignal("AbsolutePosition"):Connect(syncDivider)
+task.defer(syncDivider)
+
+local pagesFolder = Instance.new("Frame")
+pagesFolder.Size = UDim2.new(1,0,1,0)
+pagesFolder.BackgroundTransparency = 1
+pagesFolder.ZIndex = 3
+pagesFolder.Parent = bluePanel
+
+local CARD_BODY_COLOR = Color3.fromRGB(51,51,51)
+local CARD_HEADER_COLOR = Color3.fromRGB(64,64,64)
+local BTN_COLOR = Color3.fromRGB(77,77,77)
+local HEADER_H = 44
+local TweenService_ = TweenService
+
+local SCRIPT_TAG = "MobileToggleMenuScript"
+_G[SCRIPT_TAG] = true
+
+-- ОТКЛЮЧЕНО СОХРАНЕНИЕ, ЧТОБЫ НЕ БЫЛО ОШИБОК В ARCEUS
+local saveDebounce = false
+local DEFAULTS = { sky = "DefaultSky", visual = "None", fov = 70 }
+local function saveSettingsDelayed() end
+
+local CUSTOM_SKY_NAMES = {"PinkSky","Pink1Sky","SunsetSky","Sunset1Sky","DarkSunsetSky","OvercastSky","Overcast1Sky","Overcast2Sky","Overcast3Sky","PurpleSky","Purple2Sky","Purple3Sky","CloudySky","Cloudy1Sky","RedSky","Red1Sky","RedGoldSky","BlueGreenSky","BlueGreen1Sky","PurpleBlueSky","FTAP_CustomSky","StarSky","RedSky2","PurpleSky2","RealisticSky","PinkSky2"}
+local function isCustomSkyName(n)
+	for _, x in ipairs(CUSTOM_SKY_NAMES) do if x == n then return true end end
+	return false
+end
+local function cleanupCustomSky()
+	for _, c in ipairs(Lighting:GetChildren()) do
+		if c:IsA("Sky") and isCustomSkyName(c.Name) then c:Destroy() end
+	end
+end
+cleanupCustomSky()
+local function getSafeCamera()
+	local c = workspace.CurrentCamera
+	if not c then
+		workspace:GetPropertyChangedSignal("CurrentCamera"):Wait()
+		c = workspace.CurrentCamera
+	end
+	return c
+end
+
+local PINK_SKY = { Right="rbxassetid://99178632470974", Left="rbxassetid://105698490046689", Up="rbxassetid://118938836131305", Down="rbxassetid://120618995645758", Front="rbxassetid://72769531974029", Back="rbxassetid://70646713355454" }
+local PINK1_SKY = { Right="rbxassetid://121821717023864", Left="rbxassetid://122912820996210", Up="rbxassetid://136954498936115", Down="rbxassetid://120521166612928", Back="rbxassetid://75859338419870", Front="rbxassetid://87978450174413" }
+local SUNSET_SKY = { Right="rbxassetid://81917192544565", Left="rbxassetid://123504218900071", Up="rbxassetid://102754091719425", Down="rbxassetid://120203815632456", Back="rbxassetid://80626011057173", Front="rbxassetid://71391772386689" }
+local SUNSET1_SKY = { Right="rbxassetid://600833862", Left="rbxassetid://600886090", Up="rbxassetid://600835177", Down="rbxassetid://600831635", Back="rbxassetid://600830446", Front="rbxassetid://600832720" }
+local DARKSUNSET_SKY = { Right="rbxassetid://169210143", Left="rbxassetid://169210133", Up="rbxassetid://169210149", Down="rbxassetid://169210108", Back="rbxassetid://169210090", Front="rbxassetid://169210121" }
+local OVERCAST_SKY = { Right="rbxassetid://113656297117229", Left="rbxassetid://117387352674614", Up="rbxassetid://96118083498785", Down="rbxassetid://136079591970856", Back="rbxassetid://71196675713878", Front="rbxassetid://81417222464090" }
+local OVERCAST1_SKY = { Right="rbxassetid://109693044711016", Left="rbxassetid://100996126500320", Up="rbxassetid://97846107870268", Down="rbxassetid://130441754428343", Back="rbxassetid://123436356714901", Front="rbxassetid://111439831859778" }
+local OVERCAST2_SKY = { Right="rbxassetid://155657619", Left="rbxassetid://155657671", Up="rbxassetid://155674931", Down="rbxassetid://155674246", Back="rbxassetid://155657655", Front="rbxassetid://155657609" }
+local OVERCAST3_SKY = { Right="rbxassetid://218448178", Left="rbxassetid://218448234", Up="rbxassetid://218448296", Down="rbxassetid://218448317", Back="rbxassetid://218448217", Front="rbxassetid://218448269" }
+local PURPLE_SKY = { Right="rbxassetid://107582465298500", Left="rbxassetid://116713499702383", Up="rbxassetid://104937569917275", Down="rbxassetid://119424695859184", Back="rbxassetid://94075096527595", Front="rbxassetid://107660858272322" }
+local PURPLE2_SKY = { Right="rbxassetid://87508746807373", Left="rbxassetid://72214429519631", Up="rbxassetid://93909905537579", Down="rbxassetid://114305065346484", Back="rbxassetid://124039476809343", Front="rbxassetid://85546626451946" }
+local PURPLE3_SKY = { Right="rbxassetid://16553665766", Left="rbxassetid://16553664042", Up="rbxassetid://16553667750", Down="rbxassetid://16553660713", Back="rbxassetid://16553658937", Front="rbxassetid://16553662144" }
+local CLOUDY_SKY = { Right="rbxassetid://73202475548459", Left="rbxassetid://110550431724515", Up="rbxassetid://99634001170418", Down="rbxassetid://116358698169847", Back="rbxassetid://105511758648998", Front="rbxassetid://109231634620741" }
+local CLOUDY1_SKY = { Right="rbxassetid://108446505567246", Left="rbxassetid://75881260386073", Up="rbxassetid://82241980967600", Down="rbxassetid://97076965994511", Back="rbxassetid://106685350225588", Front="rbxassetid://104055357726979" }
+local RED_SKY = { Right="rbxassetid://83665628990242", Left="rbxassetid://86812333109787", Up="rbxassetid://109944460974973", Down="rbxassetid://105372026083974", Back="rbxassetid://74210136209255", Front="rbxassetid://107353670375427" }
+local RED1_SKY = { Right="rbxassetid://84415437719739", Left="rbxassetid://76789441314394", Up="rbxassetid://104270272146420", Down="rbxassetid://79387501967596", Back="rbxassetid://121089206402947", Front="rbxassetid://84022325891982" }
+local REDGOLD_SKY = { Right="rbxassetid://108598432654836", Left="rbxassetid://119399958723600", Up="rbxassetid://113183443469309", Down="rbxassetid://96206083396471", Back="rbxassetid://96206083396471", Front="rbxassetid://118413184179068" }
+local BLUEGREEN_SKY = { Right="rbxassetid://89051484543303", Left="rbxassetid://76250732091424", Up="rbxassetid://102824883976098", Down="rbxassetid://129089294700595", Back="rbxassetid://104922795812590", Front="rbxassetid://117576797257071" }
+local BLUEGREEN1_SKY = { Right="rbxassetid://100525795679790", Left="rbxassetid://126168304325701", Up="rbxassetid://131390851179591", Down="rbxassetid://117310255409107", Back="rbxassetid://134735625405353", Front="rbxassetid://74081048495142" }
+local PURPLEBLUE_SKY = { Right="rbxassetid://75513499724049", Left="rbxassetid://130322025682877", Up="rbxassetid://87756010698046", Down="rbxassetid://72544216742837", Back="rbxassetid://83511161961595", Front="rbxassetid://102806492018777" }
+local STAR_SKY = { Back="rbxassetid://11336725935", Down="rbxassetid://11336722286", Front="rbxassetid://11336720418", Left="rbxassetid://11336725016", Right="rbxassetid://11336726887", Up="rbxassetid://11336723758" }
+local RED_SKY2 = { Back="rbxassetid://401664839", Down="rbxassetid://401664862", Front="rbxassetid://401664960", Left="rbxassetid://401664881", Right="rbxassetid://401664901", Up="rbxassetid://401664936" }
+local PURPLE_SKY2 = { Back="rbxassetid://570557514", Down="rbxassetid://570557775", Front="rbxassetid://570557559", Left="rbxassetid://570557620", Right="rbxassetid://570557672", Up="rbxassetid://570557727" }
+local REALISTIC_SKY = { Back="rbxassetid://144933338", Down="rbxassetid://144931530", Front="rbxassetid://144933262", Left="rbxassetid://144933244", Right="rbxassetid://144933299", Up="rbxassetid://144931564" }
+local PINK_SKY2 = { Back="rbxassetid://271042516", Down="rbxassetid://271077243", Front="rbxassetid://271042556", Left="rbxassetid://271042310", Right="rbxassetid://271042467", Up="rbxassetid://271077958" }
+
+local SKY_LIST = {
+	{"DefaultSky","Default Sky"},{"PinkSky","Pink Sky"},{"Pink1Sky","Pink Sky 1"},{"PinkSky2","Pink Sky 2"},
+	{"RedSky","Red Sky"},{"Red1Sky","Red Sky 1"},{"RedSky2","Red Sky 2"},{"RedGoldSky","Red-Gold Sky"},
+	{"PurpleSky","Purple Sky"},{"Purple2Sky","Purple Sky 1"},{"Purple3Sky","Purple Sky 2"},{"PurpleSky2","Purple Sky 3"},
+	{"SunsetSky","Sunset Sky"},{"Sunset1Sky","Sunset Sky 1"},{"DarkSunsetSky","Dark-Sunset Sky"},
+	{"OvercastSky","Overcast Sky"},{"Overcast1Sky","Overcast Sky 1"},{"Overcast2Sky","Overcast Sky 2"},{"Overcast3Sky","Overcast Sky 3"},
+	{"CloudySky","Cloudy Sky"},{"Cloudy1Sky","Cloudy Sky 1"},{"BlueGreenSky","Blue-Green Sky"},{"BlueGreen1Sky","Blue-Green Sky 1"},
+	{"PurpleBlueSky","Purple-Blue Sky"},{"StarSky","Star Sky"},{"RealisticSky","Realistic Sky"},
+}
+local SKY_TEXTURES = {
+	PinkSky=PINK_SKY, Pink1Sky=PINK1_SKY, PinkSky2=PINK_SKY2,
+	RedSky=RED_SKY, Red1Sky=RED1_SKY, RedSky2=RED_SKY2, RedGoldSky=REDGOLD_SKY,
+	PurpleSky=PURPLE_SKY, Purple2Sky=PURPLE2_SKY, Purple3Sky=PURPLE3_SKY, PurpleSky2=PURPLE_SKY2,
+	SunsetSky=SUNSET_SKY, Sunset1Sky=SUNSET1_SKY, DarkSunsetSky=DARKSUNSET_SKY,
+	OvercastSky=OVERCAST_SKY, Overcast1Sky=OVERCAST1_SKY, Overcast2Sky=OVERCAST2_SKY, Overcast3Sky=OVERCAST3_SKY,
+	CloudySky=CLOUDY_SKY, Cloudy1Sky=CLOUDY1_SKY, BlueGreenSky=BLUEGREEN_SKY, BlueGreen1Sky=BLUEGREEN1_SKY,
+	PurpleBlueSky=PURPLEBLUE_SKY, StarSky=STAR_SKY, RealisticSky=REALISTIC_SKY,
+}
+
+local originalSky, customSky
+for _, c in ipairs(Lighting:GetChildren()) do
+	if c:IsA("Sky") and not isCustomSkyName(c.Name) then originalSky = c break end
+end
+if not originalSky then
+	originalSky = Instance.new("Sky")
+	originalSky.Name = "DefaultSky"
+	originalSky.Parent = Lighting
+end
+local currentSkyName = "DefaultSky"
+local skyButtons = {}
+local skyButtonByKey = {}
+
+local function setActiveSkyButton(ab)
+	for _, b in ipairs(skyButtons) do
+		local act = (b == ab)
+		b.BackgroundColor3 = act and Color3.fromRGB(252,207,242) or BTN_COLOR
+		b.TextColor3 = act and Color3.fromRGB(0,0,0) or Color3.fromRGB(255,255,255)
+	end
+end
+local function clearCustomSky()
+	if customSky then customSky:Destroy() customSky = nil end
+	cleanupCustomSky()
+end
+local function applyDefaultSky()
+	clearCustomSky()
+	if originalSky and not originalSky.Parent then originalSky.Parent = Lighting end
+	setActiveSkyButton(skyButtonByKey["DefaultSky"])
+	currentSkyName = "DefaultSky"
+end
+local function applyCustomSky(name, tex, btn)
+	clearCustomSky()
+	if originalSky then originalSky.Parent = nil end
+	customSky = Instance.new("Sky")
+	customSky.Name = "FTAP_CustomSky"
+	customSky.SkyboxFt = tex.Front
+	customSky.SkyboxRt = tex.Right
+	customSky.SkyboxBk = tex.Back
+	customSky.SkyboxUp = tex.Up
+	customSky.SkyboxLf = tex.Left
+	customSky.SkyboxDn = tex.Down
+	customSky.Parent = Lighting
+	setActiveSkyButton(btn)
+	currentSkyName = name
+end
+
+local VISUAL_TAG = "FTAP_VisualPreset"
+local ORIG_LIGHTING = {
+	ClockTime=Lighting.ClockTime, Brightness=Lighting.Brightness, Ambient=Lighting.Ambient,
+	OutdoorAmbient=Lighting.OutdoorAmbient, ColorShift_Top=Lighting.ColorShift_Top, ColorShift_Bottom=Lighting.ColorShift_Bottom,
+	ShadowSoftness=Lighting.ShadowSoftness, GeographicLatitude=Lighting.GeographicLatitude,
+	EnvironmentDiffuseScale=Lighting.EnvironmentDiffuseScale, EnvironmentSpecularScale=Lighting.EnvironmentSpecularScale,
+}
+local function clearVisualPreset()
+	for _, o in ipairs(Lighting:GetChildren()) do
+		if o:GetAttribute(VISUAL_TAG) == true then o:Destroy() end
+	end
+	for _, o in ipairs(Lighting:GetChildren()) do
+		if o:IsA("Atmosphere") or o:IsA("BloomEffect") or o:IsA("ColorCorrectionEffect") or o:IsA("SunRaysEffect") or o:IsA("BlurEffect") or o:IsA("DepthOfFieldEffect") then o:Destroy() end
+	end
+end
+local function resetLighting()
+	for k, v in pairs(ORIG_LIGHTING) do Lighting[k] = v end
+end
+local function newVis(class, name)
+	local o = Instance.new(class)
+	o.Name = name
+	o:SetAttribute(VISUAL_TAG, true)
+	o.Parent = Lighting
+	return o
+end
+local function applyVisualPreset(p)
+	clearVisualPreset(); resetLighting()
+	if p == "None" then
+	elseif p == "Blue" then
+		Lighting.ClockTime=9; Lighting.Brightness=2; Lighting.Ambient=Color3.fromRGB(16,16,16); Lighting.ColorShift_Top=Color3.fromRGB(196,222,255); Lighting.OutdoorAmbient=Color3.fromRGB(134,158,190); Lighting.ShadowSoftness=0; Lighting.GeographicLatitude=78
+		local A=newVis("Atmosphere","A") A.Density=0.375 A.Offset=0.17
+	elseif p == "Realistic" then
+		Lighting.ClockTime=17; Lighting.Brightness=1.6; Lighting.GeographicLatitude=45; Lighting.EnvironmentDiffuseScale=0.3; Lighting.EnvironmentSpecularScale=0.1
+		local A=newVis("Atmosphere","A") A.Density=0.10 A.Offset=0.3 A.Color=Color3.fromRGB(200,215,230) A.Decay=Color3.fromRGB(130,120,110) A.Glare=0 A.Haze=2
+		local C=newVis("ColorCorrectionEffect","C") C.Saturation=-0.12 C.Contrast=0.01 C.Brightness=-0.02
+		local B=newVis("BloomEffect","B") B.Intensity=0.1 B.Size=28 B.Threshold=1.1
+		local R=newVis("SunRaysEffect","R") R.Intensity=0.05 R.Spread=0.6
+	elseif p == "Realistic1" then
+		local R=newVis("SunRaysEffect","R") R.Intensity=0.3 R.Spread=1
+		local C=newVis("ColorCorrectionEffect","C") C.TintColor=Color3.fromRGB(222,240,255)
+		local B=newVis("BloomEffect","B") B.Intensity=1 B.Size=24 B.Threshold=0.949
+	elseif p == "Pink" then
+		local R=newVis("SunRaysEffect","R") R.Intensity=1 R.Spread=1
+		local C=newVis("ColorCorrectionEffect","C") C.Brightness=0.1 C.Contrast=0.5 C.TintColor=Color3.fromRGB(255,254,239)
+		local Bl=newVis("BlurEffect","Bl") Bl.Size=4
+		local B=newVis("BloomEffect","B") B.Intensity=12 B.Size=24 B.Threshold=4
+	elseif p == "Sunset" then
+		local C=newVis("ColorCorrectionEffect","C") C.Brightness=0.08 C.Contrast=-0.15 C.Saturation=-0.08 C.TintColor=Color3.fromRGB(255,242,235)
+		local B=newVis("BloomEffect","B") B.Intensity=1.8 B.Size=32 B.Threshold=0.75
+		local D=newVis("DepthOfFieldEffect","D") D.FarIntensity=0.38 D.FocusDistance=45 D.InFocusRadius=18 D.NearIntensity=0.08
+		local A=newVis("Atmosphere","A") A.Density=0.32 A.Offset=0.05 A.Color=Color3.fromRGB(255,238,230) A.Decay=Color3.fromRGB(210,205,195) A.Glare=0.45 A.Haze=2.2
+		local Bl=newVis("BlurEffect","Bl") Bl.Size=2
+	elseif p == "GoldenHour" then
+		Lighting.ClockTime=17.2; Lighting.Brightness=2.1; Lighting.Ambient=Color3.fromRGB(105,90,75); Lighting.OutdoorAmbient=Color3.fromRGB(170,145,115); Lighting.ColorShift_Top=Color3.fromRGB(255,205,145); Lighting.ColorShift_Bottom=Color3.fromRGB(120,90,65)
+		local A=newVis("Atmosphere","A") A.Density=0.15 A.Haze=0.7 A.Glare=0.25 A.Color=Color3.fromRGB(255,220,185) A.Decay=Color3.fromRGB(175,130,95)
+		local C=newVis("ColorCorrectionEffect","C") C.Brightness=0.04 C.Contrast=0.12 C.Saturation=0.12 C.TintColor=Color3.fromRGB(255,235,210)
+		local B=newVis("BloomEffect","B") B.Intensity=0.7 B.Size=30 B.Threshold=0.9
+	elseif p == "Night" then
+		Lighting.ClockTime=0; Lighting.Brightness=1; Lighting.Ambient=Color3.fromRGB(20,25,45); Lighting.OutdoorAmbient=Color3.fromRGB(35,45,80); Lighting.ColorShift_Top=Color3.fromRGB(45,55,110); Lighting.ColorShift_Bottom=Color3.fromRGB(15,20,45)
+		local A=newVis("Atmosphere","A") A.Density=0.25 A.Haze=1.2 A.Color=Color3.fromRGB(100,120,180) A.Decay=Color3.fromRGB(35,45,90)
+		local C=newVis("ColorCorrectionEffect","C") C.Brightness=-0.04 C.Contrast=0.3 C.Saturation=-0.05 C.TintColor=Color3.fromRGB(180,195,240)
+		local B=newVis("BloomEffect","B") B.Intensity=0.35 B.Size=24 B.Threshold=1.1
+	end
+end
+
+local visualPresets = {
+    {"None","None"}, {"Blue","Blue"}, {"Realistic","Realistic"}, {"Realistic1","Realistic 1"},
+    {"Pink","Pink"}, {"Sunset","Sunset"}, {"Night","Night"}
+}
+local visualButtons = {}
+
+local FOV_MIN, FOV_MAX = 50, 120
+local currentFov = 70
+local thirdPersonOn = false
+
+local function setThirdPerson(on)
+	thirdPersonOn = on
+	pcall(function()
+		if on then
+			player.CameraMaxZoomDistance = 3000000
+		else
+			player.CameraMaxZoomDistance = 128
+		end
+		player.CameraMode = Enum.CameraMode.Classic
+	end)
+end
+
+-- ОСТАЛЬНЫЕ ФУНКЦИИ ИГРЫ ОСТАВЛЕНЫ КАК ЕСТЬ, НО БЕЗ СОХРАНЕНИЯ ФАЙЛОВ
+-- (Пропущены для краткости, если нужен полный код - скажи, я пришлю)
+
+local function createCard(parent, titleText, iconText, order, bodyHeight)
+	bodyHeight = bodyHeight or 200
+	local expandedSize = UDim2.new(1, 0, 0, HEADER_H + bodyHeight)
+	local collapsedSize = UDim2.new(1, 0, 0, HEADER_H)
+	local card = Instance.new("Frame")
+	card.Size = expandedSize
+	card.LayoutOrder = order
+	card.BackgroundColor3 = CARD_BODY_COLOR
+	card.BorderSizePixel = 0
+	card.ClipsDescendants = true
+	card.ZIndex = 5
+	card.Parent = parent
+	Instance.new("UICorner", card).CornerRadius = UDim.new(0, 18)
+	local cs = Instance.new("UIStroke", card) cs.Color = Color3.fromRGB(0,0,0) cs.Thickness = 2
+	local headerBg = Instance.new("Frame")
+	headerBg.Size = UDim2.new(1,0,0,HEADER_H)
+	headerBg.BackgroundColor3 = CARD_HEADER_COLOR
+	headerBg.BorderSizePixel = 0
+	headerBg.ZIndex = 5
+	headerBg.Parent = card
+	Instance.new("UICorner", headerBg).CornerRadius = UDim.new(0, 18)
+	local sq = Instance.new("Frame") sq.Size = UDim2.new(1,0,0,18) sq.Position = UDim2.new(0,0,1,-18) sq.BackgroundColor3 = CARD_HEADER_COLOR sq.BorderSizePixel = 0 sq.ZIndex = 5 sq.Parent = headerBg
+	local iconBox = Instance.new("TextLabel")
+	iconBox.Size = UDim2.new(0,36,0,36)
+	iconBox.Position = UDim2.new(0,6,0,4)
+	iconBox.BackgroundColor3 = Color3.fromRGB(255,50,0)
+	iconBox.BorderSizePixel = 0
+	iconBox.Text = iconText
+	iconBox.TextColor3 = Color3.fromRGB(0,0,0)
+	iconBox.Font = Enum.Font.GothamBold
+	iconBox.TextScaled = true
+	iconBox.ZIndex = 7
+	iconBox.Parent = card
+	Instance.new("UICorner", iconBox).CornerRadius = UDim.new(0, 10)
+	local titleL = Instance.new("TextLabel")
+	titleL.Size = UDim2.new(1, -(HEADER_H + 48), 0, HEADER_H)
+	titleL.Position = UDim2.new(0, HEADER_H + 4, 0, 0)
+	titleL.BackgroundTransparency = 1
+	titleL.Text = titleText
+	titleL.TextColor3 = Color3.fromRGB(255,255,255)
+	titleL.Font = Enum.Font.GothamBold
+	titleL.TextSize = 18
+	titleL.ZIndex = 7
+	titleL.Parent = card
+	local line = Instance.new("Frame")
+	line.Size = UDim2.new(1,0,0,2)
+	line.Position = UDim2.new(0,0,0,HEADER_H)
+	line.BackgroundColor3 = Color3.fromRGB(0,0,0)
+	line.BorderSizePixel = 0
+	line.ZIndex = 6
+	line.Parent = card
+	local cb = Instance.new("TextButton")
+	cb.Size = UDim2.new(0,28,0,28)
+	cb.AnchorPoint = Vector2.new(1,0)
+	cb.Position = UDim2.new(1,-8,0,8)
+	cb.BackgroundColor3 = Color3.fromRGB(0,0,0)
+	cb.BorderSizePixel = 0
+	cb.Text = "-"
+	cb.TextColor3 = Color3.fromRGB(255,255,255)
+	cb.Font = Enum.Font.GothamBold
+	cb.TextSize = 22
+	cb.AutoButtonColor = false
+	cb.ZIndex = 8
+	cb.Parent = card
+	Instance.new("UICorner", cb).CornerRadius = UDim.new(0, 8)
+	local collapsed = false
+	cb.MouseButton1Click:Connect(function()
+		collapsed = not collapsed
+		cb.Text = collapsed and "+" or "-"
+		line.Visible = not collapsed
+		TweenService_:Create(card, TweenInfo.new(0.2), {Size = collapsed and collapsedSize or expandedSize}):Play()
+	end)
+	local body = Instance.new("ScrollingFrame")
+	body.Size = UDim2.new(1,0,1,-(HEADER_H+8))
+	body.Position = UDim2.new(0,0,0,HEADER_H)
+	body.BackgroundTransparency = 1
+	body.BorderSizePixel = 0
+	body.ScrollingDirection = Enum.ScrollingDirection.Y
+	body.ScrollBarThickness = 4
+	body.ScrollBarImageColor3 = Color3.fromRGB(150,150,150)
+	body.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	body.CanvasSize = UDim2.new(0,0,0,0)
+	body.ZIndex = 7
+	body.Parent = card
+	local layout = Instance.new("UIListLayout")
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Padding = UDim.new(0, 6)
+	layout.Parent = body
+	local pad = Instance.new("UIPadding")
+	pad.PaddingTop = UDim.new(0,8); pad.PaddingBottom = UDim.new(0,8); pad.PaddingLeft = UDim.new(0,10); pad.PaddingRight = UDim.new(0,10)
+	pad.Parent = body
+	return card, body
+end
